@@ -1,0 +1,54 @@
+{
+	"mqtt":{
+		"topics":{	
+			"base": "/sensors"
+		}
+	},
+	"sensors":
+	[
+		{
+			"name": "scd4x",
+			"device":"scd4x",
+			"config":{
+				"device":{
+					"useDefaults":false,
+					"initEnable":true,
+					"useGlobalConfig": true,
+					"important":true
+				},
+				"program":{
+					"i2cPort":0				
+				},
+				"mqtt":{
+					"useDefaults":false,
+					"useParentTopics":false,
+					"topics":{
+						"base":"/scd4x"
+					}
+				}
+			}			
+		},
+		{
+			"name": "sht4x",
+			"device":"sht4x",
+			"config":{
+				"device":{
+					"useDefaults":false,
+					"initEnable":true,
+					"useGlobalConfig": true,
+					"important":true
+				},
+				"program":{
+					"i2cPort":0
+				},
+				"mqtt":{
+					"json":true,
+					"useParentTopics":false,
+					"topics":{
+						"base":"/sht4x"
+					}
+				}
+			}
+		}				
+	]
+}

@@ -1,0 +1,9 @@
+{
+	"mqtt":{
+		"json":true,
+		"useParentTopics":false,
+		"topics":{
+			"base": "/devices"
+		}
+	}
+}

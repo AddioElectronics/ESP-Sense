@@ -1,0 +1,29 @@
+//Not implemented.
+{
+	"json":true,
+	"topics":{
+		"base": "/leds/"
+	},
+	"lights":[
+		{
+			"name":"Led1",
+			"gpio":2,
+			"on":1,
+			"mqtt":{
+				"topics":{
+					"base":"/led1/"
+				}
+			}
+		},
+		{
+			"name":"Ext",
+			"gpio":15,
+			"on":1,
+			"mqtt":{
+				"topics":{
+					"base":"/ext/"
+				}
+			}
+		}
+	]
+}

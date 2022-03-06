@@ -1,0 +1,35 @@
+{
+	"scd4x":{
+		"internal":{
+			"useDefaults":false,
+			"altitude":15,
+			"ambientPressure":0,
+			"tempOffset":0,
+			"retainSettings":false,
+			"selfCalibrate":false
+		},
+		"program":{
+			"useDefaults":false,
+			"periodicMeasure":true,
+			"bootSelfTest":false,
+			"readRateAdditional":0,
+			"maxFailedReads":10,
+			"powerMode":"std",
+			"checkDataReady":false
+		},
+		"mqtt":{
+			"useDefaults":false,
+			"json":true,
+			"retain":false,
+			"useParentTopics":false,
+			"baseTopics":{
+				"co2":"/co2",
+				"temperature":"/temperature",
+				"humidity":"/humidity"
+			},
+			"publishCo2":true,
+			"publishTemperature":true,
+			"publishHumdiity":true
+		}
+	}	
+}

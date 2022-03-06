@@ -1,0 +1,68 @@
+html:not([auth]) #logout_but {
+  display: none;
+}
+
+#logout_but {
+  /*border-radius: 25%;*/
+  position: absolute;
+  right: 20px;
+}
+
+span.dev-mode {
+  color: red;
+  position: absolute;
+  left: 20px;
+  top: 20px;
+  z-index: 9999;
+}
+
+span.dev-mode:hover {
+  display: none;
+}
+
+body {
+  background-color: var(--bs-dark);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #989898;
+}
+
+p {
+  color: white;
+}
+
+button {
+  display: inline-block;
+  background-color: #1e3f71 !important;
+  border-color: black !important;
+}
+
+button:hover {
+  border-color: rgb(3,146,207) !important;
+  background-color: #295495 !important;
+}
+
+button.disabled {
+  color: rgb(0,0,0)!important;
+  background-color: #28477b !important;
+}
+
+.coming-soon {
+  text-align: center;
+  margin: 50px;
+  color: blueviolet;
+}
+
+h1.page-heading {
+  margin: 20px;
+  text-align: center;
+}
+
+.http-error-msg {
+  max-width: 400px;
+  position: relative;
+  margin: auto;
+  text-align: center;
+}
+

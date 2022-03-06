@@ -1,0 +1,12 @@
+{
+	"LLC200D3SH":{
+		"program":{
+			"useDefaults":false,
+			"waterPresent":0,
+			"invert":false
+		}
+		"mqtt":{
+			"retain":false
+		}
+	}
+}

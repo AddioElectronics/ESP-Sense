@@ -1,0 +1,25 @@
+{
+	"binarySensors":[
+		{
+			"name": "waterlevel",
+			"device":"llc200d3sh",			
+			"config":{
+				"device":{
+					"useGlobalConfig": true,
+					"important":true
+				},			
+				"program":{
+					"gpio": 4
+				},
+				"mqtt":{
+					"retain":false,
+					"topics":{
+						"base":"/waterlevel",
+						"state":"/state",
+						"command":"/command"
+					}
+				}
+			}
+		}
+	]
+}

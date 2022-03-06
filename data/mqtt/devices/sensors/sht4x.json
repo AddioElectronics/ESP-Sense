@@ -1,0 +1,15 @@
+{
+	"sht4x":{
+		"internal":{
+			"useDefaults":false,
+			"precision":0,
+			"heater":0
+		},
+		"mqtt":{
+			"retain":false,
+			"publishCo2":true,
+			"publishTemperature":true,
+			"publishHumdiity":true
+		}
+	}
+}

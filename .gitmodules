@@ -1,0 +1,24 @@
+[submodule "arduino-i2c-scd4x"]
+	path = arduino-i2c-scd4x
+	url = https://github.com/Sensirion/arduino-i2c-scd4x.git
+[submodule "Adafruit_SHT4X"]
+	path = Adafruit_SHT4X
+	url = https://github.com/adafruit/Adafruit_SHT4X.git
+[submodule "pubsubclient"]
+	path = pubsubclient
+	url = https://github.com/knolleary/pubsubclient.git
+[submodule "Adafruit_Sensor"]
+	path = Adafruit_Sensor
+	url = https://github.com/adafruit/Adafruit_Sensor.git
+[submodule "arduino-core"]
+	path = arduino-core
+	url = https://github.com/Sensirion/arduino-core.git
+[submodule "ArduinoJson"]
+	path = ArduinoJson
+	url = https://github.com/bblanchon/ArduinoJson.git
+[submodule "Adafruit_BusIO"]
+	path = Adafruit_BusIO
+	url = https://github.com/adafruit/Adafruit_BusIO.git
+[submodule "ESP_EEPROM"]
+	path = ESP_EEPROM
+	url = https://github.com/jwrw/ESP_EEPROM.git
