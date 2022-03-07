@@ -10,6 +10,10 @@
 *.user
 *.userosscache
 *.sln.docstates
+*BSS_Export_Script.exe
+*BSS_Export_Script.dll
+*BSS_Export_Script.deps
+*Push_Checklist.txt
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
@@ -98,9 +102,8 @@ StyleCopReport.xml
 *.pidb
 *.svclog
 *.scc
-__vm/
-.vmpreproc/
-*__vm/
+*.vmpreproc/
+*vm/
 *.componentinfo.xml
 *.cppproj
 *.vcxproj

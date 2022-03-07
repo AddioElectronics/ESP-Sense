@@ -1,5 +1,0 @@
-# esp_sense_assistant build property overrides
-#
-
-# Force LittleFS Usage for ESP8266
-     # runtime.tools.mkspiffs.path=notTheToolYoureLookingFor 
