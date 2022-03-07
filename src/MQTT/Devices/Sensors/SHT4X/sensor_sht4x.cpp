@@ -10,7 +10,7 @@
 #include <LITTLEFS.h>
 #endif
 
-#include "../../../../../EspSense.h"
+#include "../../../../../ESP_Sense.h"
 #include "../../../MqttManager.h"
 #include "../../../MqttHelper.h"
 #include "../../../../JsonHelper.h"
@@ -465,7 +465,7 @@ bool Sht4xSensor::IsConnected()
 
 	sensorStatus.connected = testData.temperature.temperature != 0;
 
-	if (!status.mqtt.devicesConfigured || (currentStatus && !sensorStatus.connected))
+	if ((currentStatus || !status.mqtt.devicesConfigured) && !sensorStatus.connected)
 	{
 		MarkDisconnected();
 

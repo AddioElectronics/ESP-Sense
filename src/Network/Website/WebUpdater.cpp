@@ -2,11 +2,11 @@
 
 #include <Update.h>
 
-#include "../../../EspSense.h"
+#include "../../../ESP_Sense.h"
 #include "WebStrings.h"
 #include "WebpageServer.h"
 #include "../../macros.h"
-
+#include "../Server/Authentication.h"
 
 
 extern AsyncWebServer server;
@@ -36,7 +36,7 @@ void Network::Website::WebUpdate::Initialize()
 
 #if COMPILE_WEBUPDATE
 	server.on(Strings::Urls::pageWebUpdate, HTTP_GET, [](AsyncWebServerRequest* request) {
-		if (!status.server.authenticated)
+		if (!Server::Authentication::IsAuthenticated(request))
 			Network::Server::Server401(request);
 		else if (status.server.browser.updater.enabled)
 			Network::Server::ServeWebpage(Network::Website::Strings::Urls::pageWebUpdate, request);
@@ -47,7 +47,7 @@ void Network::Website::WebUpdate::Initialize()
 
 	//File upload
 	server.on(Strings::Urls::requestWebUpdate, HTTP_POST, [](AsyncWebServerRequest* request) {
-		if (!status.server.authenticated)
+		if (!Server::Authentication::IsAuthenticated(request))
 		{
 			request->send(401, Strings::ContentType::textPlain, Strings::Messages::unauthorized);
 			return;
@@ -71,7 +71,7 @@ void Network::Website::WebUpdate::Disable()
 
 void HandleUpdate(AsyncWebServerRequest* request, String filename, size_t index, uint8_t* data, size_t len, bool final)
 {
-	if (!status.server.authenticated) return;
+	if (!Network::Server::Authentication::IsAuthenticated(request)) return;
 
 	#warning reminder to disable MQTT devicesand other server modules.
 

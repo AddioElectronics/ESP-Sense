@@ -42,6 +42,8 @@ enum ESP_MEMSIZE
 #define DEVELOPER_MODE				true						//Compile extra code which makes life easier when frequently flashing or switching devices(ESP32->8266) *Barely used
 #define SERIALIZE_ENUMS_TO_STRING	true						//If true, when serializing config files for saving, enums will be displayed as strings, and if false their "index."
 
+#define NEWLINE						\r\n
+
 
 //Max amount of seconds or connection attempts(depending on where loop is) before retained status will save.
 //It usually saves at end of setup, but if it can't get there it needs a way to save earlier.
@@ -786,6 +788,7 @@ typedef struct {
 		bool configured : 1;
 		bool authenticated : 1;
 		bool authConfigured : 1;
+		bool specialRequestsConfigured : 1;
 		IPAddress clientIP;
 		UpdateMode updating;
 		unsigned long sessionEnd;
@@ -796,9 +799,6 @@ typedef struct {
 		struct {
 			bool enabled : 1;
 			bool configured : 1;
-			struct {
-				bool configured : 1;
-			}home;
 			struct {
 				bool enabled : 1;
 				bool configured : 1;

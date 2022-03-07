@@ -50,6 +50,7 @@
 //TFT support
 //Serial commands (USB Serial not functioning after wifi is enabled, atleast for my dev board)
 //Disable mqtt device after so many disconnects.
+//Change back to HTTP authentication
 
 
 #if !defined(ESP8266) && !defined(ESP32)
@@ -63,7 +64,6 @@
 //////////////////////////////////////////////////////
 //					Includes
 //////////////////////////////////////////////////////
-
 
 #include <Arduino.h>
 
@@ -128,7 +128,7 @@
 #include <SensirionI2CScd4x.h>
 
 
-#include "ESPSense.h"
+#include "ESP_Sense.h"
 #include "src/FileManager.h"
 #include "src/EspSenseValidation.h"
 #include "src/Config/ConfigManager.h"
@@ -142,6 +142,7 @@
 
 
 #include "src/Network/Server/ServerManager.h"
+#include "src/Network/Server/Authentication.h"
 #include "src/Network/OtaManager.h"
 #include "src/Network/Website/WebsiteManager.h"
 #include "src/Network/Website/WebConfigBrowser.h"

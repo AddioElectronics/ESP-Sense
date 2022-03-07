@@ -9,19 +9,9 @@
 
 namespace Network {
 	namespace Website {
-
 		void Initialize();
 		void StopHosting();
 
-		namespace Home {
-
-
-			void Initialize();
-			//void ResponseHome();
-			//void ResponseDeviceStatus();
-
-
-		}
 	}
 }
 

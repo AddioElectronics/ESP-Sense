@@ -1,6 +1,6 @@
 #include "sensor_scd4x.h"
 
-#include "../../../../../ESPSense.h"
+#include "../../../../../ESP_Sense.h"
 #include "../../../MqttManager.h"
 #include "../../../MqttHelper.h"
 #include "../../../../JsonHelper.h"
@@ -142,7 +142,7 @@ bool Scd4xSensor::Configure()
 	//	}
 
 	//	errors++;
-	//	DisplayError("Error Configuring from Sensor's EEPROM | Message :", uniqueStatus.error, false);
+	//	DisplayError("Error Configuring from Sensor's EEPROM", uniqueStatus.error, false);
 
 	//	//Set flag to show that retainSettings was unable to be set.
 	//	uniqueStatus.retainedSettingsInitialized = false;
@@ -696,7 +696,7 @@ bool Scd4xSensor::Connect()
 
 			if (uniqueStatus.error)
 			{
-				DisplayError("Self-Test failed. | Message : ");
+				DisplayError("Self-Test failed. ");
 			}
 			else
 			{
@@ -725,7 +725,7 @@ bool Scd4xSensor::Connect()
 
 bool Scd4xSensor::IsConnected()
 {
-	DEBUG_LOG_LN("Checking SCD41 Connection.");
+	DEBUG_LOG_F("Checking %s(SCD41) Connection...", name.c_str());
 	/*
 	As there is no function to check if the device is connected,
 	we can try getting the serial number, if they contain data we have connected.
@@ -734,17 +734,21 @@ bool Scd4xSensor::IsConnected()
 
 	bool currentStatus = sensorStatus.connected;
 
-	bool error = GetSerialNumber(serialNumber, false);
+	//Don't display error in GetSerialNumber, it will call IsConnected causing an infinite loop.
+	bool success = GetSerialNumber(serialNumber, false);
 
-	if (error)
+	//Now is the time to display the error if it exists.
+	if (!success)
 	{
 		DisplayError(false);
 	}
 
-	//Check if serial data is valid, ignore error as it could simply be a CRC error. If we have a Serial number the device is connected.
-	sensorStatus.connected = !error && (serialNumber.serial0 && serialNumber.serial1 && serialNumber.serial2);
+	sensorStatus.connected = success && (serialNumber.serial0 && serialNumber.serial1 && serialNumber.serial2);
 
-	if (!status.mqtt.devicesConfigured || (currentStatus && !sensorStatus.connected))
+	if (sensorStatus.connected)
+		DEBUG_LOG_LN("Connected");
+
+	if ((currentStatus || !status.mqtt.devicesConfigured) && !sensorStatus.connected)
 	{
 		MarkDisconnected();
 
@@ -753,6 +757,7 @@ bool Scd4xSensor::IsConnected()
 
 		ResetStatusPartial(false, false);
 	}
+
 	return sensorStatus.connected;
 }
 
@@ -793,7 +798,7 @@ bool Scd4xSensor::Read()
 
 			if (uniqueStatus.error)
 			{
-				DisplayError("...Error Starting SCD41 Measurement | Message : ");
+				DisplayError("...Error Starting SCD41 Measurement ");
 				return false;
 			}
 			else
@@ -888,7 +893,7 @@ bool Scd4xSensor::PowerDown()
 
 	if (uniqueStatus.error)
 	{
-		DisplayError("SCD41 Power down Failed | Message :", uniqueStatus.error);
+		DisplayError("SCD41 Power down Failed", uniqueStatus.error);
 		sensorStatus.sleeping = false;
 	}
 	else
@@ -907,7 +912,7 @@ bool Scd4xSensor::Wake()
 		DEBUG_LOG_F("Warking %s", name.c_str());
 		if (uniqueStatus.error = sensor.wakeUp() != 0) //0 = no error
 		{
-			DisplayError("SCD41 Wake Up Failed | Message :", uniqueStatus.error);
+			DisplayError("SCD41 Wake Up Failed", uniqueStatus.error);
 			return false;
 		}
 		DEBUG_LOG_F("%s Is Awake", name.c_str());
@@ -955,7 +960,7 @@ bool Scd4xSensor::IsDataReady(uint16_t* error, uint16_t* result)
 	if (uniqueStatus.error)
 	{
 		uniqueStatus.dataReady = false;
-		DisplayError("Error Getting SCD41 Data Ready | Message :");
+		DisplayError("Error Getting SCD41 Data Ready");
 		FailedRead();
 		return false;
 	}
@@ -1092,7 +1097,7 @@ bool Scd4xSensor::StartPeriodicMeasurements()
 
 	if (uniqueStatus.error)
 	{
-		DisplayError("Error Starting Periodic Measurements. | Message :");
+		DisplayError("Error Starting Periodic Measurements.");
 		return false;
 	}
 	else
@@ -1117,7 +1122,7 @@ bool Scd4xSensor::StopPeriodicMeasurements(bool force)
 
 	if (uniqueStatus.error)
 	{
-		DisplayError("Error Stopping Periodic Measurements. | Message :");
+		DisplayError("Error Stopping Periodic Measurements.");
 		return false;
 	}
 	else
@@ -1145,8 +1150,11 @@ void Scd4xSensor::FailedRead()
 
 bool Scd4xSensor::GetSerialNumber(SCD4xSerialNumber_t& serialNumber, bool displayError)
 {
+	DEBUG_LOG_F("Getting SCD4x(%s) Serial Number...", name.c_str());
 	uniqueStatus.error = sensor.getSerialNumber(serialNumber.serial0, serialNumber.serial1, serialNumber.serial2);
 	
+	DEBUG_LOG_F("-SN : 0x%000x%000x%000x\r\n\r\n", serialNumber.serial0, serialNumber.serial1, serialNumber.serial2);
+
 	if(displayError)
 		if (uniqueStatus.error)
 		{
@@ -1187,7 +1195,7 @@ bool Scd4xSensor::PerformSelfTest()
 
 	if (uniqueStatus.error)
 	{
-		DisplayError("SCD41 Self-Test Failed | Message :", uniqueStatus.error);
+		DisplayError("SCD41 Self-Test Failed", uniqueStatus.error);
 	}
 	else
 	{
@@ -1234,7 +1242,7 @@ bool Scd4xSensor::PerformFactoryReset()
 
 	if (uniqueStatus.error)
 	{
-		DisplayError("SCD41 Factory Reset Failed | Message :");
+		DisplayError("SCD41 Factory Reset Failed");
 	}
 	else
 	{
@@ -1303,7 +1311,7 @@ bool Scd4xSensor::PerformForcedCalibration(uint16_t targetCo2Concentration, uint
 
 	if (uniqueStatus.error)
 	{
-		DisplayError("SCD41 Forced-Calibration Failed | Message :", uniqueStatus.error);
+		DisplayError("SCD41 Forced-Calibration Failed", uniqueStatus.error);
 	}
 	else
 	{
@@ -1336,7 +1344,7 @@ bool Scd4xSensor::ReInit()
 
 	if (uniqueStatus.error)
 	{
-		DisplayError("SCD41 Re-Initialization Failed | Message :", uniqueStatus.error);
+		DisplayError("SCD41 Re-Initialization Failed", uniqueStatus.error);
 	}
 	else
 	{
@@ -1364,7 +1372,7 @@ bool Scd4xSensor::SetAltitude(uint16_t altitude, bool force)
 
 	if (uniqueStatus.error)
 	{
-		DisplayError("Error Setting Altitude | Message :", false);
+		DisplayError("Error Setting Altitude", false);
 		return false;
 	}
 	else
@@ -1391,7 +1399,7 @@ bool Scd4xSensor::SetAmbientPressure(uint16_t ambientPressure, bool force)
 
 	if (uniqueStatus.error)
 	{
-		DisplayError("Error Setting Ambient Pressure | Message :", false);
+		DisplayError("Error Setting Ambient Pressure", false);
 		return false;
 	}
 	else
@@ -1419,7 +1427,7 @@ bool Scd4xSensor::SetTemperatureOffset(float tempOffset, bool force)
 
 	if (uniqueStatus.error)
 	{
-		DisplayError("Error Setting Temperature Offset | Message :", false);
+		DisplayError("Error Setting Temperature Offset", false);
 		return false;
 	}
 	else
@@ -1443,7 +1451,7 @@ bool Scd4xSensor::SetSelfCalibration(bool enable, bool force)
 
 	if (uniqueStatus.error)
 	{
-		DisplayError("Error Setting Self-Calibration | Message :", false);
+		DisplayError("Error Setting Self-Calibration", false);
 		return false;
 	}
 	else
@@ -1470,7 +1478,7 @@ bool Scd4xSensor::SetRetainSettings(bool retain, bool force)
 
 		if (uniqueStatus.error)
 		{
-			DisplayError("Error Setting Ambient Pressure | Message :", false);
+			DisplayError("Error Setting Ambient Pressure", false);
 			return false;
 		}
 		else
@@ -1546,13 +1554,13 @@ void Scd4xSensor::DisplayError(const char* message, uint16_t error, bool checkCo
 void Scd4xSensor::DisplayError(uint16_t error, bool checkConnection)
 {
 	//Check connection
-	if(checkConnection)
-	if (!IsConnected())
-	{
-		DEBUG_LOG_LN("Device not connected.");
-		return;
-	}
-
+	if (checkConnection)
+		if (!IsConnected())
+		{
+			DEBUG_LOG_LN("Device not connected.");
+			return;
+		}
+	DEBUG_LOG_F("...\r\n-Code : %d\r\n-Message : ", error);
 	errorToString(error, errorMessage, 256);
 	DEBUG_LOG_LN(errorMessage);
 }

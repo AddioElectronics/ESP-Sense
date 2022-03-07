@@ -3,7 +3,7 @@
 #include <ArduinoOTA.h>
 #include <WiFiUdp.h>
 
-#include "../../ESPSense.h"
+#include "../../ESP_Sense.h"
 #include "../macros.h"
 #include "../FileManager.h"
 

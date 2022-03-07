@@ -9,7 +9,7 @@
 #include <ArduinoJson.h>
 #include <PubSubClient.h>
 
-#include "../../../ESPSense.h"
+#include "../../../ESP_Sense.h"
 #include "../../Config/config_mqtt.h"
 #include "MqttDevice_Config.h"
 #include "../MqttHelper.h"
@@ -70,7 +70,8 @@ typedef struct {
 		bool configured : 1;
 		bool enabled : 1;
 		bool subscribed : 1;
-		uint8_t reserved : 5;
+		bool markedDisconnected : 1;
+		uint8_t reserved : 4;
 	};
 	unsigned long publishTimestamp;
 	unsigned long publishErrorTimestamp;
@@ -147,25 +148,9 @@ public:
 	}
 
 
-	virtual bool Init( bool enable = true)
-	{		
-		if (!status.mqtt.devicesConfigured)
-			ResetStatus();
+	virtual bool Init(bool enable = true);
 
-		//memset(&deviceStatus, 0, sizeof(MqttDeviceStatus_t));
-		//deviceStatus.enabled = true;
-		Configure(); 
-
-		if (deviceStatus.configured && enable)
-			Enable();
-
-		return deviceStatus.configured && (deviceStatus.enabled || !enable);
-	}
-
-	virtual void ResetStatus()
-	{
-		memset(&deviceStatus, 0, sizeof(MqttDeviceStatus_t));
-	}
+	virtual void ResetStatus();
 
 	virtual void Loop() {return;}
 	virtual bool Configure() { return true; }			//Requires no configuration

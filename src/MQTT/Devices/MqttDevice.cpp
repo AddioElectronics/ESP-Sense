@@ -7,8 +7,32 @@
 
 extern PubSubClient mqttClient;
 
+bool MqttDevice::Init(bool enable)
+{
+	if (!status.mqtt.devicesConfigured)
+		ResetStatus();
+
+	//memset(&deviceStatus, 0, sizeof(MqttDeviceStatus_t));
+	//deviceStatus.enabled = true;
+	Configure();
+
+	if (deviceStatus.configured && enable)
+		Enable();
+	else
+		MarkDisconnected();
+
+	return deviceStatus.configured && (deviceStatus.enabled || !enable);
+}
+
+void MqttDevice::ResetStatus()
+{
+	memset(&deviceStatus, 0, sizeof(MqttDeviceStatus_t));
+}
+
 void MqttDevice::MarkDisconnected()
 {
+	if (deviceStatus.markedDisconnected) return;
+
 	uint64_t mask = 1 << (index < 64 ? index : index % 64);
 	uint8_t bmIndex = index < 64 ? 0 : (index / 64);
 
@@ -19,6 +43,8 @@ void MqttDevice::MarkDisconnected()
 
 	DEBUG_LOG_F("Mark Disconnected\r\n-Device Index : %d\r\n-Important : %d\r\n", index, deviceConfig.important);
 
+	deviceStatus.markedDisconnected = true;
+
 	if (config.mqtt.ledGpio == -1 || !mqttClient.connected() || status.device.tasks.mqttBlinkTaskRunning) return;
 
 	if (!Mqtt::AllImportantDevicesFunctional())
@@ -27,6 +53,8 @@ void MqttDevice::MarkDisconnected()
 
 void MqttDevice::MarkReconnected()
 {
+	if (!deviceStatus.markedDisconnected) return;
+
 	uint64_t mask = 1 << (index < 64 ? index : index % 64);
 	uint8_t bmIndex = index < 64 ? 0 : (index / 64);
 
@@ -36,6 +64,8 @@ void MqttDevice::MarkReconnected()
 		*((&status.mqtt.devices.functioningDevicesImportant.bitmap0) + bmIndex) &= ~mask;
 
 	DEBUG_LOG_F("Mark Reconnected\r\n-Device Index : %d\r\n-Important : %d\r\n", index, deviceConfig.important);
+
+	deviceStatus.markedDisconnected = false;
 
 	if (config.mqtt.ledGpio == -1 || !mqttClient.connected() || !status.device.tasks.mqttBlinkTaskRunning) return;
 

@@ -2,7 +2,7 @@
 
 #include <Regexp.h>
 
-#include "../ESPSense.h"
+#include "../ESP_Sense.h"
 #include "Config/config_master.h"
 
 #include "macros.h"

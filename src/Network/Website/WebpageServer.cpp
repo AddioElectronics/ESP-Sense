@@ -1,7 +1,6 @@
 #include "WebpageServer.h"
 
-#include "WebStrings.h"
-#include "../../macros.h"
+
 
 
 
@@ -27,24 +26,28 @@ bool Network::Server::ServeWebpage(String& path, AsyncWebServerRequest* request)
 	return true;
 }
 
-bool Network::Server::ServeWebpage(const char* path, AsyncWebServerRequest* request)
-{
-	String spath = path;
-	return ServeWebpage(spath, request);
-}
 
-bool Network::Server::Server401(AsyncWebServerRequest* request)
-{
-	return ServeWebpage(Network::Website::Strings::Urls::error401, request);
-}
+//bool Network::Website::ServeErrorPage(AsyncWebServerRequest* request, int error)
+//{
+//	char* path;
 
-bool Network::Server::Server404(AsyncWebServerRequest* request)
-{
-	return ServeWebpage(Network::Website::Strings::Urls::error404, request);
-}
+//	int size = asprintf(&path, Strings::Paths::errorPattern, error);
 
-bool Network::Server::Server501(AsyncWebServerRequest* request)
-{
-	return ServeWebpage(Network::Website::Strings::Urls::error501, request);
-}
+//	if (size > 0)
+//	{
+//		if (ESP_FS.exists(path))
+//			Server::ServeWebpage(path, request);
+//		else
+//		{
+//			size = 0;	//Return false
+//			request->send(error);
+//		}
+
+//		free(path);
+//		return size;
+//	}
+
+//	request->send(error);
+//	return false;
+//}
 

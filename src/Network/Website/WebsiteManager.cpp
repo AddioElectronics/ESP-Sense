@@ -42,7 +42,7 @@
 #endif	/*COMPILE_FTP*/
 
 
-#include "../../../ESPSense.h"
+#include "../../../ESP_Sense.h"
 #include "../../Config/ConfigManager.h"
 #include "../WifiManager.h"
 #include "../../MQTT/MqttManager.h"
@@ -75,15 +75,13 @@ extern HardwareSerial* serialDebug;		//Debug
 namespace Network {
 	namespace Website
 	{
-		void HandlerNotFound(AsyncWebServerRequest* request);
-
+		void HandlerNotFound(AsyncWebServerRequest* request);		
 		const char* GetContentType(const String& url);
 
 		void Initialize()
 		{
 			DEBUG_LOG_LN("Initializing Website...");
 			status.server.browser.enabled = true;
-			Website::Home::Initialize();
 			Website::WebUpdate::Initialize();
 			Website::ConfigBrowser::Initialize();
 			Website::ConfigBrowser::InitializeMqtt();
@@ -93,19 +91,21 @@ namespace Network {
 
 			if (status.server.browser.configured) return;
 
-			server.onNotFound(HandlerNotFound);
+			server.serveStatic("/", ESP_FS, Strings::Paths::rootdir).setDefaultFile(Strings::Paths::defaultFile);
+			//server.serveStatic("/", ESP_FS, Strings::Paths::pageHome);
+			//server.serveStatic(Strings::Urls::pageHome, ESP_FS, Strings::Paths::pageHome);
+			//server.serveStatic("/", ESP_FS, Strings::Paths::rootdir).setDefaultFile(homePath.c_str());
 
 
+			//Serve all CSS, JS and IMG files.
+			server.serveStatic(Strings::Urls::assetsCSS, ESP_FS, Strings::Paths::assetsCSS);
+			server.serveStatic(Strings::Urls::assetsJS, ESP_FS, Strings::Paths::assetsJS);
+			server.serveStatic(Strings::Urls::assetsIMG, ESP_FS, Strings::Paths::assetsIMG);
 
-			server.on(Strings::Urls::requestReset, HTTP_POST, [](AsyncWebServerRequest* request) {
-				request->send(200);
-				WifiManager::Disconnect();
-				delay(1000);
-				EspSense::RestartDevice();
-			});
+			server.onNotFound(HandlerNotFound);			
 
 			status.server.browser.configured = true;
-
+			DEBUG_LOG_LN("...Website Initialized.\r\n");
 		}
 
 
@@ -132,6 +132,8 @@ namespace Network {
 			if (status.server.browser.tools.jsonVerify.enabled)
 				status.server.browser.tools.jsonVerify.enabled = false;
 		}
+
+
 
 		const char* GetContentType(const String& url)
 		{
@@ -234,56 +236,7 @@ namespace Network {
 			DEBUG_NEWLINE();
 		}
 
-		namespace Home
-		{
-			void ResponseDeviceStatus(AsyncWebServerRequest* request);
 
-			String responseString;
-
-
-			void Initialize()
-			{
-				DEBUG_LOG_LN("Hosting Main Page...");
-
-				if (status.server.browser.home.configured) return;	//Already configured
-
-				//Not working, fix later
-				//String homePath = Network::Server::GeneratePathFromURL(Strings::Urls::pageHome);
-				//server.serveStatic("/", ESP_FS, Strings::Urls::pageHome);
-				//server.serveStatic(Strings::Urls::pageHome, ESP_FS, Strings::Urls::pageHome);
-				////server.serveStatic("/", ESP_FS, Strings::Paths::rootdir).setDefaultFile(homePath.c_str());
-
-				server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
-					Network::Server::ServeWebpage(Strings::Urls::pageHome, request);
-				});
-
-				server.on(Strings::Urls::pageHome, HTTP_GET, [](AsyncWebServerRequest* request) {
-					Network::Server::ServeWebpage(Strings::Urls::pageHome, request);
-				});
-
-				//Serve all CSS, JS and IMG files.
-				server.serveStatic(Strings::Urls::assetsCSS, ESP_FS, Strings::Paths::assetsCSS);
-				server.serveStatic(Strings::Urls::assetsJS, ESP_FS, Strings::Paths::assetsJS);
-				server.serveStatic(Strings::Urls::assetsIMG, ESP_FS, Strings::Paths::assetsIMG);
-
-				server.on("/status", HTTP_GET, ResponseDeviceStatus);
-
-				status.server.browser.home.configured = true;
-			}
-
-			void ResponseDeviceStatus(AsyncWebServerRequest* request)
-			{
-				size_t size = Config::Status::SerializeDeviceStatus(responseString);
-
-				if (size){
-					request->send(200, Strings::ContentType::appJSON, responseString.c_str());
-					responseString.clear();
-				}else
-					request->send(404);
-			}
-
-			
-		}
 
 
 

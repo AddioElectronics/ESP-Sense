@@ -14,7 +14,7 @@
 #include <EEPROM.h>
 #include <CRC32.h>
 
-#include "../../ESPSense.h"
+#include "../../ESP_Sense.h"
 #include "../MQTT/MqttManager.h"
 #include "../Macros.h"
 #include "../FileManager.h"
@@ -2921,8 +2921,10 @@ size_t Config::Status::SerializeDeviceStatus(String& serializeTo, DynamicJsonDoc
 		status_server["configured"] = status.server.configured;
 		status_server["authenticated"] = status.server.authenticated;
 		status_server["authConfigured"] = status.server.authConfigured;
+		status_server["specialRequestsConfigured"] = status.server.specialRequestsConfigured;
 		status_server["updating"] = (int)status.server.updating;	
 		status_server["clientIP"] = status.server.clientIP;
+		status_server["sessionEnd"] = status.server.sessionEnd;
 		#warning convert to string
 
 		//DNS
@@ -2946,9 +2948,6 @@ size_t Config::Status::SerializeDeviceStatus(String& serializeTo, DynamicJsonDoc
 		JsonObject status_browser = status_server.createNestedObject("browser");
 		{
 			status_browser["enabled"] = status.server.browser.enabled;
-
-			JsonObject status_server_home = status_browser.createNestedObject("home");
-			status_server_home["configured"] = status.server.browser.home.configured;
 
 #endif	/*COMPILE_SERVER*/
 

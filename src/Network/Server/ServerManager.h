@@ -29,12 +29,8 @@ namespace Network {
 		void StartDnsServer();
 		void StopDnsServer();
 		void Loop();
-		void Logout();
 #endif
 
-#if COMPILE_SERVER
-		void InitializeAuthenticator();
-#endif
 
 
 	}

@@ -16,7 +16,7 @@
 #include <FTPServer.h>
 #include <FTPCommon.h>
 
-#include "../../../ESPSense.h"
+#include "../../../ESP_Sense.h"
 #include "../../Config/config_mqtt.h""
 #include "../../macros.h"
 

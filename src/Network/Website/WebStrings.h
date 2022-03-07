@@ -16,6 +16,30 @@ namespace Network {
 					extern const char* root;
 					extern const char* rootdir;
 
+					extern const char* defaultFile;
+
+					extern const char* pageHome;
+					extern const char* pageConfig;
+					extern const char* pageConfigMqtt;
+					extern const char* pageWebUpdate;
+					extern const char* pageConsole;
+
+					extern const char* pageTools;
+					extern const char* pageConfigToolFileEditor;
+					extern const char* pageConfigToolJsonVerifier;
+					extern const char* pageConfigToolTemplateGen;
+
+					extern const char* requestAuth;
+					extern const char* requestLogout;
+					extern const char* requestWebUpdate;
+					extern const char* requestReset;
+					extern const char* requestAlive;
+
+					extern const char* errorPattern;
+					extern const char* error401;
+					extern const char* error404;
+					extern const char* error501;
+
 					extern const char* assetsJS;
 					extern const char* assetsCSS;
 					extern const char* assetsIMG;

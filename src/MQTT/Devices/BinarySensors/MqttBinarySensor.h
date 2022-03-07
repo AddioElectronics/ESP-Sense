@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-#include "../../../../ESPSense.h"
+#include "../../../../ESP_Sense.h"
 
 #include "../../MqttHelper.h"
 #include "../MqttDevice.h"

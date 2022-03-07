@@ -46,7 +46,7 @@
 #endif	/*COMPILE_FTP*/
 
 
-#include "../../ESPSense.h"
+#include "../../ESP_Sense.h"
 #include "../Config/ConfigManager.h"
 #include "../MQTT/MqttManager.h"
 #include "../GlobalDefs.h"
@@ -501,8 +501,9 @@ int InternalConnect(bool reconnect, bool waitForConnection, bool checkHotspotBut
 
 	if (canDisplayMessages)
 	{
-		DEBUG_LOG_LN("...Attempting to connect...\r\nWarning : COM port may not work properly if device does not have enough power!");
+		DEBUG_LOG_LN("...Attempting to connect...");
 		DEBUG_LOG_F("SSID : %s\r\nPass : %s\r\n", config.wifi.station.ssid.c_str(), config.wifi.station.pass.c_str());
+		DEBUG_LOG_LN("Warning : COM port may not work properly if device does not have enough power!");
 	}
 
 	Label_RetryConnect:
