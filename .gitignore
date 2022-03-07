@@ -10,6 +10,9 @@
 *.user
 *.userosscache
 *.sln.docstates
+*BSS_Export_Script.exe
+*BSS_Export_Script.dll
+*BSS_Export_Script.deps
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

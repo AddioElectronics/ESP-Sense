@@ -247,24 +247,25 @@ namespace Network {
 
 				if (status.server.browser.home.configured) return;	//Already configured
 
-				//Serve main page. Not using Serve Static as that would require 2 sets of strings.
+				//Not working, fix later
+				//String homePath = Network::Server::GeneratePathFromURL(Strings::Urls::pageHome);
+				//server.serveStatic("/", ESP_FS, Strings::Urls::pageHome);
+				//server.serveStatic(Strings::Urls::pageHome, ESP_FS, Strings::Urls::pageHome);
+				////server.serveStatic("/", ESP_FS, Strings::Paths::rootdir).setDefaultFile(homePath.c_str());
+
 				server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
 					Network::Server::ServeWebpage(Strings::Urls::pageHome, request);
 				});
 
-				String homePath = Network::Server::GeneratePathFromURL(Strings::Urls::pageHome);
-				server.serveStatic(Strings::Urls::pageHome, ESP_FS, homePath.c_str());
-				/*server.on(Strings::Urls::pageHome, HTTP_GET, [](AsyncWebServerRequest* request) {
+				server.on(Strings::Urls::pageHome, HTTP_GET, [](AsyncWebServerRequest* request) {
 					Network::Server::ServeWebpage(Strings::Urls::pageHome, request);
-				});*/
+				});
 
 				//Serve all CSS, JS and IMG files.
 				server.serveStatic(Strings::Urls::assetsCSS, ESP_FS, Strings::Paths::assetsCSS);
 				server.serveStatic(Strings::Urls::assetsJS, ESP_FS, Strings::Paths::assetsJS);
 				server.serveStatic(Strings::Urls::assetsIMG, ESP_FS, Strings::Paths::assetsIMG);
 
-
-				server.on("/status", HTTP_POST, ResponseDeviceStatus);
 				server.on("/status", HTTP_GET, ResponseDeviceStatus);
 
 				status.server.browser.home.configured = true;
@@ -272,31 +273,7 @@ namespace Network {
 
 			void ResponseDeviceStatus(AsyncWebServerRequest* request)
 			{
-				int pretty = false;
-
-				String body = request->getParam(0)->value();
-
-				if (!body.isEmpty())
-				{
-					StaticJsonDocument<128> doc;
-					DEBUG_LOG("-Data : ");
-					DEBUG_LOG_LN(body.c_str());
-
-					DeserializationError derror = deserializeJson(doc, body);
-
-					if (derror)
-					{
-						DEBUG_LOG("Error parsing Device Status POST Data : ");
-						DEBUG_LOG_LN(derror.c_str());
-					}
-
-					if (doc.containsKey("pretty"))
-					{
-						pretty = doc["pretty"];
-					}
-				}
-
-				size_t size = Config::Status::SerializeDeviceStatus(responseString, pretty);
+				size_t size = Config::Status::SerializeDeviceStatus(responseString);
 
 				if (size){
 					request->send(200, Strings::ContentType::appJSON, responseString.c_str());

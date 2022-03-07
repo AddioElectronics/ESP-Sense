@@ -17,6 +17,8 @@ void MqttDevice::MarkDisconnected()
 	if (deviceConfig.important)
 		*((&status.mqtt.devices.functioningDevicesImportant.bitmap0) + bmIndex) |= mask;
 
+	DEBUG_LOG_F("Mark Disconnected\r\n-Device Index : %d\r\n-Important : %d\r\n", index, deviceConfig.important);
+
 	if (config.mqtt.ledGpio == -1 || !mqttClient.connected() || status.device.tasks.mqttBlinkTaskRunning) return;
 
 	if (!Mqtt::AllImportantDevicesFunctional())
@@ -32,6 +34,8 @@ void MqttDevice::MarkReconnected()
 
 	if (deviceConfig.important)
 		*((&status.mqtt.devices.functioningDevicesImportant.bitmap0) + bmIndex) &= ~mask;
+
+	DEBUG_LOG_F("Mark Reconnected\r\n-Device Index : %d\r\n-Important : %d\r\n", index, deviceConfig.important);
 
 	if (config.mqtt.ledGpio == -1 || !mqttClient.connected() || !status.device.tasks.mqttBlinkTaskRunning) return;
 

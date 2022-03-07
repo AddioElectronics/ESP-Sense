@@ -262,10 +262,10 @@ device_count_t Mqtt::DeviceManager::ConfigureSensors()
 
 	//status.mqtt.devices.sensorCount = validCount;
 
-	DEBUG_LOG_F("Finished Configuring Sensors. %d/%d configured, and %d successfully connected and configured.", status.mqtt.devices.sensorCount, deviceArray.size(), initializedCount);
+	DEBUG_LOG_F("Finished Configuring Sensors. %d/%d created, and %d successfully connected and configured.", status.mqtt.devices.sensorCount, deviceArray.size(), initializedCount);
 	EspSense::YieldWatchdog(50);
 	DEBUG_NEWLINE();
-	return validCount;
+	return deviceArray.size() - validCount;
 }
 
 device_count_t Mqtt::DeviceManager::ConfigureBinarySensors()
@@ -418,10 +418,10 @@ device_count_t Mqtt::DeviceManager::ConfigureBinarySensors()
 
 	//status.mqtt.devices.sensorCount = validCount;
 
-	DEBUG_LOG_F("Finished Configuring Sensors. %d/%d configured, and %d successfully connected and configured.", status.mqtt.devices.sensorCount, deviceArray.size(), initializedCount);
+	DEBUG_LOG_F("Finished Configuring Binary Sensors. %d/%d configured, and %d successfully connected and configured.", status.mqtt.devices.binarySensorCount, deviceArray.size(), initializedCount);
 	EspSense::YieldWatchdog(50);
 	DEBUG_NEWLINE();
-	return validCount;
+	return deviceArray.size() - validCount;
 }
 
 device_count_t Mqtt::DeviceManager::ConfigureLights()
@@ -625,7 +625,7 @@ void Mqtt::DeviceManager::DisableAll()
 
 int Mqtt::DeviceManager::SubscribeAll()
 {
-	if (!status.mqtt.devicesConfigured) return 0;
+	if (!status.mqtt.devicesConfigured || !status.mqtt.connected) return 0;
 
 	int failed = 0;
 
@@ -648,7 +648,7 @@ int Mqtt::DeviceManager::SubscribeAll()
 
 int Mqtt::DeviceManager::UnsubscribeAll()
 {
-	if (!status.mqtt.devicesConfigured) return 0;
+	if (!status.mqtt.devicesConfigured || !status.mqtt.connected) return 0;
 
 	int failed = 0;
 
@@ -671,7 +671,7 @@ int Mqtt::DeviceManager::UnsubscribeAll()
 
 void Mqtt::DeviceManager::PublishAvailability()
 {
-	if (!status.mqtt.devicesConfigured) return;
+	if (!status.mqtt.devicesConfigured || !status.mqtt.connected) return;
 
 	for (device_count_t i = 0; i < status.mqtt.devices.sensorCount; i++)
 	{
@@ -711,7 +711,7 @@ void Mqtt::DeviceManager::ReadAll()
 
 void Mqtt::DeviceManager::PublishAll()
 {
-	if (!status.mqtt.devicesConfigured) return;
+	if (!status.mqtt.devicesConfigured || !status.mqtt.connected) return;
 
 	for (device_count_t i = 0; i < status.mqtt.devices.sensorCount; i++)
 	{
@@ -753,10 +753,11 @@ void Mqtt::DeviceManager::Loop()
 	{
 		PublishAll();
 		ReadAll();
+		DEBUG_NEWLINE();
 	}
 
 	mqttMessagesSent.devices = true;
-	DEBUG_NEWLINE();
+
 }
 
 

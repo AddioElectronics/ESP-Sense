@@ -58,23 +58,16 @@ function deviceStatusInit() {
     }
     
     $('html').on('deviceStatus', setNavVis);
-    getDeviceStatus(true);    
+    getDeviceStatus();    
 }
 
-function getDeviceStatus(pretty) {
-    var jStr = "";
-    
-    if(arguments.length > 0){
-        var jdata = {};
-        jdata["pretty"] = pretty;    
-        jStr = JSON.stringify(jdata);
-    }
-    
+function getDeviceStatus() {
+
     $.ajax({
         dataType: "json",
-        type: 'POST',
+        type: 'GET',
         url: "/status",
-        data: jStr.length > 0 ? jStr : null,
+        data: null,
         success: function(data) {
             console.log("Received Device Status :");
             console.log(data);
@@ -99,7 +92,7 @@ function retry(request, status, error) {
 function setNavVis() {
     
     if ($('#device_status').length > 0) {
-        $('#device_status').text(JSON.stringify(deviceStatusJOBJ));
+        $('#device_status').append(syntaxHighlight(JSON.stringify(deviceStatusJOBJ, null, 4)));
     }
     
     var rootObj = deviceStatusJOBJ['statusObj'];

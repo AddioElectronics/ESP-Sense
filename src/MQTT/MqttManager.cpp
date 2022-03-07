@@ -529,6 +529,8 @@ bool Mqtt::AllImportantDevicesFunctional()
 {
 	uint64_t* bitmap = &status.mqtt.devices.functioningDevicesImportant.bitmap0;
 
+	DEBUG_LOG_F("Checking Important Devices State | bitmap : %000000000000000x\r\n", bitmap);
+
 	for (uint8_t i = 0; i < (sizeof(DevicesFunctioning_t) / 8); i++)
 	{
 		if (*(bitmap + i) != 0)
@@ -838,7 +840,7 @@ bool Mqtt::Tasks::StartBlinkTask()
 	xTaskCreatePinnedToCore(
 		BlinkTask,				// Task function
 		"BlinkMqttLed",			// Name
-		512,					// Stack size
+		1024,					// Stack size
 		NULL,					// Parameters
 		2,						// Priority
 		&taskMqttBlink,			// Task handle

@@ -114,7 +114,7 @@ namespace Config
 		/// <param name="pretty">True will serialize to human readable form(Newlines, tabs, ect..), false will serialize all to a single line.</param>
 		/// <param name="out_doc">Get the serialized JsonDocument after serialization. Warning : Must free if used.</param>
 		/// <returns>Size of the serialized document.</returns>
-		size_t SerializeDeviceStatus(String& serializeTo, bool pretty = false, DynamicJsonDocument** out_doc = nullptr);
+		size_t SerializeDeviceStatus(String& serializeTo, DynamicJsonDocument** out_doc = nullptr);
 
 		bool SaveRetainedStatus();
 

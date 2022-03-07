@@ -465,7 +465,7 @@ bool Sht4xSensor::IsConnected()
 
 	sensorStatus.connected = testData.temperature.temperature != 0;
 
-	if (currentStatus && !sensorStatus.connected)
+	if (!status.mqtt.devicesConfigured || (currentStatus && !sensorStatus.connected))
 	{
 		MarkDisconnected();
 

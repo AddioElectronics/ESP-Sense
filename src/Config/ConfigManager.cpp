@@ -2763,9 +2763,9 @@ void Config::ChangeBootSource(enum ConfigSource source, bool saveRetained)
 #pragma region Status
 
 
-size_t Config::Status::SerializeDeviceStatus(String& serializeTo, bool pretty, DynamicJsonDocument** out_doc)
+size_t Config::Status::SerializeDeviceStatus(String& serializeTo, DynamicJsonDocument** out_doc)
 {
-	DynamicJsonDocument* doc = new DynamicJsonDocument(2048);
+	DynamicJsonDocument* doc = new DynamicJsonDocument(3072);
 	JsonObject statusObj = doc->createNestedObject("statusObj");
 	
 	//Device
@@ -3052,7 +3052,7 @@ size_t Config::Status::SerializeDeviceStatus(String& serializeTo, bool pretty, D
 		}
 	}
 
-	size_t size = pretty ? serializeJsonPretty(*doc, serializeTo) : serializeJson(*doc, serializeTo);
+	size_t size = serializeJson(*doc, serializeTo);
 
 	if (out_doc != nullptr)
 	{

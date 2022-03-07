@@ -9,9 +9,65 @@ namespace Network {
 				const char* unauthorized = "401 : Unauthorized";
 			}
 
+			namespace Paths
+			{
+				const char* root  = "/www";
+				const char* rootdir = "/www/";
+
+				const char* assetsJS = "/www/assets/js/";
+				const char* assetsCSS = "/www/assets/css/";
+				const char* assetsIMG = "/www/assets/img/";
+
+				const char* pageHome = "/www/index.html";
+				const char* pageConfig = "/www/config.html";
+				const char* pageConfigMqtt = "/www/config/mqtt.html";
+				const char* pageWebUpdate = "/www/update.html";
+				const char* pageConsole = "/www/console.html";
+
+				const char* pageTools = "/www/tools.html";
+				const char* pageConfigToolFileEditor = "/www/tools/fileeditor.html";
+				const char* pageConfigToolJsonVerifier = "/www/tools/jsonass.html";
+				const char* pageConfigToolTemplateGen = "/www/tools/templategen.html";
+
+				const char* requestAuth = "/www/auth";
+				const char* requestLogout = "/www/logout";
+				const char* requestWebUpdate = "/www/update/upload";
+				const char* requestReset = "/www/reset";
+				const char* requestAlive = "/www/alive";
+
+				const char* error401 = "/www/error/401.html";
+				const char* error404 = "/www/error/404.html";
+				const char* error501 = "/www/error/501.html";
+			}
+
 			namespace Urls {
 
-				const char* pageHome = "/index.html";
+				const char* pageHome = Paths::pageHome + 5; 
+				const char* pageConfig = Paths::pageConfig + 5;
+				const char* pageConfigMqtt = Paths::pageConfigMqtt + 5;
+				const char* pageWebUpdate = Paths::pageWebUpdate + 5;
+				const char* pageConsole = Paths::pageConsole + 5;
+
+				const char* pageTools = Paths::pageTools + 5;
+				const char* pageConfigToolFileEditor = Paths::pageConfigToolFileEditor + 5;
+				const char* pageConfigToolJsonVerifier = Paths::pageConfigToolJsonVerifier + 5;
+				const char* pageConfigToolTemplateGen = Paths::pageConfigToolTemplateGen + 5;
+
+				const char* requestAuth = Paths::requestAuth + 5;
+				const char* requestLogout = Paths::requestLogout + 5;
+				const char* requestWebUpdate = Paths::requestWebUpdate + 5;
+				const char* requestReset = Paths::requestReset + 5;
+				const char* requestAlive = Paths::requestAlive + 5;
+
+				const char* error401 = Paths::error401 + 5;
+				const char* error404 = Paths::error404 + 5;
+				const char* error501 = Paths::error501 + 5;
+
+				const char* assetsJS = Paths::assetsJS + 5;
+				const char* assetsCSS = Paths::assetsCSS + 5;
+				const char* assetsIMG = Paths::assetsIMG + 5;
+
+				/*const char* pageHome = "/index.html";
 				const char* pageConfig = "/config.html";
 				const char* pageConfigMqtt = "/config/mqtt.html";
 				const char* pageWebUpdate = "/update.html";
@@ -34,20 +90,12 @@ namespace Network {
 
 				const char* assetsJS = "/assets/js/";
 				const char* assetsCSS = "/assets/css/";
-				const char* assetsIMG = "/assets/img/";
+				const char* assetsIMG = "/assets/img/";*/
 
 
 			}
 
-			namespace Paths 
-			{
-				const char* root = "/www";
-				const char* rootdir = "/www/";
-
-				const char* assetsJS = "/www/assets/js/";
-				const char* assetsCSS = "/www/assets/css/";
-				const char* assetsIMG = "/www/assets/img/";
-			}
+			
 
 			namespace ContentType {
 

@@ -49,6 +49,7 @@
 //Email warning for sensor failure
 //TFT support
 //Serial commands (USB Serial not functioning after wifi is enabled, atleast for my dev board)
+//Disable mqtt device after so many disconnects.
 
 
 #if !defined(ESP8266) && !defined(ESP32)

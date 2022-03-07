@@ -742,9 +742,9 @@ bool Scd4xSensor::IsConnected()
 	}
 
 	//Check if serial data is valid, ignore error as it could simply be a CRC error. If we have a Serial number the device is connected.
-	sensorStatus.connected = /*gotSerial &&*/ (serialNumber.serial0 && serialNumber.serial1 && serialNumber.serial2);
+	sensorStatus.connected = !error && (serialNumber.serial0 && serialNumber.serial1 && serialNumber.serial2);
 
-	if (currentStatus && !sensorStatus.connected)
+	if (!status.mqtt.devicesConfigured || (currentStatus && !sensorStatus.connected))
 	{
 		MarkDisconnected();
 

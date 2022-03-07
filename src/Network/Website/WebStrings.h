@@ -10,6 +10,16 @@ namespace Network {
 
 					extern const char* unauthorized;
 				}
+
+				namespace Paths
+				{
+					extern const char* root;
+					extern const char* rootdir;
+
+					extern const char* assetsJS;
+					extern const char* assetsCSS;
+					extern const char* assetsIMG;
+				}
 	
 				namespace Urls {
 
@@ -42,16 +52,6 @@ namespace Network {
 					extern const char* assetsIMG;			 
 				}
 
-				namespace Paths
-				{
-					extern const char* root;
-					extern const char* rootdir;
-
-					extern const char* assetsJS;
-					extern const char* assetsCSS;
-					extern const char* assetsIMG;
-				}
-	
 				namespace ContentType {
 
 					extern const char* textPlain;

@@ -1,4 +1,4 @@
-var rstHtml = `<button id="esp_reset_button" class="btn btn-primary" type="button">Reset ESP</button>`;
+var rstHtml = `<button id="esp_reset_button" class="btn btn-primary" type="button" disabled>Reset ESP</button>`;
 
 var rstBut;
 
