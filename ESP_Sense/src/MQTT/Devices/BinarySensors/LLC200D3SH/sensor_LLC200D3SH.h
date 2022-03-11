@@ -76,7 +76,7 @@ public:
 		return &mqttBinarySensorBaseTopic;
 	}
 
-	Llc200d3sh_Sensor(const char* _name, int _index) : MqttBinarySensor(_name, _index) {}
+	Llc200d3sh_Sensor(const char* _name, const char* _device, int _index) : MqttBinarySensor(_name, _device, _index) {}
 
 #pragma region MqttDevice Functions
 
@@ -100,8 +100,10 @@ public:
 
 	bool Subscribe() override;
 	bool Unsubscribe() override;
-	//bool Publish() override;
-	String GenerateJsonPayload() override;
+
+	void AddStatePayload(JsonObject& addTo) override;		//Payload for MQTT state topic
+	void AddStatusData(JsonObject& addTo) override;								//device, binary/sensor/ect.., and unique status
+	void AddConfigData(JsonObject& addTo) override;								//device, binary/sensor/ect.., and unique config
 
 	int ReceiveCommand(char* topic, byte* payload, size_t length) override;
 
@@ -163,6 +165,20 @@ private:
 };
 
 
+#pragma region JSON UDFs
+
+
+
+//bool canConvertFromJson(JsonVariantConst src, const Llc200d3sh_Config_t&);
+void convertFromJson(JsonVariantConst src, Llc200d3sh_Config_t& dst);
+bool convertToJson(const Llc200d3sh_Config_t& src, JsonVariant dst);
+
+//bool canConvertFromJson(JsonVariantConst src, const Llc200d3sh_Status_t&);
+void convertFromJson(JsonVariantConst src, Llc200d3sh_Status_t& dst);
+bool convertToJson(const Llc200d3sh_Status_t& src, JsonVariant dst);
+
+
+#pragma endregion
 
 
 #endif

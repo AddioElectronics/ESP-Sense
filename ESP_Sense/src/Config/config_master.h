@@ -461,7 +461,7 @@ typedef struct {
 		bool config : 1;				//Enable ConfigBrowser?
 		bool console : 1;				//Enable debug console?
 		bool updater : 1;
-		bool mqttDeviceConfig : 1;		//Enable the ability to configure MQTT devices on a webpage?
+		bool mqttDevices : 1;		//Enable the ability to configure MQTT devices on a webpage?
 		bool ssl : 1;
 		uint8_t reserved : 2;
 		struct {
@@ -607,7 +607,7 @@ typedef union {
 			bool config : 1;
 			bool console : 1;
 			bool updater : 1;
-			bool mqttDeviceConfig : 1;
+			bool mqttDevices : 1;
 			bool ssl : 1;
 			struct {
 				bool fileEditor : 1;
@@ -810,7 +810,7 @@ typedef struct {
 			struct {
 				bool enabled : 1;
 				bool configured : 1;
-			}mqttConfigBrowser;
+			}mqttDevices;
 			struct {
 				bool enabled : 1;
 				bool configured : 1;
@@ -837,6 +837,7 @@ typedef struct {
 		}ota;
 	}server;
 	struct {
+		Version_t version;
 		bool developerMode : 1;					//Developer mode is only compiled if the definition is true, but can still be disabled at runtime.
 	}misc;
 }DeviceStatus_t;

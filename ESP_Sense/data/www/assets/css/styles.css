@@ -1,11 +1,70 @@
+html, body {
+  height: 100%;
+  min-height: 100%;
+}
+
+.stretchedToMargin {
+  height: 100%;
+  bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  margin-right: 80px;
+  margin-left: 80px;
+  /*background-color: green;*/
+}
+
+main {
+  --bgrad-c1: rgb(40,45,50);
+  --bgrad-c2: rgb(30,33,37);
+  /*background: linear-gradient(180deg, var(--bgrad-c1) 0%, var(--bgrad-c2) 100%);*/
+  /*background: linear-gradient(0deg, #111518 0%, rgba(33,37,41,1) 5%, rgba(36,42,47,1) 95%, rgba(56,64,71,1) 100%);*/
+  height: 100%;
+  /*position: relative;*/
+  margin-top: 72px;
+  margin-bottom: 160px;
+}
+
+html[theme=darksmooth] main {
+  background: linear-gradient(180deg, var(--bgrad-c1) 0%, var(--bgrad-c2) 100%);
+}
+
+html[theme=darkspooky] main {
+  background: linear-gradient(0deg, #111518 0%, rgba(33,37,41,1) 5%, rgba(36,42,47,1) 95%, #111518 100%);
+}
+
+html[theme=darkneon] main {
+  --neon-c1: #22507a;
+  --neon-c2: rgb(30,55,77);
+  background: linear-gradient(0deg, #111518 0%, rgba(36,42,47,1) 5%, rgba(33,37,41,1) 95%, var(--neon-c2) 98%, var(--neon-c1) 100%);
+  background: linear-gradient(0deg, var(--neon-c1) 0%, var(--neon-c2) 2%, rgba(36,42,47,1) 5%, rgba(33,37,41,1) 95%, var(--neon-c2) 98%, var(--neon-c1) 100%);
+}
+
+main > .container {
+  padding: 50px;
+}
+
+.grid {
+  display: grid;
+}
+
 html:not([auth]) #logout_but {
-  display: none;
+  /*display: none;*/
 }
 
 #logout_but {
   /*border-radius: 25%;*/
-  position: absolute;
-  right: 20px;
+  /*position: absolute;*/
+  /*right: 20px;*/
+}
+
+@media (min-width: 1750px) {
+  #logout_but {
+    position: absolute;
+    right: 20px;
+  }
 }
 
 span.dev-mode {
@@ -22,6 +81,7 @@ span.dev-mode:hover {
 
 body {
   background-color: var(--bs-dark);
+  min-height: 100%;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -32,20 +92,38 @@ p {
   color: white;
 }
 
+.btn-primary {
+  color: #fff;
+  /*background-color: #1e3f71;*/
+  /*border-color: #1e3f71;*/
+}
+
 button {
   display: inline-block;
   background-color: #1e3f71 !important;
   border-color: black !important;
+  color: white;
 }
 
 button:hover {
   border-color: rgb(3,146,207) !important;
-  background-color: #295495 !important;
+  background-color: #295495;
+  color: white;
 }
 
 button.disabled {
   color: rgb(0,0,0)!important;
   background-color: #28477b !important;
+}
+
+button:active {
+  background-color: #162744 !important;
+}
+
+nav {
+  position: fixed !important;
+  width: 100%;
+  top: 0px;
 }
 
 .coming-soon {

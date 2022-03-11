@@ -39,7 +39,7 @@ public:
 	/// </summary>
 	MqttSensorStatus_t sensorStatus;
 
-	MqttSensor(const char* _name, int _index) : MqttDevice(_name, _index) {}
+	MqttSensor(const char* _name, const char* _device, int _index) : MqttDevice(_name, _device, _index) {}
 
 	virtual bool Init(bool enable = true);
 
@@ -56,6 +56,19 @@ public:
 	virtual int ReadAndPublish();
 
 	virtual bool Publish() override;
+
+	virtual void AddStatusData(JsonObject& addTo) override;		//device, binary/sensor/ect.., and unique status
+
+	bool SaveConfig() override
+	{
+#warning load config_sensors.json, modify values for each sensor, and save.
+		return false;
+	}
+
+	MqttDeviceType GetDeviceType() override
+	{
+		return MqttDeviceType::MQTT_SENSOR;
+	}
 
 	//virtual bool PublishAvailability() override
 	//{
@@ -94,6 +107,13 @@ public:
 
 };
 
+#pragma region JSON UDFs
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttSensorStatus_t&);
+void convertFromJson(JsonVariantConst src, MqttSensorStatus_t& dst);
+bool convertToJson(const MqttSensorStatus_t& src, JsonVariant dst);
+
+#pragma endregion
 
 #endif
 

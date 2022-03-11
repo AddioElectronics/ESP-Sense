@@ -126,7 +126,7 @@
 			"config":true,
 			"console":true,
 			"updater":true,
-			"mqttDeviceConfig":true,
+			"mqttDevices":true,
 			"ssl":false,
 			"tools":{
 				"fileEditor":true,

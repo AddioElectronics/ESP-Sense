@@ -23,7 +23,14 @@ public:
 
 	MqttBinarySensorStatus_t binarySensorStatus;
 
-	MqttBinarySensor(const char* _name, int _index) : MqttDevice(_name, _index) {}
+	MqttBinarySensor(const char* _name, const char* _device, int _index) : MqttDevice(_name, _device, _index) {}
+
+	MqttDeviceType GetDeviceType() override
+	{
+		return MqttDeviceType::MQTT_BINARY_SENSOR;
+	}
+
+	virtual void AddStatusData(JsonObject& addTo) override;		//device, binary/sensor/ect.., and unique status
 
 	virtual bool Read()
 	{
@@ -34,6 +41,13 @@ public:
 
 };
 
+#pragma region JSON UDFs
+
+bool canConvertFromJson(JsonVariantConst src, const MqttBinarySensorStatus_t&);
+void convertFromJson(JsonVariantConst src, MqttBinarySensorStatus_t& dst);
+bool convertToJson(const MqttBinarySensorStatus_t& src, JsonVariant dst);
+
+#pragma endregion
 
 #endif
 

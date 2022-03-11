@@ -108,13 +108,20 @@ namespace Config
 	namespace Status
 	{
 		/// <summary>
-		/// Serializes the device status structure to a String.
+		/// Adds status(DeviceStatus_t) and statusRetained (RetainedStatus_t) into a JSON document.
 		/// </summary>
-		/// <param name="serializeTo">String to serialize in to.</param>
-		/// <param name="pretty">True will serialize to human readable form(Newlines, tabs, ect..), false will serialize all to a single line.</param>
-		/// <param name="out_doc">Get the serialized JsonDocument after serialization. Warning : Must free if used.</param>
-		/// <returns>Size of the serialized document.</returns>
-		size_t SerializeDeviceStatus(String& serializeTo, DynamicJsonDocument** out_doc = nullptr);
+		int PackDeviceStatus(JsonObject& obj);
+
+		///// <summary>
+		///// Serializes the device status structure to a String.
+		///// If you do not wish to serialize at this time, pass nullptr to "serializeTo", but you must pass a document pointer to "out_doc".
+		///// </summary>
+		///// <param name="serializeTo">String to serialize to. If nullptr the document will not be serialized(must pass out_doc).</param>
+		///// <param name="pretty">True will serialize to human readable form(Newlines, tabs, ect..), false will serialize all to a single line.</param>
+		///// <param name="out_doc">Get the serialized JsonDocument after serialization. Warning : Must free if used.</param>
+		///// <returns>Size of the serialized document.</returns>
+		//size_t SerializeDeviceStatus(String* serializeTo, DynamicJsonDocument** out_doc = nullptr);
+		//size_t SerializeDeviceStatus(DynamicJsonDocument** out_doc);
 
 		bool SaveRetainedStatus();
 
@@ -134,6 +141,20 @@ namespace Config
 	}
 
 }
+
+
+#pragma region Json UDFs
+
+bool convertToJson(const DeviceStatus_t& src, JsonVariant dst);
+
+
+bool canConvertFromJson(JsonVariantConst src, const StatusRetained_t&);
+void convertFromJson(JsonVariantConst src, StatusRetained_t& dst);
+bool convertToJson(const StatusRetained_t& src, JsonVariant dst);
+
+#pragma endregion
+
+
 #endif
 
 

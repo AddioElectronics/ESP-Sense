@@ -43,7 +43,7 @@ function webupdate_init() {
                         if(per == 100){
                             setUploadMessage('Update Complete! Device is restarting...', false);
                             setTimeout(function(){
-                                $('html').trigger('resetting');
+                                invokeEvent('resetting');
                             }, 3500);                            
                         }
                     }
@@ -126,5 +126,5 @@ function addToConsole(msg) {
 }
 
 $(document).ready(function() {
-    $('html').on('auth', webupdate_init);
+    onEvent('auth', webupdate_init);
 });

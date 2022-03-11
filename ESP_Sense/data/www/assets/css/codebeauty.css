@@ -23,7 +23,7 @@ pre.json {
   color: #c162e0;
 }
 
-#device_status {
+#global_status {
   background-color: rgb(122 122 122 / 6%);
   border: #0000007d 10px double;
 }

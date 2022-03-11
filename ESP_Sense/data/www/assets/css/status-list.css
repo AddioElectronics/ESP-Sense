@@ -1,0 +1,72 @@
+.status-list {
+  --device-status-width: 1000px;
+  width: fit-content;
+  margin: auto;
+}
+
+.status-list {
+  position: relative;
+  /*max-height: 500px;*/
+  /*max-width: calc(var(--device-status-width) + 20px);*/
+  /*overflow-y: scroll;*/
+  /*overflow-x: hidden;*/
+  /*border: 3px inset gray;*/
+}
+
+.status-list > h3 {
+  border-bottom: 1px solid #929292;
+  margin-bottom: 20px;
+  width: fit-content;
+  min-width: 1000px;
+}
+
+.status-list > hr {
+  width: 1000px;
+}
+
+.status-item {
+  grid-template-columns: 300px 300px;
+  display: grid;
+}
+
+.status-list [action=border-toggle] {
+  position: absolute;
+  position: relative;
+  left: calc(var(--device-status-width) - 220px);
+  width: 150px;
+  /*top: 10px;*/
+}
+
+.status-list button[action=hide-content] {
+  position: relative;
+  width: 60px;
+  left: calc(var(--device-status-width) - 200px);
+  top: 10px;
+}
+
+.status-list [action=border-toggle]:nth-of-type(1) {
+  top: 10px;
+}
+
+.status-list [action=border-toggle]:nth-of-type(2) {
+  bottom: 10px;
+}
+
+.status-list table {
+  display: table;
+  max-width: 1000px;
+}
+
+.status-list table td {
+  border-color: #616d7d;
+}
+
+.status-list table td:nth-child(1) {
+  width: 50%;
+  color: #8fc3da;
+}
+
+.status-list table td:nth-child(2) {
+  width: 50%;
+}
+

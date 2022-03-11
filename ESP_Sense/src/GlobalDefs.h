@@ -2,6 +2,12 @@
 
 #include <WiFi.h>
 
+typedef struct {
+	uint8_t major;
+	uint8_t minor;
+	uint16_t revision;
+}Version_t;
+
 enum class UpdateMode {
 	ESP_UPDATE_NULL,
 	ESP_UPDATE_WEB,
@@ -32,8 +38,8 @@ enum class ConfigSource
 	CFG_DEFAULT = 0b00,				//Default source, used to determine when it hasn't been changed.
 	CFG_FILESYSTEM = 0b01,
 	CFG_EEPROM = 0b10,
-	CFG_FIRMWARE = 0b11,			//Firmware defaults
-	CFG_BACKUP_FILESYSTEM = 0b100
+	CFG_BACKUP_FILESYSTEM = 0b11,
+	CFG_FIRMWARE = 0b100			//Firmware defaults
 };
 typedef uint8_t ConfigSource_t;
 
@@ -136,3 +142,13 @@ extern wifi_power_t wifi_power_values[12];
 extern UART_DATABITS uart_databits_values[4];
 extern UART_PARITY uart_parity_values[3];
 extern UART_STOPBITS uart_stopbits_values[2];
+
+
+
+#pragma region JSON UDFs
+
+bool canConvertFromJson(JsonVariantConst src, const Version_t&);
+void convertFromJson(JsonVariantConst src, Version_t& dst);
+bool convertToJson(const Version_t& src, JsonVariant dst);
+
+#pragma endregion

@@ -3,6 +3,7 @@
 	Code is in a very messy state, after I pass the device off it may remain in this state until I can find the time to work on it more.
 */
 
+#define ESP_SENSE_VERSION	0,1,2
 
 //Todo  
 //Organize everything, move functions into different files. move files into directories. main namespace, cleanup includes, comments
@@ -19,7 +20,7 @@
 //Add the ability to unconfigure everything, some has already been added (quickly and poorly), need to fix/test.
 //Config monitor isn't really being used
 //Web tool to convert json files to new format(after updates, adding ability to configure multiple I2C ports, if using old config, will convert)
-//If useDefaults are set, it simply skips reading the next config block. Unless defaults are already set they wont be set. (this overwrites the config when saving, need to stop this.)
+//If useDefaults are set, it simply skips reading the next config block. Unless defaults are already set they wont be set. (this overwrites the config when saving, need to stop this.) *Skip options, but when serializing, copy from file
 //Boot source, only use config path once. Apply button on webpage
 //Buzzer for if MQTT device disconnected. Add a required option in the device config. if a required device is disconnected then buzz on an interval, other wise just blink.
 //Add Json UDFs for config structs
@@ -50,8 +51,22 @@
 //TFT support
 //Serial commands (USB Serial not functioning after wifi is enabled, atleast for my dev board)
 //Disable mqtt device after so many disconnects.
-//Change back to HTTP authentication
-
+//Change back to HTTP authentication, maybe add cookie for session ID
+//Before MQTT IP detection, ping the local network and get a list of connected IPs to speed things up.
+//Redo how JSON payload is created, create a document, then call functions which add either measurement data, device status. sensor status, configs ect..
+//Change some MQTT device functions to protected
+//Possibly move MQTT Unique structures inside classes
+//Check freeheap before serializing JSON documents, and/or if PSRAM is available, use it.
+//Verify that MQTT device names are different, if a situation where all JSON data is packed together.
+//Possibly optimize website files to save space, serve as multiple responses. (Scripts
+//Ability to pass paths in config_sensors.json/sensors: and other config files.
+//Ability to modify mqtt device global config from web
+//Cleanup mqtt retained (once its added). For MQTT devices that need to retain information, 
+//	create a global JSON file to store in file system(and possibly EEPROM) XOR so no modifications are done. 
+//	device store by name, cleanup will remove any devices not initializd. SCD4x store if settings have been saved to its EEPROM.
+//Add port selection for MQTT devices (SCD/HT4x i2c port), to allow for multiple of each, as they have a fixed address.
+//Website, check github tags to see if update is available. One click update, grab release from github, unzip and transfer via webupdate. Make compatibility file to see if config files will work.
+//Auto updates from github directly on ESP. Make compatibility file to see if config files will work. Auto-config restructuring.
 
 #if !defined(ESP8266) && !defined(ESP32)
 #error Only currently supporting the ESP8266 and ESP32 WROOM. Newer versions of the ESP32 have not been tested.
@@ -76,6 +91,8 @@
 #include <EEPROM.h>						//For saving a backup of settings. (Improved version of EEPROM.h)
 #include <CRC32.h>
 #include <PubSubClient.h>				//MQTT Library
+#include <ESP32Ping.h>
+#include <List.hpp>
 
 #if defined(ESP8266)
 #include <Schedule.h>
@@ -139,7 +156,7 @@
 #include "src/MQTT/MqttHelper.h"
 #include "src/MQTT/MqttTopicManager.h"
 #include "src/MQTT/Devices/MqttDeviceManager.h"
-
+#include "src/MQTT/Devices/MqttDeviceWeb.h"
 
 #include "src/Network/Server/ServerManager.h"
 #include "src/Network/Server/Authentication.h"
@@ -238,6 +255,9 @@ void setup()
 
 	//Set Structures to 0 as memory is not guaranteed to blank on reset.
 	EspSense::BlankStructures();
+
+	//Set the Version
+	status.misc.version = {ESP_SENSE_VERSION};
 
 	//Initialize settings to default
 	Config::Defaults::SetAll();

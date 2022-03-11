@@ -93,7 +93,7 @@ public:
 		return &mqttSensorBaseTopic;
 	}
 
-	Sht4xSensor(const char* _name, int _index) : MqttSensor(_name, _index) {}
+	Sht4xSensor(const char* _name, const char* _device, int _index) : MqttSensor(_name, _device, _index) {}
 
 #pragma region MqttDevice Functions
 
@@ -114,7 +114,10 @@ public:
 	bool Unsubscribe() override;
 	//bool Publish() override;
 	//bool PublishAvailability() override;
-	String GenerateJsonPayload() override;
+
+	void AddStatePayload(JsonObject& addTo) override;				//Payload for MQTT state topic
+	//void AddStatusData(JsonObject& addTo) override;					//device, binary/sensor/ect.., and unique status
+	void AddConfigData(JsonObject& addTo) override;					//device, binary/sensor/ect.., and unique config
 
 	int ReceiveCommand(char* topic, byte* payload, size_t length) override;
 
@@ -220,20 +223,33 @@ public:
 extern const char* sht4x_heater_strings[7];
 extern const char* sht4x_precision_strings[3];
 
+//Classify enums so ArduinoJson can determine the correct function.
+//(Regular enums are ints)
 enum class sht4x_precision {};
 enum class sht4x_heater {};
 
 bool canConvertFromJson(JsonVariantConst src, const sht4x_precision&);
-
 void convertFromJson(JsonVariantConst src, sht4x_precision& dst);
-
 bool convertToJson(const sht4x_precision& src, JsonVariant dst);
 
 bool canConvertFromJson(JsonVariantConst src, const sht4x_heater&);
-
 void convertFromJson(JsonVariantConst src, sht4x_heater& dst);
-
 bool convertToJson(const sht4x_heater& src, JsonVariant dst);
+
+//bool canConvertFromJson(JsonVariantConst src, const SHT4xStatus_t&);
+//void convertFromJson(JsonVariantConst src, SHT4xStatus_t& dst);
+//bool convertToJson(const SHT4xStatus_t& src, JsonVariant dst);
+
+bool canConvertFromJson(JsonVariantConst src, const Sht4xConfig_t&);
+void convertFromJson(JsonVariantConst src, Sht4xConfig_t& dst);
+bool convertToJson(const Sht4xConfig_t& src, JsonVariant dst);
+
+#pragma endregion
+
+#pragma region JSON UDFs
+
+
+
 #pragma endregion
 
 #endif

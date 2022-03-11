@@ -141,13 +141,12 @@ bool Sht4xSensor::Unsubscribe()
 //	return mqttClient.publish(topics.availability.c_str(), Mqtt::Helper::GetAvailabilityString(sensorStatus.connected).c_str());
 //}
 
-String Sht4xSensor::GenerateJsonPayload()
-{
-	DEBUG_LOG_F("...Generating %s(SHT4x) JSON Data :\r\n", name.c_str());
 
-	String jdata;
-	StaticJsonDocument<128> doc;
-	JsonObject obj = doc.createNestedObject(name);
+void Sht4xSensor::AddStatePayload(JsonObject& addTo)
+{
+	JsonObject obj = addTo;
+	if (addTo.size() == 0)
+		obj = addTo.createNestedObject("statePayload");
 
 	if (uniqueConfig.mqtt.publishTemperature)
 	{
@@ -168,13 +167,20 @@ String Sht4xSensor::GenerateJsonPayload()
 		else
 			humidity.set(SENSOR_DATA_UNKNOWN);
 	}
-
-	serializeJson(doc, jdata);
-
-	DEBUG_LOG_LN(jdata.c_str());
-
-	return jdata;
 }
+
+//void Sht4xSensor::AddStatusData(JsonObject& addTo)
+//{
+//	MqttSensor::AddStatusData(addTo);
+//	addTo["uniqueStatus"].set<SHT4xStatus_t>(uniqueStatus);
+//}
+
+void Sht4xSensor::AddConfigData(JsonObject& addTo)
+{
+	MqttDevice::AddConfigData(addTo);
+	addTo["uniqueConfig"].set<Sht4xConfig_t>(uniqueConfig);
+}
+
 
 int Sht4xSensor::ReceiveCommand(char* topic, byte* payload, size_t length)
 {
@@ -453,6 +459,8 @@ bool Sht4xSensor::Connect()
 
 bool Sht4xSensor::IsConnected()
 {
+	
+
 	struct {
 		sensors_event_t  temperature;
 		sensors_event_t  humidity;
@@ -464,6 +472,8 @@ bool Sht4xSensor::IsConnected()
 	sensor.getEvent(&testData.humidity, &testData.temperature);
 
 	sensorStatus.connected = testData.temperature.temperature != 0;
+
+	DEBUG_LOG_F("%s(SHT4x) Connection Status : %d\r\n", name.c_str(), sensorStatus.connected);
 
 	if ((currentStatus || !status.mqtt.devicesConfigured) && !sensorStatus.connected)
 	{
@@ -517,13 +527,13 @@ const char* sht4x_precision_strings[3] = { "high" , "med", "low" };
 
 bool canConvertFromJson(JsonVariantConst src, const sht4x_precision&)
 {
-	return JsonParseEnum(src, 7, sht4x_precision_strings, nullptr) != -1;
+	return JsonHelper::JsonParseEnum(src, 7, sht4x_precision_strings, nullptr) != -1;
 }
 
 void convertFromJson(JsonVariantConst src, sht4x_precision& dst)
 {
 	bool success;
-	sht4x_precision parseResult = (sht4x_precision)JsonParseEnum(src, 7, sht4x_precision_strings, nullptr, &success);
+	sht4x_precision parseResult = (sht4x_precision)JsonHelper::JsonParseEnum(src, 7, sht4x_precision_strings, nullptr, &success);
 
 	if (success)
 		dst = parseResult;
@@ -534,7 +544,7 @@ void convertFromJson(JsonVariantConst src, sht4x_precision& dst)
 bool convertToJson(const sht4x_precision& src, JsonVariant dst)
 {
 #if SERIALIZE_ENUMS_TO_STRING
-	bool set = EnumValueToJson(dst, (uint8_t)src, sht4x_precision_strings, 7);
+	bool set = JsonHelper::EnumValueToJson(dst, (uint8_t)src, sht4x_precision_strings, 7);
 #else
 	bool set = dst.set((uint8_t)src);
 #endif
@@ -548,13 +558,13 @@ bool convertToJson(const sht4x_precision& src, JsonVariant dst)
 
 bool canConvertFromJson(JsonVariantConst src, const sht4x_heater&)
 {
-	return JsonParseEnum(src, 7, sht4x_heater_strings, nullptr) != -1;
+	return JsonHelper::JsonParseEnum(src, 7, sht4x_heater_strings, nullptr) != -1;
 }
 
 void convertFromJson(JsonVariantConst src, sht4x_heater& dst)
 {
 	bool success;
-	sht4x_heater parseResult = (sht4x_heater)JsonParseEnum(src, 7, sht4x_heater_strings, nullptr, &success);
+	sht4x_heater parseResult = (sht4x_heater)JsonHelper::JsonParseEnum(src, 7, sht4x_heater_strings, nullptr, &success);
 
 	if (success)
 		dst = parseResult;
@@ -565,7 +575,7 @@ void convertFromJson(JsonVariantConst src, sht4x_heater& dst)
 bool convertToJson(const sht4x_heater& src, JsonVariant dst)
 {
 #if SERIALIZE_ENUMS_TO_STRING
-	bool set = EnumValueToJson(dst, (uint8_t)src, sht4x_heater_strings, 7);
+	bool set = JsonHelper::EnumValueToJson(dst, (uint8_t)src, sht4x_heater_strings, 7);
 #else
 	bool set = dst.set((uint8_t)src);
 #endif
@@ -574,6 +584,82 @@ bool convertToJson(const sht4x_heater& src, JsonVariant dst)
 
 	DEBUG_LOG_LN("sht4x_heater Conversion to JSON failed.");
 	return false;
+}
+
+
+//bool canConvertFromJson(JsonVariantConst src, const SHT4xStatus_t&)
+//{
+//	return src.containsKey("") || src.containsKey("");
+//}
+//
+//void convertFromJson(JsonVariantConst src, SHT4xStatus_t& dst)
+//{
+//	JsonVariantConst uniqueStatusObj = src;
+//
+//	if (src.containsKey("uniqueStatus"))
+//		uniqueStatusObj = src["uniqueStatus"];
+//
+//
+//	if (uniqueStatusObj.containsKey("connected"))
+//		dst.connected = uniqueStatusObj["connected"];
+//
+//}
+//
+//bool convertToJson(const SHT4xStatus_t& src, JsonVariant dst)
+//{
+//	dst["connected"] = src.connected;
+//}
+
+//bool canConvertFromJson(JsonVariantConst src, const Scd4xConfig_t&)
+//{
+//	return src.containsKey("internal") || src.containsKey("program");
+//}
+
+void convertFromJson(JsonVariantConst src, Sht4xConfig_t& dst)
+{
+	JsonVariantConst root = src;
+
+	if (src.containsKey("uniqueStatus"))
+		root = src["uniqueStatus"];
+
+
+	if (root.containsKey("internal"))
+	{
+		JsonVariantConst obj = root["internal"];
+
+		if (obj.containsKey("useDefaults"))
+			dst.internal.useDefaults = obj["useDefaults"];
+
+		if (obj.containsKey("heater"))
+			dst.internal.heater = (sht4x_heater_t)(obj["heater"].as<sht4x_heater>());
+
+		if (obj.containsKey("precision"))
+			dst.internal.precision = (sht4x_precision_t)(obj["precision"].as<sht4x_precision>());
+	}
+
+	if (root.containsKey("mqtt"))
+	{
+		JsonVariantConst obj = root["mqtt"];
+
+		if (obj.containsKey("publishHumdiity"))
+			dst.mqtt.publishHumdiity = obj["publishHumdiity"];
+
+		if (obj.containsKey("publishTemperature"))
+			dst.mqtt.publishTemperature = obj["publishTemperature"];
+	}
+
+}
+
+bool convertToJson(const Sht4xConfig_t& src, JsonVariant dst)
+{
+	JsonObject internalObj = dst.createNestedObject("internal");
+	internalObj["useDefaults"] = src.internal.useDefaults;
+	internalObj["heater"].set<sht4x_heater>((sht4x_heater)src.internal.heater);
+	internalObj["precision"].set<sht4x_precision>((sht4x_precision)src.internal.precision);
+
+	JsonObject mqttObj = dst.createNestedObject("mqtt");
+	mqttObj["publishHumdiity"] = src.mqtt.publishHumdiity;
+	mqttObj["publishTemperature"] = src.mqtt.publishTemperature;
 }
 
 #pragma endregion

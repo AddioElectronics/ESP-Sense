@@ -1,5 +1,11 @@
 {
 	"sht4x":{
+		"device":{
+			"web":{
+				"hostWebsite":true,
+				"configurable": true
+			}
+		},
 		"internal":{
 			"useDefaults":false,
 			"precision":0,

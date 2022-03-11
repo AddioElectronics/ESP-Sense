@@ -11,7 +11,6 @@ namespace Network {
 	namespace Website {
 		void Initialize();
 		void StopHosting();
-
 	}
 }
 

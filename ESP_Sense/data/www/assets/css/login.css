@@ -38,12 +38,3 @@
   text-align: center;
 }
 
-#esp_reset_button {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background-color: #950000 !important;
-  width: 150px;
-  height: 50px;
-}
-

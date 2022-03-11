@@ -78,6 +78,8 @@ namespace Network {
 		void HandlerNotFound(AsyncWebServerRequest* request);		
 		const char* GetContentType(const String& url);
 
+		
+
 		void Initialize()
 		{
 			DEBUG_LOG_LN("Initializing Website...");
@@ -102,6 +104,13 @@ namespace Network {
 			server.serveStatic(Strings::Urls::assetsJS, ESP_FS, Strings::Paths::assetsJS);
 			server.serveStatic(Strings::Urls::assetsIMG, ESP_FS, Strings::Paths::assetsIMG);
 
+			//Serve MQTT device JS assets
+			server.serveStatic(Strings::Urls::assetsBinarySensorsJS, ESP_FS, Strings::Paths::assetsBinarySensorsJS);
+			server.serveStatic(Strings::Urls::assetsButtonsJS, ESP_FS, Strings::Paths::assetsButtonsJS);
+			server.serveStatic(Strings::Urls::assetsSensorsJS, ESP_FS, Strings::Paths::assetsSensorsJS);
+			server.serveStatic(Strings::Urls::assetsLightsJS, ESP_FS, Strings::Paths::assetsLightsJS);
+			server.serveStatic(Strings::Urls::assetsSwitchesJS, ESP_FS, Strings::Paths::assetsSwitchesJS);
+
 			server.onNotFound(HandlerNotFound);			
 
 			status.server.browser.configured = true;
@@ -120,8 +129,8 @@ namespace Network {
 			if (status.server.browser.console.enabled)
 				status.server.browser.console.enabled = false;
 
-			if (status.server.browser.mqttConfigBrowser.enabled)
-				status.server.browser.mqttConfigBrowser.enabled = false;
+			if (status.server.browser.mqttDevices.enabled)
+				status.server.browser.mqttDevices.enabled = false;
 
 			if (status.server.browser.updater.enabled)
 				status.server.browser.updater.enabled = false;
@@ -235,11 +244,6 @@ namespace Network {
 
 			DEBUG_NEWLINE();
 		}
-
-
-
-
-
 	}
 }
 #endif

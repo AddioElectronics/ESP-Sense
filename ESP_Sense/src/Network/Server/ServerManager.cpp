@@ -153,7 +153,7 @@ namespace Network {
 
 		//status.server.browser.configBrowser.enabled = false;
 		//status.server.browser.console.enabled = false;
-		//status.server.browser.mqttConfigBrowser.enabled = false;
+		//status.server.browser.mqttDevices.enabled = false;
 		//status.server.browser.updater.enabled = false;
 		//status.server.browser.tools.fileEditor.enabled = false;
 		//status.server.browser.tools.jsonVerify.enabled = false;
@@ -161,7 +161,7 @@ namespace Network {
 		//status.server.browser.configBrowser.configured = false;
 		//status.server.browser.console.configured = false;
 		//status.server.browser.home.configured = false;
-		//status.server.browser.mqttConfigBrowser.configured = false;
+		//status.server.browser.mqttDevices.configured = false;
 		//status.server.browser.updater.configured = false;
 		//status.server.browser.tools.fileEditor.configured = false;
 		//status.server.browser.tools.jsonVerify.configured = false;

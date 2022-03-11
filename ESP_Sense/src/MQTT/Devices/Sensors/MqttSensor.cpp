@@ -14,6 +14,8 @@ bool MqttSensor::Init(bool enable)
 
 	Connect();
 
+	InitWebpage();
+
 	if (!sensorStatus.connected) return false;
 
 	return Configure();
@@ -91,6 +93,14 @@ bool MqttSensor::Publish()
 	return false;
 }
 
+
+void MqttSensor::AddStatusData(JsonObject& addTo)
+{
+	MqttDevice::AddStatusData(addTo);
+	addTo["sensorStatus"].set<MqttSensorStatus_t>(sensorStatus);
+}
+
+
 //virtual bool PublishAvailability() override
 //{
 //	return mqttClient.publish(topics.availability.c_str(), Mqtt::Helper::GetAvailabilityString(sensorStatus.connected).c_str());
@@ -104,7 +114,7 @@ bool MqttSensor::PublishNoConnection()
 	String payload;
 
 	if (deviceMqttSettings.useParentTopics || deviceMqttSettings.json)
-		payload = GenerateJsonPayload();
+		payload = GenerateJsonStatePayload();
 	else
 		payload = SENSOR_DATA_UNKNOWN;
 
@@ -119,3 +129,46 @@ void MqttSensor::FailedRead()
 	if (sensorStatus.failedReads >= MQTT_SENSOR_MAX_FAILED_READS)
 		sensorStatus.connected = false;
 }
+
+#pragma region JSON UDFs
+
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttSensorStatus_t&)
+//{
+//	return src.containsKey("measurementTimestamp") || src.containsKey("sensorStatus");
+//}
+
+void convertFromJson(JsonVariantConst src, MqttSensorStatus_t& dst)
+{
+	JsonVariantConst sensorStatusObj = src;
+
+	if (src.containsKey("sensorStatus"))
+		sensorStatusObj = src["sensorStatus"];
+
+
+	if (sensorStatusObj.containsKey("connected"))
+		dst.connected = sensorStatusObj["connected"];
+
+	if (sensorStatusObj.containsKey("sleeping"))
+		dst.sleeping = sensorStatusObj["sleeping"];
+
+	if (sensorStatusObj.containsKey("newData"))
+		dst.newData = sensorStatusObj["newData"];
+
+	if (sensorStatusObj.containsKey("failedReads"))
+		dst.failedReads = sensorStatusObj["failedReads"];
+
+	if (sensorStatusObj.containsKey("measurementTimestamp"))
+		dst.measurementTimestamp = sensorStatusObj["measurementTimestamp"];
+}
+
+bool convertToJson(const MqttSensorStatus_t& src, JsonVariant dst)
+{
+	dst["connected"] = src.connected;
+	dst["sleeping"] = src.sleeping;
+	dst["newData"] = src.newData;
+	dst["failedReads"] = src.failedReads;
+	dst["measurementTimestamp"] = src.measurementTimestamp;
+}
+
+#pragma endregion

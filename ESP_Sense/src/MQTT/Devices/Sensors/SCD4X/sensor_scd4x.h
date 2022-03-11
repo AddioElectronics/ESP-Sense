@@ -105,7 +105,7 @@ public:
 		return &mqttSensorBaseTopic;
 	}
 
-	Scd4xSensor(const char* _name, int _index) : MqttSensor(_name, _index) {}
+	Scd4xSensor(const char* _name, const char* _device, int _index) : MqttSensor(_name, _device, _index) {}
 
 #pragma region MqttDevice Functions
 
@@ -129,7 +129,10 @@ void ResetStatus() override
 	bool Unsubscribe() override;
 	bool Publish() override;
 	//bool PublishAvailability() override;
-	String GenerateJsonPayload() override;
+
+	void AddStatePayload(JsonObject& addTo) override;				//Payload for MQTT state topic
+	void AddStatusData(JsonObject& addTo) override;					//device, binary/sensor/ect.., and unique status
+	void AddConfigData(JsonObject& addTo) override;					//device, binary/sensor/ect.., and unique config
 
 	int ReceiveCommand(char* topic, byte* payload, size_t length) override;
 
@@ -303,11 +306,17 @@ private:
 #pragma region Json UDFs
 
 extern const char* scd4x_powermode_strings[2];
-bool canConvertFromJson(JsonVariantConst src, const SCD4x_PowerMode&);
-
+//bool canConvertFromJson(JsonVariantConst src, const SCD4x_PowerMode&);
 void convertFromJson(JsonVariantConst src, SCD4x_PowerMode& dst);
-
 bool convertToJson(const SCD4x_PowerMode& src, JsonVariant dst);
+
+//bool canConvertFromJson(JsonVariantConst src, const SCD4xStatus_t&);
+void convertFromJson(JsonVariantConst src, SCD4xStatus_t& dst);
+bool convertToJson(const SCD4xStatus_t& src, JsonVariant dst);
+
+//bool canConvertFromJson(JsonVariantConst src, const Scd4xConfig_t&);
+void convertFromJson(JsonVariantConst src, Scd4xConfig_t& dst);
+bool convertToJson(const Scd4xConfig_t& src, JsonVariant dst);
 
 #pragma endregion
 

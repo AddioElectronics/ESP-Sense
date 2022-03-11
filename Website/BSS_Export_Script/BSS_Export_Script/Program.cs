@@ -11,11 +11,21 @@ namespace BSS_Export_Script
         /// <summary>
         /// The data\www directory.
         /// </summary>
-        static string wwwDir;
+        static DirectoryInfo wwwDir;
 
         // Quick and dirty strings to find the nav element.
         const string navStart = "<nav";
         const string navEnd = "</nav>";
+
+        // Quick and dirty strings to find the nav element.
+        const string footerStart = "<footer";
+        const string footerEnd = "</footer>";
+
+        /// <summary>
+        /// When deleting files of type, files with this name will not be deleted.
+        /// </summary>
+        /// <example>"data.json"</example>
+        static string[] keepFiles = new string[] { };
 
         static void Main(string[] args)
         {
@@ -29,10 +39,15 @@ namespace BSS_Export_Script
             }
 
             //Set the path to the data\www directory.
-            wwwDir = Path.Combine(dir.FullName, "Firmware\\data\\www");
+            wwwDir = new DirectoryInfo( Path.Combine(dir.FullName, "ESP_Sense\\data\\www"));
 
             //Files have not been exported, or has not been ran from BSS. Exit.
             if (!MoveExportedFiles()) return;
+
+            //Deletes all files of type JSON from the www directory.
+            //There are dummy json files for testing the JS code,
+            //and the space on the ESP32 needs to be conserved.
+            DeleteFilesOfType(wwwDir, ".json", SearchOption.AllDirectories, keepFiles);
 
             //Process all files in and below the data\www directory.
             ProcessAllFilesInAndBelowDirectory(wwwDir);
@@ -46,9 +61,9 @@ namespace BSS_Export_Script
         /// <returns>True if the files were moved, false if the files do not exist, or if the <see cref="Directory.GetCurrentDirectory"/> is in the wrong location.</returns>
         static bool MoveExportedFiles()
         {
-            string exportPath = Path.Combine(Directory.GetCurrentDirectory(), "temp/ESP_Sense/www");
+            DirectoryInfo exportPath = new DirectoryInfo( Path.Combine(Directory.GetCurrentDirectory(), "temp/ESP_Sense/www"));
 
-            DirectoryInfo espSenseTemp = new DirectoryInfo(exportPath).Parent;
+            DirectoryInfo espSenseTemp = exportPath.Parent;
 
             //Exe not ran from BSS, files will not be here.
             if(espSenseTemp.Name == "net5.0")
@@ -75,24 +90,60 @@ namespace BSS_Export_Script
         }
 
         /// <summary>
+        /// Searches for and deletes all files of type in or below a directory.
+        /// </summary>
+        /// <param name="dirPath">Top directory to start deleting files from.</param>
+        /// <param name="fileType">File Extension</param>
+        /// <param name="searchOption">Speicifies whether to search the current directory, or the directory and all sub-directories.</param>
+        /// <param name="keepFilenames">List of filenames you wish to keep. Including the extension.</param>
+        static void DeleteFilesOfType(DirectoryInfo dirPath, string fileType, SearchOption searchOption = SearchOption.AllDirectories, params string[] keepFilenames)
+        {
+            FileInfo[] files = dirPath.GetFiles("*" + (fileType.StartsWith(".") ? "" : ".") + fileType, searchOption);
+
+            DeleteFilesOfType(files, fileType, keepFilenames);
+        }
+
+        /// <summary>
+        /// Deletes all files that have an extension matching <paramref name="fileType"/>.
+        /// </summary>
+        /// <param name="files">Array of file paths to search and destroy.</param>
+        /// <param name="fileType">File Extension</param>
+        /// <param name="keepFilenames">List of filenames you wish to keep. Including the extension.</param>
+        static void DeleteFilesOfType(FileInfo[] files, string fileType, params string[] keepFilenames)
+        {
+            foreach (FileInfo info in files)
+            {
+                if (!info.Exists) continue;
+                if (!info.Name.EndsWith(fileType)) continue;
+
+                if (keepFilenames != null && keepFilenames.Length > 0)
+                    if (keepFilenames.Contains(info.Name))
+                        continue;
+
+                File.Delete(info.FullName);
+            }
+        }
+
+        /// <summary>
         /// Move all files from the temporary export path to the data\www folder.
         /// </summary>
         /// <param name="path">Temporary export path</param>
-        static void MoveAll(string path)
+        static void MoveAll(DirectoryInfo path)
         {
-            List<string> files = Directory.GetFiles(path, "*", SearchOption.AllDirectories).ToList();
+            FileInfo[] files = path.GetFiles("*", SearchOption.AllDirectories);
 
-            foreach(string file in files)
+            foreach(FileInfo file in files)
             {
-                string dest = file.Replace(path, wwwDir);
+                if (!file.Exists) continue;
 
-                FileInfo fileInfo = new FileInfo(file);
+                string dest = file.FullName.Replace(path.FullName, wwwDir.FullName);
+
                 FileInfo destInfo = new FileInfo(dest);
 
                 if (!destInfo.Directory.Exists)
                     destInfo.Directory.Create();
 
-                fileInfo.MoveTo(dest, true);
+                file.MoveTo(dest, true);
             }
         }
 
@@ -100,16 +151,19 @@ namespace BSS_Export_Script
         /// Finds and processes all HTML files in and below <paramref name="dir"/>.
         /// </summary>
         /// <param name="dir">Top directory you wish to start processing from.</param>
-        static void ProcessAllFilesInAndBelowDirectory(string dir)
+        static void ProcessAllFilesInAndBelowDirectory(DirectoryInfo dir)
         {
-            String[] htmlFiles = Directory.GetFiles(dir, "*.html", SearchOption.AllDirectories);
+            FileInfo[] htmlFiles = dir.GetFiles("*.html", SearchOption.AllDirectories);
             Console.Write("Found this many html files " + htmlFiles.Length);
             Console.WriteLine("in " + Environment.CurrentDirectory);
             
 
-            foreach (string filepath in htmlFiles)
+            foreach (FileInfo filepath in htmlFiles)
             {
+                if (!filepath.Exists) continue;
+
                 RemoveNav(filepath);
+                RemoveFooter(filepath);
                 HideElementsWithClass(filepath, "main-container");
             }
         }
@@ -119,11 +173,11 @@ namespace BSS_Export_Script
         /// </summary>
         /// <param name="path">Path to HTML file.</param>
         /// <param name="cssClass">css class to match.</param>
-        static void HideElementsWithClass(string path, string cssClass)
+        static void HideElementsWithClass(FileInfo path, string cssClass)
         {
-            if (!path.EndsWith(".html")) return;
+            if (!path.Name.EndsWith(".html")) return;
 
-            string file = File.ReadAllText(path);
+            string file = File.ReadAllText(path.FullName);
 
             int index = -1;
             int lastIndex = 0;
@@ -145,19 +199,21 @@ namespace BSS_Export_Script
 
             Console.WriteLine("Done file " + path + "added " + times + "things");
             if (lastIndex > 0)
-                File.WriteAllText(path, file);
+                File.WriteAllText(path.FullName, file);
         }
+
+#warning create a remove element function and pass nav and footer to.
 
         /// <summary>
         /// Removes the "nav" element from an HTML file.
         /// </summary>
         /// <remarks>Quick and Dirty</remarks>
         /// <param name="path">Path to HTML file.</param>
-        static void RemoveNav(string path)
+        static void RemoveNav(FileInfo path)
         {
-            if (!path.EndsWith(".html")) return;
+            if (!path.Name.EndsWith(".html")) return;
 
-            string fileContents = File.ReadAllText(path);
+            string fileContents = File.ReadAllText(path.FullName);
 
             int start = fileContents.IndexOf(navStart);
             int end = fileContents.IndexOf(navEnd);
@@ -166,7 +222,29 @@ namespace BSS_Export_Script
             {
                 fileContents = fileContents.Remove(start, (end + navEnd.Length) - start);
                 Console.WriteLine("Nav Removed");
-                File.WriteAllText(path, fileContents);
+                File.WriteAllText(path.FullName, fileContents);
+            }
+        }
+
+        /// <summary>
+        /// Removes the "nav" element from an HTML file.
+        /// </summary>
+        /// <remarks>Quick and Dirty</remarks>
+        /// <param name="path">Path to HTML file.</param>
+        static void RemoveFooter(FileInfo path)
+        {
+            if (!path.Name.EndsWith(".html")) return;
+
+            string fileContents = File.ReadAllText(path.FullName);
+
+            int start = fileContents.IndexOf(footerStart);
+            int end = fileContents.IndexOf(footerEnd);
+
+            if (start != -1 && end != -1)
+            {
+                fileContents = fileContents.Remove(start, (end + footerEnd.Length) - start);
+                Console.WriteLine("Footer Removed");
+                File.WriteAllText(path.FullName, fileContents);
             }
         }
 

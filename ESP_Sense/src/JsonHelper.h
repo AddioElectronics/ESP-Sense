@@ -3,11 +3,62 @@
 
 #include <arduino.h>
 
+#include <functional>
+
 #include <ArduinoJson.hpp>
 #include <ArduinoJson.h>
 #include <IPAddress.h>
 
 #include "GlobalDefs.h"
+
+namespace JsonHelper
+{
+
+	DynamicJsonDocument* CreateDocument(size_t size);
+
+	typedef std::function<int(JsonObject& document)> PACK_JSON_FUNC;
+	//typedef int (*PACK_JSON_FUNC)(JsonObject& document);
+	size_t CreatePackAndSerialize(size_t docSize, String& serializeTo, DynamicJsonDocument** out_doc, PACK_JSON_FUNC packFunction);
+	DynamicJsonDocument* CreateAndPackDocument(size_t docSize, PACK_JSON_FUNC packFunction);
+
+	/// <summary>
+	/// Parses an enum from a JsonVariant.
+	/// JsonVariant can be a string, value or index.
+	/// </summary>
+	/// <param name="jvar">JsonVariant containing a string representation, value or index.</param>
+	/// <param name="len">How many values the enum contains.</param>
+	/// <param name="strings">Array of the values represented as strings.</param>
+	/// <param name="values">Array of the true value for each element of the enum, in order. *Only required if enum values do not start incrementing from 0.</param>
+	/// <param name="success">Out value to get if the parsing was successful. (For using when the enum contains a -1 value)</param>
+	/// <returns>True value of the enum, or -1 if something failed.</returns>
+	int JsonParseEnum(JsonVariantConst& jvar, const uint8_t len, const char** strings = nullptr, int* values = nullptr, bool* success = nullptr);
+
+
+	/// <summary>
+	/// Finds the index of an enums value, and sets a JsonVariant to that value. 
+	/// </summary>
+	/// <param name="jvar"></param>
+	/// <param name="value"></param>
+	/// <param name="values"></param>
+	/// <param name="len"></param>
+	/// <param name="enumContainsNeg1">If enum contains negative one the function will have to do a special check to see if it failed.</param>
+	/// <returns></returns>
+	bool EnumValueToJson(JsonVariant& jvar, int value, int* values, const uint8_t len, bool enumContainsNeg1 = false);
+
+	/// <summary>
+	/// Sets a JsonVariant to a string representation of an enum.
+	/// </summary>
+	/// <param name="jvar"></param>
+	/// <param name="value"></param>
+	/// <param name="strings"></param>
+	/// <param name="len"></param>
+	/// <returns></returns>
+	bool EnumValueToJson(JsonVariant& jvar, int value, const char** strings, const uint8_t len, int* values = nullptr);
+
+}
+
+#pragma region User Defined Functions
+#warning move UDFs to the files which contain the type.
 
 //Dummy definition so ArduinoJson can get function by type.
 enum class WifiPower {};
@@ -62,40 +113,7 @@ bool canConvertFromJson(JsonVariantConst src, const UART_STOPBITS&);
 void convertFromJson(JsonVariantConst src, UART_STOPBITS& dst);
 bool convertToJson(const UART_STOPBITS& src, JsonVariant dst);
 
-
-/// <summary>
-/// Parses an enum from a JsonVariant.
-/// JsonVariant can be a string, value or index.
-/// </summary>
-/// <param name="jvar">JsonVariant containing a string representation, value or index.</param>
-/// <param name="len">How many values the enum contains.</param>
-/// <param name="strings">Array of the values represented as strings.</param>
-/// <param name="values">Array of the true value for each element of the enum, in order. *Only required if enum values do not start incrementing from 0.</param>
-/// <param name="success">Out value to get if the parsing was successful. (For using when the enum contains a -1 value)</param>
-/// <returns>True value of the enum, or -1 if something failed.</returns>
-int JsonParseEnum(JsonVariantConst& jvar, const uint8_t len, const char** strings = nullptr, int* values = nullptr, bool* success = nullptr);
-
-
-/// <summary>
-/// Finds the index of an enums value, and sets a JsonVariant to that value. 
-/// </summary>
-/// <param name="jvar"></param>
-/// <param name="value"></param>
-/// <param name="values"></param>
-/// <param name="len"></param>
-/// <param name="enumContainsNeg1">If enum contains negative one the function will have to do a special check to see if it failed.</param>
-/// <returns></returns>
-bool EnumValueToJson(JsonVariant& jvar, int value, int* values, const uint8_t len, bool enumContainsNeg1 = false);
-
-/// <summary>
-/// Sets a JsonVariant to a string representation of an enum.
-/// </summary>
-/// <param name="jvar"></param>
-/// <param name="value"></param>
-/// <param name="strings"></param>
-/// <param name="len"></param>
-/// <returns></returns>
-bool EnumValueToJson(JsonVariant& jvar, int value, const char** strings, const uint8_t len, int* values = nullptr);
+#pragma endregion
 
 #endif
 

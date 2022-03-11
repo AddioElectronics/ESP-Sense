@@ -1,0 +1,45 @@
+footer {
+  background-color: #111518;
+  /*position: absolute;*/
+  position: fixed;
+  width: 100%;
+  bottom: 0px;
+  z-index: 0;
+}
+
+footer > .container > .grid {
+  grid-template-columns: 33% 33% 33%;
+  grid-template-rows: 0px 40px 40px 20px 0px;
+  grid-row-gap: 15px;
+}
+
+footer .grid .footing {
+  text-align: center;
+  grid-column: 2;
+  grid-row: 2;
+}
+
+footer .grid .version {
+  text-align: center;
+  grid-column: 2;
+  grid-row: 4;
+}
+
+footer .grid .github {
+  color: #989898;
+  font-size: 40px;
+  grid-column: 2;
+  grid-row: 3;
+  text-align: center;
+  line-height: 100%;
+}
+
+footer .grid .github i {
+  color: #989898;
+}
+
+footer .grid .github i:hover {
+  color: white;
+  transition: color 0.5s ease;
+}
+

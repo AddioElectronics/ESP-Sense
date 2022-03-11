@@ -30,7 +30,7 @@ void Network::Website::Tools::JsonValidator::Initialize()
 #if COMPILE_WEB_JSON_VALIDATOR
 	server.on(Strings::Urls::pageConfigToolJsonVerifier, HTTP_GET, [](AsyncWebServerRequest* request) {
 		if (!status.server.authenticated)
-			Network::Server::Server401(request);
+			Network::Server::Server511(request);
 
 		else if (status.server.browser.tools.jsonVerify.enabled)
 			Network::Server::ServeWebpage(Network::Website::Strings::Urls::pageConfigToolJsonVerifier, request);

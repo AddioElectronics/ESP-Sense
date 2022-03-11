@@ -71,7 +71,8 @@ void Scd4xSensor::Loop()
 	{
 		if(Connect())	
 		{		
-			MarkReconnected();		
+			MarkReconnected();	
+
 			if (deviceStatus.configured)			
 				DEBUG_LOG_F(MQTT_DMSG_RECONNECTED, name.c_str());
 		}
@@ -290,13 +291,11 @@ bool Scd4xSensor::Publish()
 //	return mqttClient.publish(topics.availability.c_str(), Mqtt::Helper::GetAvailabilityString(sensorStatus.connected).c_str());
 //}
 
-String Scd4xSensor::GenerateJsonPayload()
+void Scd4xSensor::AddStatePayload(JsonObject& addTo)
 {
-	DEBUG_LOG_F("...Generating %s(SCD4x) JSON Data :\r\n", name.c_str());
-
-	String jdata;
-	StaticJsonDocument<128> doc;
-	JsonObject obj = doc.createNestedObject(name);
+	JsonObject obj = addTo;
+	if (addTo.size() == 0)
+		obj = addTo.createNestedObject("statePayload");
 
 	if (uniqueConfig.mqtt.publishCo2)
 	{
@@ -327,12 +326,18 @@ String Scd4xSensor::GenerateJsonPayload()
 		else
 			humidity.set(SENSOR_DATA_UNKNOWN);
 	}
+}
 
-	serializeJson(doc, jdata);
+void Scd4xSensor::AddStatusData(JsonObject& addTo)
+{
+	MqttSensor::AddStatusData(addTo);
+	addTo["uniqueStatus"].set<SCD4xStatus_t>(uniqueStatus);
+}
 
-	DEBUG_LOG_LN(jdata.c_str());
-
-	return jdata;
+void Scd4xSensor::AddConfigData(JsonObject& addTo)
+{
+	MqttDevice::AddConfigData(addTo);
+	addTo["uniqueConfig"].set<Scd4xConfig_t>(uniqueConfig);
 }
 
 
@@ -1616,13 +1621,13 @@ const char* scd4x_powermode_strings[2] = { "std" , "low"};
 
 bool canConvertFromJson(JsonVariantConst src, const SCD4x_PowerMode&)
 {
-	return JsonParseEnum(src, 2, scd4x_powermode_strings, nullptr) != -1;
+	return JsonHelper::JsonParseEnum(src, 2, scd4x_powermode_strings, nullptr) != -1;
 }
 
 void convertFromJson(JsonVariantConst src, SCD4x_PowerMode& dst)
 {
 	bool success;
-	SCD4x_PowerMode parseResult = (SCD4x_PowerMode)JsonParseEnum(src, 2, scd4x_powermode_strings, nullptr, &success);
+	SCD4x_PowerMode parseResult = (SCD4x_PowerMode)JsonHelper::JsonParseEnum(src, 2, scd4x_powermode_strings, nullptr, &success);
 
 	if (success)
 		dst = parseResult;
@@ -1633,7 +1638,7 @@ void convertFromJson(JsonVariantConst src, SCD4x_PowerMode& dst)
 bool convertToJson(const SCD4x_PowerMode& src, JsonVariant dst)
 {
 #if SERIALIZE_ENUMS_TO_STRING
-	bool set = EnumValueToJson(dst, (uint8_t)src, scd4x_powermode_strings, 2);
+	bool set = JsonHelper::EnumValueToJson(dst, (uint8_t)src, scd4x_powermode_strings, 2);
 #else
 	bool set = dst.set((uint8_t)src);
 #endif
@@ -1642,6 +1647,179 @@ bool convertToJson(const SCD4x_PowerMode& src, JsonVariant dst)
 
 	DEBUG_LOG_LN("SCD4x_PowerMode Conversion to JSON failed.");
 	return false;
+}
+
+
+
+
+bool canConvertFromJson(JsonVariantConst src, const SCD4xStatus_t&)
+{
+	return src.containsKey("periodicallyMeasuring") || src.containsKey("uniqueStatus");
+}
+
+void convertFromJson(JsonVariantConst src, SCD4xStatus_t& dst)
+{
+	JsonVariantConst uniqueStatusObj = src;
+
+	if (src.containsKey("uniqueStatus"))
+		uniqueStatusObj = src["uniqueStatus"];
+
+
+	if (uniqueStatusObj.containsKey("measurementStarted"))
+		dst.measurementStarted = uniqueStatusObj["measurementStarted"];
+
+	if (uniqueStatusObj.containsKey("periodicallyMeasuring"))
+		dst.periodicallyMeasuring = uniqueStatusObj["periodicallyMeasuring"];
+
+	if (uniqueStatusObj.containsKey("dataReady"))
+		dst.dataReady = uniqueStatusObj["dataReady"];
+
+	if (uniqueStatusObj.containsKey("skipNextMeasurement"))
+		dst.skipNextMeasurement = uniqueStatusObj["skipNextMeasurement"];
+
+	if (uniqueStatusObj.containsKey("performingSelfTest"))
+		dst.performingSelfTest = uniqueStatusObj["performingSelfTest"];
+
+	if (uniqueStatusObj.containsKey("performingFactoryReset"))
+		dst.performingFactoryReset = uniqueStatusObj["performingFactoryReset"];
+
+	if (uniqueStatusObj.containsKey("performingCalibration"))
+		dst.performingCalibration = uniqueStatusObj["performingCalibration"];
+
+	if (uniqueStatusObj.containsKey("reenable"))
+		dst.reenable = uniqueStatusObj["reenable"];
+
+	if (uniqueStatusObj.containsKey("powerMode"))
+		dst.powerMode = uniqueStatusObj["powerMode"].as<SCD4x_PowerMode>();
+
+	if (uniqueStatusObj.containsKey("error"))
+		dst.error = uniqueStatusObj["error"];
+
+	if (uniqueStatusObj.containsKey("selfTestResults"))
+		dst.selfTestResults = uniqueStatusObj["selfTestResults"];
+}
+
+bool convertToJson(const SCD4xStatus_t& src, JsonVariant dst)
+{
+	dst["measurementStarted"] = src.measurementStarted;
+	dst["periodicallyMeasuring"] = src.periodicallyMeasuring;
+	dst["dataReady"] = src.dataReady;
+	dst["skipNextMeasurement"] = src.skipNextMeasurement;
+	dst["performingSelfTest"] = src.performingSelfTest;
+	dst["performingFactoryReset"] = src.performingFactoryReset;
+	dst["performingCalibration"] = src.performingCalibration;
+	dst["reenable"] = src.reenable;
+	dst["powerMode"].set(src.powerMode);
+	dst["error"] = src.error;
+	dst["selfTestResults"] = src.selfTestResults;
+}
+
+
+//bool canConvertFromJson(JsonVariantConst src, const Scd4xConfig_t&)
+//{
+//	return src.containsKey("internal") || src.containsKey("program");
+//}
+
+void convertFromJson(JsonVariantConst src, Scd4xConfig_t& dst)
+{
+	JsonVariantConst root = src;
+
+	if (src.containsKey("uniqueStatus"))
+		root = src["uniqueStatus"];
+
+
+	if (root.containsKey("internal"))
+	{
+		JsonVariantConst obj = root["internal"];
+
+		if (obj.containsKey("useDefaults"))
+			dst.internal.useDefaults = obj["useDefaults"];
+
+		if (obj.containsKey("altitude"))
+			dst.internal.altitude = obj["altitude"];
+
+		if (obj.containsKey("ambientPressure"))
+			dst.internal.ambientPressure = obj["ambientPressure"];
+
+		if (obj.containsKey("tempOffset"))
+			dst.internal.tempOffset = obj["tempOffset"];
+
+		if (obj.containsKey("retainSettings"))
+			dst.internal.retainSettings = obj["retainSettings"];
+
+		if (obj.containsKey("selfCalibrate"))
+			dst.internal.selfCalibrate = obj["selfCalibrate"];
+	}
+
+	if (root.containsKey("program"))
+	{
+		JsonVariantConst obj = root["program"];
+
+		if (obj.containsKey("useDefaults"))
+			dst.program.useDefaults = obj["useDefaults"];
+
+		if (obj.containsKey("bootSelfTest"))
+			dst.program.bootSelfTest = obj["bootSelfTest"];
+
+		if (obj.containsKey("checkDataReady"))
+			dst.program.checkDataReady = obj["checkDataReady"];
+
+		if (obj.containsKey("i2cPort"))
+			dst.program.i2cPort = obj["i2cPort"];
+
+		if (obj.containsKey("maxFailedReads"))
+			dst.program.maxFailedReads = obj["maxFailedReads"];
+
+		if (obj.containsKey("periodicMeasure"))
+			dst.program.periodicMeasure = obj["periodicMeasure"];
+
+		if (obj.containsKey("powerMode"))
+			dst.program.powerMode = obj["powerMode"].as<SCD4x_PowerMode>();
+
+		if (obj.containsKey("readRateAdditional"))
+			dst.program.readRateAdditional = obj["readRateAdditional"];
+	}
+
+	if (root.containsKey("mqtt"))
+	{
+		JsonVariantConst obj = root["mqtt"];
+
+		if (obj.containsKey("publishCo2"))
+			dst.mqtt.publishCo2 = obj["publishCo2"];
+
+		if (obj.containsKey("publishHumdiity"))
+			dst.mqtt.publishHumdiity = obj["publishHumdiity"];
+
+		if (obj.containsKey("publishTemperature"))
+			dst.mqtt.publishTemperature = obj["publishTemperature"];
+	}
+
+}
+
+bool convertToJson(const Scd4xConfig_t& src, JsonVariant dst)
+{
+	JsonObject internalObj = dst.createNestedObject("internal");
+	internalObj["useDefaults"] = src.internal.useDefaults;
+	internalObj["altitude"] = src.internal.altitude;
+	internalObj["ambientPressure"] = src.internal.ambientPressure;
+	internalObj["tempOffset"] = src.internal.tempOffset;
+	internalObj["retainSettings"] = src.internal.retainSettings;
+	internalObj["selfCalibrate"] = src.internal.selfCalibrate;
+
+	JsonObject programObj = dst.createNestedObject("program");
+	programObj["useDefaults"] = src.program.useDefaults;
+	programObj["bootSelfTest"] = src.program.bootSelfTest;
+	programObj["checkDataReady"] = src.program.checkDataReady;
+	programObj["i2cPort"] = src.program.i2cPort;
+	programObj["maxFailedReads"] = src.program.maxFailedReads;
+	programObj["periodicMeasure"] = src.program.periodicMeasure;
+	programObj["powerMode"].set<SCD4x_PowerMode>(src.program.powerMode);
+	programObj["readRateAdditional"] = src.program.readRateAdditional;
+
+	JsonObject mqttObj = dst.createNestedObject("mqtt");
+	mqttObj["publishCo2"] = src.mqtt.publishCo2;
+	mqttObj["publishHumdiity"] = src.mqtt.publishHumdiity;
+	mqttObj["publishTemperature"] = src.mqtt.publishTemperature;
 }
 
 #pragma endregion

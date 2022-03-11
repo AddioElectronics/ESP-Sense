@@ -1,0 +1,22 @@
+.device-heading {
+  max-width: 1000px;
+  margin: auto;
+}
+
+.device-heading .col:nth-child(2) {
+  text-align: end;
+}
+
+.device-heading span {
+  display: inline-block;
+  /*position: relative;*/
+  text-align: center;
+}
+
+.device-heading h1:after {
+  /*line-height: 0px;*/
+  /*margin-top: -40px;*/
+  /*position: absolute;*/
+  /*top: 0px;*/
+}
+

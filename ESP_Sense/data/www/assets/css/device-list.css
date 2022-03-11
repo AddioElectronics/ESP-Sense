@@ -1,0 +1,176 @@
+main [mqtt=devicelist] {
+  margin: 20px 0px 100px;
+  position: relative;
+}
+
+main [mqtt=devicelist] .device-group h3 {
+  color: white;
+}
+
+@media (max-width: 991px) {
+  .grid.list {
+    grid-template-columns: 100%;
+  }
+}
+
+@media (min-width: 992px) {
+  .grid.list {
+    grid-template-columns: 50% 50%;
+  }
+}
+
+main [mqtt=devicelist] .sub-list .grid {
+  /*grid-template-columns: 50% 35% 15%;*/
+  grid-template-columns: 40% 40% 20%;
+}
+
+main [mqtt=devicelist] .sub-list .grid button {
+  margin-top: -5px;
+  display: in;
+}
+
+.label-container {
+  background-color: rgba(45,72,143,0.44);
+  padding: 10px 10px 10px 20px;
+  color: white;
+}
+
+.device-container {
+  padding: 10px 10px 10px 20px;
+}
+
+.device-container > span, .device-container > a {
+  position: relative;
+}
+
+[state]:after {
+  position: absolute;
+  top: 0px;
+}
+
+.device-container:nth-child(odd) {
+  background-color: rgba(255,255,255,0.06);
+}
+
+.device-container:hover, .device-container:focus {
+  background-color: rgba(0,0,0,0.25);
+}
+
+.device-container[selected] {
+  border: 1px solid green;
+}
+
+.device-container:active {
+  background-color: black;
+}
+
+main [mqtt=devicelist] {
+  margin: 20px 0px 100px;
+  position: relative;
+}
+
+main [mqtt=devicelist] .device-group h3 {
+  color: white;
+}
+
+@media (max-width: 991px) {
+  .grid.list {
+    grid-template-columns: 100%;
+  }
+}
+
+@media (min-width: 992px) {
+  .grid.list {
+    grid-template-columns: 50% 50%;
+  }
+}
+
+main [mqtt=devicelist] .sub-list .grid {
+  /*grid-template-columns: 50% 35% 15%;*/
+  grid-template-columns: 40% 40% 20%;
+}
+
+main [mqtt=devicelist] .sub-list .grid button {
+  margin-top: -5px;
+  display: in;
+}
+
+.label-container {
+  background-color: rgba(45,72,143,0.44);
+  padding: 10px 10px 10px 20px;
+  color: white;
+}
+
+.device-container {
+  padding: 10px 10px 10px 20px;
+}
+
+.device-container > span, .device-container > a {
+  position: relative;
+}
+
+[state]:after {
+  position: absolute;
+  top: 0px;
+}
+
+.device-container:nth-child(odd) {
+  background-color: rgba(255,255,255,0.06);
+}
+
+.device-container:hover, .device-container:focus {
+  background-color: rgba(0,0,0,0.25);
+}
+
+.device-container[selected] {
+  border: 1px solid green;
+}
+
+.device-container:active {
+  background-color: black;
+}
+
+[state]:after {
+  display: block;
+}
+
+[state=ok] {
+  color: green;
+}
+
+[state=error] {
+  color: red;
+}
+
+[state=disabled] {
+  color: #606060;
+}
+
+[state=ok]:after {
+  content: "OK";
+}
+
+[state=error]:after {
+  content: "Error";
+}
+
+main [mqtt=devicelist] button[action=select-device]:not(.position-absolute) {
+  --navtodevbut-fixed-pos: 20px;
+  position: fixed;
+  top: 20px;
+  right: var(--device-status-width);
+  z-index: 1000;
+}
+
+main [mqtt=devicelist] button[action=select-device].position-absolute, .vis-detect[button=select-device] {
+  /*bottom: -60px;*/
+  top: 20px;
+  right: 20px;
+}
+
+.vis-detect[button=select-device] {
+  height: 32px;
+  width: 100px;
+  position: absolute;
+}
+

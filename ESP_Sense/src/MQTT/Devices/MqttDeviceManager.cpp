@@ -41,22 +41,6 @@ device_count_t CreateDevicesOfSubType(const char* deviceTypeName, JsonArrayConst
 
 //template <class MqttGenericDevice>
 
-MqttDevice* CreateMqttDeviceSensor(int deviceIndex, int sensorIndex, const char* name, const char* device)
-{
-	if (strcmp(device, "scd4x") == 0)
-	{
-		return mqttSensors[sensorIndex] = new Scd4xSensor(name, deviceIndex);
-	}
-	else if (strcmp(device, "sht4x") == 0)
-	{
-		return mqttSensors[sensorIndex] = new Sht4xSensor(name, deviceIndex);
-	}
-	else
-	{
-		return nullptr;
-	}
-}
-
 typedef struct {
 	uint32_t* deviceIndex;
 	device_count_t* subTypeIndex; 
@@ -760,6 +744,108 @@ void Mqtt::DeviceManager::Loop()
 
 }
 
+void AddDevicesInfo(JsonArray& jarray, MqttDevice* device)
+{
+	JsonObject obj;
+	obj["name"] = device->name;
+	obj["deviceName"] = device->deviceName;
+
+	switch (device->deviceStatus.state)
+	{
+		case (DeviceState_t)DeviceState::DEVICE_OK:
+			obj["state"].set("ok");
+		break;
+		case (DeviceState_t)DeviceState::DEVICE_DISABLED:
+			obj["state"].set("disabled");
+		break;
+		case (DeviceState_t)DeviceState::DEVICE_ERROR:
+			obj["state"].set("error");
+		break;
+	}
+
+	////Can generate URL using name with JS
+	//if (device->website != nullptr)
+	//	obj["url"] = device->website->GetUrl();
+
+	jarray.add(obj);
+}
+
+int Mqtt::DeviceManager::PackDeviceInfo(JsonObject& doc)
+{
+	JsonObject parent = doc.createNestedObject("mqttDeviceInfo");
+
+	if (status.mqtt.devices.sensorCount)
+	{
+		JsonArray sensors = parent.createNestedArray("sensors");
+		for (device_count_t i = 0; i < status.mqtt.devices.sensorCount; i++)
+		{
+			AddDevicesInfo(sensors, mqttSensors[i]);
+			EspSense::YieldWatchdog(1);
+		}
+	}
+
+	if (status.mqtt.devices.binarySensorCount)
+	{
+		JsonArray binSensors = parent.createNestedArray("binarySensors");
+		for (device_count_t i = 0; i < status.mqtt.devices.binarySensorCount; i++)
+		{
+			AddDevicesInfo(binSensors, mqttBinarySensors[i]);
+			EspSense::YieldWatchdog(1);
+		}
+	}
+
+	return 0;
+}
+
+//size_t Mqtt::DeviceManager::GetJsonDeviceInfo(String* serializeTo, DynamicJsonDocument** out_doc)
+//{
+//	if (serializeTo == nullptr && out_doc == nullptr) return 0;
+//
+//#warning calculate size
+//	DynamicJsonDocument* doc = new DynamicJsonDocument(2048);
+//
+//	JsonObject obj = doc->createNestedObject("mqttDevices");
+//
+//	JsonArray sensors = obj.createNestedArray("sensors");
+//	for (device_count_t i = 0; i < status.mqtt.devices.sensorCount; i++)
+//	{
+//		AddDevicesInfo(sensors, mqttSensors[i]);
+//		EspSense::YieldWatchdog(1);
+//	}
+//
+//
+//	JsonArray binSensors = obj.createNestedArray("binarySensors");
+//	for (device_count_t i = 0; i < status.mqtt.devices.binarySensorCount; i++)
+//	{
+//		AddDevicesInfo(sensors, mqttBinarySensors[i]);
+//		EspSense::YieldWatchdog(1);
+//	}
+//
+//
+//	size_t size = 1;
+//
+//	if (serializeTo != nullptr)
+//		size = serializeJson(*doc, *serializeTo);
+//	
+//
+//	if (out_doc != nullptr)
+//	{
+//		*out_doc == doc;
+//	}
+//	else
+//	{
+//		doc->clear();
+//		free(doc);
+//	}
+//
+//	return size;
+//}
+//
+//size_t Mqtt::DeviceManager::GetJsonDeviceInfo(DynamicJsonDocument** out_doc)
+//{
+//	return GetJsonDeviceInfo(nullptr, out_doc);
+//}
+
 
 
 void Mqtt::DeviceManager::Callback(char* topic, byte* payload, unsigned int length)
@@ -816,11 +902,11 @@ size_t Mqtt::DeviceManager::GetMaxFileSize()
 
 bool Mqtt::DeviceManager::IsValidSensor(const char* device)
 {
-	if (strcmp(device, "scd4x"))
+	if (strcmp(device, "scd4x") == 0)
 	{
 		return true;
 	}
-	else if (strcmp(device, "sht4x"))
+	else if (strcmp(device, "sht4x") == 0)
 	{
 		return true;
 	}
@@ -834,11 +920,11 @@ MqttSensor* Mqtt::DeviceManager::CreateMqttSensor(int deviceIndex, int sensorInd
 {
 	if (strcmp(device, "scd4x") == 0)
 	{
-		return mqttSensors[sensorIndex] = new Scd4xSensor(name, deviceIndex);
+		return mqttSensors[sensorIndex] = new Scd4xSensor(name, device, deviceIndex);
 	}
 	else if (strcmp(device, "sht4x") == 0)
 	{
-		return mqttSensors[sensorIndex] = new Sht4xSensor(name, deviceIndex);
+		return mqttSensors[sensorIndex] = new Sht4xSensor(name, device, deviceIndex);
 	}
 	else
 	{
@@ -863,7 +949,7 @@ MqttBinarySensor* Mqtt::DeviceManager::CreateMqttBinarySensor(int deviceIndex, i
 {
 	if (strcmp(device, "llc200d3sh") == 0)
 	{
-		return mqttBinarySensors[sensorIndex] = new Llc200d3sh_Sensor(name, deviceIndex);
+		return mqttBinarySensors[sensorIndex] = new Llc200d3sh_Sensor(name, device, deviceIndex);
 	}
 	else
 	{

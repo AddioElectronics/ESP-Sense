@@ -3,6 +3,9 @@
 
 #include <Arduino.h>
 
+#include <ArduinoJson.hpp>
+#include <ArduinoJson.h>
+
 #include "../../Config/config_master.h"
 #include "../../Config/config_mqtt.h"
 
@@ -15,9 +18,13 @@
 #include "BinarySensors/MqttBinarySensor.h"
 #include "BinarySensors/LLC200D3SH/sensor_LLC200D3SH.h"
 
-
-
-
+//#warning put somewhere else
+//typedef struct {
+//	String* name;
+//	String* deviceName;
+//	MqttDeviceType type;
+//	String* url;
+//}MqttDeviceInfo_t;
 
 //#include "MqttLight.h"
 //
@@ -51,6 +58,23 @@ namespace Mqtt
 		static void Loop();
 
 		/// <summary>
+		/// Packs all MQTT device's names and deviceNames into a JSON document.
+		/// </summary>
+		static int PackDeviceInfo(JsonObject& doc);
+
+		///// <summary>
+		///// Packs all MQTT device's names and deviceNames into a JSON document,
+		///// before serializing in to a string.
+		///// *If string is nullptr, it will only pack and not serialize(out_doc must be passed).
+		///// </summary>
+		//static size_t GetJsonDeviceInfo(String* serializeTo, DynamicJsonDocument** out_doc = nullptr);
+
+		///// <summary>
+		///// Packs all MQTT device's names and deviceNames into a JSON document.
+		///// </summary>
+		//static size_t GetJsonDeviceInfo(DynamicJsonDocument** out_doc);
+
+		/// <summary>
 		/// Forwards the received MQTT message to all devices.
 		/// *Todo: Only forward until the topic has been processed, unless the topic is JSON that is shared by multiple devices.
 		/// </summary>
@@ -73,7 +97,6 @@ namespace Mqtt
 		void DeviceManagerLoopTask(void* pvParameters);
 	}
 }
-
 
 
 #endif

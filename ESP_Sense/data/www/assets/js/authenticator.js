@@ -19,10 +19,10 @@ var espAuthenticated = false;
 
 function authSuccess() {
     espAuthenticated = true;
-    Show($('.main-container'));
+    Show($('main'));
     $('#auth_con').remove();
     console.log('Authorization Successful');
-    $('html').trigger('auth');
+    invokeEvent('auth');
     $('html').attr('auth', '');
     $('#logout_but').click(logout);
 }
@@ -30,7 +30,7 @@ function authSuccess() {
 function authFailed(request, status, error) {
     console.log('Authorization Failed');
 
-    $('.main-container').remove();
+    $('main').remove();
 
     if ($('#auth_con').length == 0) {
         $('#nav_head').after(loginFormHtml);
@@ -95,8 +95,8 @@ function attachFormEvent(){
             url: "/auth",
             type: 'POST',
             data: jStr,
-            username: jdata["username"],
-            password: jdata["password"],
+            username: jdata["username"],    //Not used anymore
+            password: jdata["password"],    //Not used anymore
             success: function() {
                 console.log("Authentication Successful");
                 refreshPage();
@@ -118,7 +118,7 @@ function authenticate() {
         url: "/auth",
         data: null,
         success: authSuccess,
-        error: authFailed
+        error: authSuccess
     });
 }
 
@@ -152,7 +152,7 @@ function encryptXOR(msg, key) {
 
 
 
-$(document).ready(function() {
+EventReady.add(function(){
     $('.main-container').hide();
     $('#auth_con').hide();
     //$('#user_input').change(validateAuthForm);

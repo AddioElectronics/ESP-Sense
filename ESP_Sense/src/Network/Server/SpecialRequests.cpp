@@ -1,7 +1,9 @@
 #include "SpecialRequests.h"
 
+#include <AsyncJson.h>
 #include <ArduinoJson.hpp>
 #include <ArduinoJson.h>
+
 
 #include <WiFi.h>
 
@@ -12,9 +14,13 @@
 #include "../Website/WebStrings.h"
 #include "../../GlobalDefs.h"
 #include "../../macros.h"
+#include "../../JsonHelper.h"
 #include "../Website/WebStrings.h"
 #include "../Website/WebpageServer.h"
 #include "Authentication.h"
+#include "../../MQTT/Devices/MqttDeviceManager.h"
+
+using namespace Network::Website::Strings;
 
 extern Config_t config;
 extern DeviceStatus_t status;
@@ -28,7 +34,8 @@ extern AsyncWebServer server;
 /// </summary>
 String responseString;
 
-void ResponseDeviceStatus(AsyncWebServerRequest* request);
+//void ResponseDeviceStatus(AsyncWebServerRequest* request);
+//void ResponseMqttDeviceInfo(AsyncWebServerRequest* request);
 
 void Network::Server::SpecialRequests::Initialize()
 {
@@ -48,7 +55,25 @@ void Network::Server::SpecialRequests::Initialize()
 	});
 
 	//Serialize status and send in response.
-	server.on("/status", HTTP_GET, ResponseDeviceStatus);
+	/*server.on("/status", HTTP_GET, ResponseDeviceStatus);*/
+	server.on(Website::Strings::Urls::requestStatus, HTTP_GET, [](AsyncWebServerRequest* request) {
+		//ResponseSerializedData((PACK_JSON_DOC_FUNC)Config::Status::SerializeDeviceStatus, request);
+		ResponseSerializedData(3072, (JsonHelper::PACK_JSON_FUNC)Config::Status::PackDeviceStatus, request);
+	});
+
+	//Serialize MQTT device info and send in response.
+	server.on(Website::Strings::Urls::requestMqttDeviceInfo, HTTP_GET, [](AsyncWebServerRequest* request) {
+		//ResponseSerializedData((PACK_JSON_DOC_FUNC)Mqtt::DeviceManager::GetJsonDeviceInfo, request);
+		ResponseSerializedData(2048, (JsonHelper::PACK_JSON_FUNC)Mqtt::DeviceManager::PackDeviceInfo, request);
+	});
+
+	//Get ESP Sense Version
+	server.on(Website::Strings::Urls::requestVersion, HTTP_GET, [](AsyncWebServerRequest* request) {
+		ResponseSerializedData(2048, (JsonHelper::PACK_JSON_FUNC)[](JsonObject& doc) {
+			doc["version"].set(status.misc.version);
+			return 0;
+		}, request);
+	});
 
 	//Restart
 	server.on(Website::Strings::Urls::requestReset, HTTP_POST, [](AsyncWebServerRequest* request) {
@@ -69,19 +94,102 @@ void Network::Server::SpecialRequests::Initialize()
 }
 
 
+
 /// <summary>
-/// Serialize status and send in response.
+/// Calls a function which serializes data and sends as a response stream.
 /// </summary>
-void ResponseDeviceStatus(AsyncWebServerRequest* request)
+/// <param name="docSize">Size to allocate for the document</param>
+/// <param name="packFunc">Function pointer to a method that packs data in to a JSON document.</param>
+/// <param name="request">Web request</param>
+/// <param name="respondOnError">If the JSON data was unable to be sent, do you want an error code to be sent?</param>
+/// <returns>Recommended HTTP error response code. If returns 200, a respone has already been sent.</returns>
+int Network::Server::SpecialRequests::ResponseSerializedData(size_t docSize, JsonHelper::PACK_JSON_FUNC packFunc, AsyncWebServerRequest* request, bool respondOnError, bool messagedResponse)
 {
-	if (!Network::Server::Authentication::IsAuthenticated(request)) return;
+	if (!Network::Server::Authentication::IsAuthenticated(request))
+	{
+		if (respondOnError)
+			Server::SendHttpResponseCode(511, request, messagedResponse);
+			//request->send(511, ContentType::textPlain, Messages::networkAuthenticationRequried);
+		return 511;
+	}
 
-	size_t size = Config::Status::SerializeDeviceStatus(responseString);
+	DynamicJsonDocument* doc = JsonHelper::CreateAndPackDocument(docSize, packFunc);
 
-	if (size) {
-		request->send(200, Network::Website::Strings::ContentType::appJSON, responseString.c_str());
-		responseString.clear();
+	if (doc != nullptr) {
+
+		//Serialize document in response stream.
+		AsyncResponseStream* response = request->beginResponseStream(ContentType::appJSON);
+		serializeJson(*doc, *response);
+		request->send(response);
+
+		doc->clear();
+		free(doc);
+		return 200;
 	}
 	else
-		request->send(404);
+	{
+		if (respondOnError)
+			Server::SendHttpResponseCode(500, request, messagedResponse);
+			//request->send(500, ContentType::textPlain, Messages::internalServerError);
+		return 500;
+	}
 }
+
+
+///// <summary>
+///// Calls a function which serializes data and sends as a response.
+///// </summary>
+//void Network::Server::SpecialRequests::ResponseSerializedData(JsonHelper::PACK_JSON_DOCUMENT_FUNC packFunc, AsyncWebServerRequest* request)
+//{
+//	if (!Network::Server::Authentication::IsAuthenticated(request)) return;
+//	
+//	DynamicJsonDocument* doc;
+//	size_t size = serializeFunction(&doc);
+//
+//	if (size) {
+//		//request->send(200, ContentType::appJSON, responseString.c_str());
+//		//responseString.clear();
+//
+//		//Serialize document as response stream.
+//		AsyncResponseStream* response = request->beginResponseStream(ContentType::appJSON);
+//		serializeJson(*doc, *response);
+//		request->send(response);
+//
+//		doc->clear();
+//		free(doc);
+//	}
+//	else
+//		request->send(404);
+//}
+
+///// <summary>
+///// Serialize status and send in response.
+///// </summary>
+//void ResponseDeviceStatus(AsyncWebServerRequest* request)
+//{
+//	if (!Network::Server::Authentication::IsAuthenticated(request)) return;
+//
+//	size_t size = Config::Status::SerializeDeviceStatus(responseString);
+//
+//	if (size) {
+//		request->send(200, Network::Website::Strings::ContentType::appJSON, responseString.c_str());
+//		responseString.clear();
+//	}
+//	else
+//		request->send(404);
+//}
+//
+//
+//
+//void ResponseMqttDeviceInfo(AsyncWebServerRequest* request)
+//{
+//	if (!Network::Server::Authentication::IsAuthenticated(request)) return;
+//
+//	size_t size = Mqtt::DeviceManager::GetJsonDeviceInfo(responseString);
+//
+//	if (size) {
+//		request->send(200, Network::Website::Strings::ContentType::appJSON, responseString.c_str());
+//	}
+//	else
+//		request->send(404);
+//}

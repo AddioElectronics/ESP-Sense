@@ -37,7 +37,7 @@ void Network::Website::WebUpdate::Initialize()
 #if COMPILE_WEBUPDATE
 	server.on(Strings::Urls::pageWebUpdate, HTTP_GET, [](AsyncWebServerRequest* request) {
 		if (!Server::Authentication::IsAuthenticated(request))
-			Network::Server::Server401(request);
+			Network::Server::Server511(request);
 		else if (status.server.browser.updater.enabled)
 			Network::Server::ServeWebpage(Network::Website::Strings::Urls::pageWebUpdate, request);
 		else
@@ -49,7 +49,7 @@ void Network::Website::WebUpdate::Initialize()
 	server.on(Strings::Urls::requestWebUpdate, HTTP_POST, [](AsyncWebServerRequest* request) {
 		if (!Server::Authentication::IsAuthenticated(request))
 		{
-			request->send(401, Strings::ContentType::textPlain, Strings::Messages::unauthorized);
+			request->send(511, Strings::ContentType::textPlain, Strings::Messages::networkAuthenticationRequried);
 			return;
 		}
 		request->send(200);
