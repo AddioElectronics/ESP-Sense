@@ -76,7 +76,7 @@ public:
 		return &mqttBinarySensorBaseTopic;
 	}
 
-	Llc200d3sh_Sensor(const char* _name, const char* _device, int _index) : MqttBinarySensor(_name, _device, _index) {}
+	Llc200d3sh_Sensor(const char* _name, const char* _device, int _index, int _subIndex) : MqttBinarySensor(_name, _device, _index, _subIndex) {}
 
 #pragma region MqttDevice Functions
 

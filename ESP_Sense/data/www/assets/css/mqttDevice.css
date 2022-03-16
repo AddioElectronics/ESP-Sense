@@ -1,0 +1,6 @@
+[state] {
+  --mqtt-dev-state-ok: "ok";
+  --mqtt-dev-state-disabled: "disabled";
+  --mqtt-dev-state-error: "error";
+}
+

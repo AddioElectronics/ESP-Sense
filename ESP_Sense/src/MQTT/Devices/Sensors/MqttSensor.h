@@ -39,7 +39,7 @@ public:
 	/// </summary>
 	MqttSensorStatus_t sensorStatus;
 
-	MqttSensor(const char* _name, const char* _device, int _index) : MqttDevice(_name, _device, _index) {}
+	MqttSensor(const char* _name, const char* _device, int _index, int _subIndex) : MqttDevice(_name, _device, _index, _subIndex) {}
 
 	virtual bool Init(bool enable = true);
 

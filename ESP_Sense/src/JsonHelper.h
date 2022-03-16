@@ -55,6 +55,8 @@ namespace JsonHelper
 	/// <returns></returns>
 	bool EnumValueToJson(JsonVariant& jvar, int value, const char** strings, const uint8_t len, int* values = nullptr);
 
+	void UdfHelperConvertFromJsonEnums(JsonVariantConst src, EnumClass_t& dst, uint8_t length, const char* name = nullptr, const char** strings = nullptr, int* values = nullptr);
+	bool UdfHelperConvertToJsonEnums(const EnumClass_t& src, JsonVariant dst, uint8_t length, const char* name = nullptr, const char** strings = nullptr, int* values = nullptr);
 }
 
 #pragma region User Defined Functions
@@ -62,6 +64,8 @@ namespace JsonHelper
 
 //Dummy definition so ArduinoJson can get function by type.
 enum class WifiPower {};
+
+
 
 //ConfigSource
 bool canConvertFromJson(JsonVariantConst src, const ConfigSource&);

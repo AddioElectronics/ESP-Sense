@@ -532,28 +532,38 @@ bool canConvertFromJson(JsonVariantConst src, const sht4x_precision&)
 
 void convertFromJson(JsonVariantConst src, sht4x_precision& dst)
 {
-	bool success;
-	sht4x_precision parseResult = (sht4x_precision)JsonHelper::JsonParseEnum(src, 7, sht4x_precision_strings, nullptr, &success);
-
-	if (success)
-		dst = parseResult;
-	else
-		DEBUG_LOG_LN("sht4x_precision Parsing Failed");
+	JsonHelper::UdfHelperConvertFromJsonEnums(src, (EnumClass_t&)dst, 7, "sht4x_precision", sht4x_precision_strings, nullptr);
 }
 
 bool convertToJson(const sht4x_precision& src, JsonVariant dst)
 {
-#if SERIALIZE_ENUMS_TO_STRING
-	bool set = JsonHelper::EnumValueToJson(dst, (uint8_t)src, sht4x_precision_strings, 7);
-#else
-	bool set = dst.set((uint8_t)src);
-#endif
-
-	if (set) return true;
-
-	DEBUG_LOG_LN("sht4x_precision Conversion to JSON failed.");
-	return false;
+	JsonHelper::UdfHelperConvertToJsonEnums((EnumClass_t&)src, dst, 7, "sht4x_precision", sht4x_precision_strings, nullptr);
 }
+
+//void convertFromJson(JsonVariantConst src, sht4x_precision& dst)
+//{
+//	bool success;
+//	sht4x_precision parseResult = (sht4x_precision)JsonHelper::JsonParseEnum(src, 7, sht4x_precision_strings, nullptr, &success);
+//
+//	if (success)
+//		dst = parseResult;
+//	else
+//		DEBUG_LOG_LN("sht4x_precision Parsing Failed");
+//}
+//
+//bool convertToJson(const sht4x_precision& src, JsonVariant dst)
+//{
+//#if SERIALIZE_ENUMS_TO_STRING
+//	bool set = JsonHelper::EnumValueToJson(dst, (uint8_t)src, sht4x_precision_strings, 7);
+//#else
+//	bool set = dst.set((uint8_t)src);
+//#endif
+//
+//	if (set) return true;
+//
+//	DEBUG_LOG_LN("sht4x_precision Conversion to JSON failed.");
+//	return false;
+//}
 
 
 bool canConvertFromJson(JsonVariantConst src, const sht4x_heater&)
@@ -563,28 +573,38 @@ bool canConvertFromJson(JsonVariantConst src, const sht4x_heater&)
 
 void convertFromJson(JsonVariantConst src, sht4x_heater& dst)
 {
-	bool success;
-	sht4x_heater parseResult = (sht4x_heater)JsonHelper::JsonParseEnum(src, 7, sht4x_heater_strings, nullptr, &success);
-
-	if (success)
-		dst = parseResult;
-	else
-		DEBUG_LOG_LN("sht4x_heater Parsing Failed");
+	JsonHelper::UdfHelperConvertFromJsonEnums(src, (EnumClass_t&)dst, 7, "sht4x_heater", sht4x_heater_strings, nullptr);
 }
 
 bool convertToJson(const sht4x_heater& src, JsonVariant dst)
 {
-#if SERIALIZE_ENUMS_TO_STRING
-	bool set = JsonHelper::EnumValueToJson(dst, (uint8_t)src, sht4x_heater_strings, 7);
-#else
-	bool set = dst.set((uint8_t)src);
-#endif
-
-	if (set) return true;
-
-	DEBUG_LOG_LN("sht4x_heater Conversion to JSON failed.");
-	return false;
+	JsonHelper::UdfHelperConvertToJsonEnums((EnumClass_t&)src, dst, 7, "sht4x_heater", sht4x_heater_strings, nullptr);
 }
+
+//void convertFromJson(JsonVariantConst src, sht4x_heater& dst)
+//{
+//	bool success;
+//	sht4x_heater parseResult = (sht4x_heater)JsonHelper::JsonParseEnum(src, 7, sht4x_heater_strings, nullptr, &success);
+//
+//	if (success)
+//		dst = parseResult;
+//	else
+//		DEBUG_LOG_LN("sht4x_heater Parsing Failed");
+//}
+//
+//bool convertToJson(const sht4x_heater& src, JsonVariant dst)
+//{
+//#if SERIALIZE_ENUMS_TO_STRING
+//	bool set = JsonHelper::EnumValueToJson(dst, (uint8_t)src, sht4x_heater_strings, 7);
+//#else
+//	bool set = dst.set((uint8_t)src);
+//#endif
+//
+//	if (set) return true;
+//
+//	DEBUG_LOG_LN("sht4x_heater Conversion to JSON failed.");
+//	return false;
+//}
 
 
 //bool canConvertFromJson(JsonVariantConst src, const SHT4xStatus_t&)

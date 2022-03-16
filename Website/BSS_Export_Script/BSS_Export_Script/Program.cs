@@ -1,13 +1,19 @@
-﻿using System;
+﻿//#define DEBUGGING
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Windows.Forms;
 
 namespace BSS_Export_Script
 {
     class Program
     {
+
+        const bool ShowDialogs = true;
+
         /// <summary>
         /// The data\www directory.
         /// </summary>
@@ -17,9 +23,13 @@ namespace BSS_Export_Script
         const string navStart = "<nav";
         const string navEnd = "</nav>";
 
-        // Quick and dirty strings to find the nav element.
+        // Quick and dirty strings to find the footer element.
         const string footerStart = "<footer";
         const string footerEnd = "</footer>";
+
+        // Quick and dirty strings to find the form element.
+        const string formStart = "<form";
+        const string formEnd = "</form>";
 
         /// <summary>
         /// When deleting files of type, files with this name will not be deleted.
@@ -27,8 +37,17 @@ namespace BSS_Export_Script
         /// <example>"data.json"</example>
         static string[] keepFiles = new string[] { };
 
+        static string[] deleteFiles = new string[] {"dummyDelete.html"};
+
+
         static void Main(string[] args)
         {
+#if DEBUGGING
+            wwwDir = new DirectoryInfo( @"");
+#else
+
+            FileInfo fileInfo = new FileInfo("dummyDelete.html");
+
             //Get the EXE path.
             DirectoryInfo dir = new FileInfo(System.Reflection.Assembly.GetEntryAssembly().Location).Directory;
 
@@ -41,19 +60,53 @@ namespace BSS_Export_Script
             //Set the path to the data\www directory.
             wwwDir = new DirectoryInfo( Path.Combine(dir.FullName, "ESP_Sense\\data\\www"));
 
+#pragma warning disable CS0162 // Unreachable code detected
+            if (ShowDialogs)
+            {
+                DialogResult result = MessageBox.Show("About to delete old files in\r\n" + wwwDir.FullName + "\r\nYes will delete all files in and below the directory.\r\nNo will keep the files, and continue with the script.\r\nCancel will abort running the script.", "Delete Old files?", System.Windows.Forms.MessageBoxButtons.YesNoCancel);
+
+                if (result == DialogResult.Yes)
+                {
+                    //Delete all of the old files in the www dir.
+                    DeleteAllFiles(wwwDir);
+                }
+                else if (result == DialogResult.Cancel)
+                {
+                    Console.WriteLine("Export Script Stopped Pre-maturely.");
+                    return;
+                }
+            }
+            else
+            {
+                //Delete all of the old files in the www dir.
+
+                DeleteAllFiles(wwwDir);
+            }
+#pragma warning restore CS0162 // Unreachable code detected
+
             //Files have not been exported, or has not been ran from BSS. Exit.
             if (!MoveExportedFiles()) return;
+#endif
+
+            FileMatch keepMatch = new FileMatch(keepFiles);
+            FileFinder deleteFinder = new FileFinder(wwwDir, deleteFiles);
+
+            //Deletes all files matching the names in "deleteFiles"
+            DeleteFilesWithNames(deleteFinder);
+            //DeleteFilesWithNames(wwwDir, deleteFiles);
 
             //Deletes all files of type JSON from the www directory.
             //There are dummy json files for testing the JS code,
             //and the space on the ESP32 needs to be conserved.
-            DeleteFilesOfType(wwwDir, ".json", SearchOption.AllDirectories, keepFiles);
+            DeleteFilesOfType(wwwDir, ".json", SearchOption.AllDirectories, keepMatch);
 
             //Process all files in and below the data\www directory.
             ProcessAllFilesInAndBelowDirectory(wwwDir);
 
             Console.WriteLine("All done");
         }
+
+
 
         /// <summary>
         /// Creates the paths required for moving, and executes the move function.
@@ -79,8 +132,28 @@ namespace BSS_Export_Script
                 return false;
             }
 
-            //Move all the files below the exportPath to the data\www directory.
-            MoveAll(exportPath);
+#pragma warning disable CS0162 // Unreachable code detected
+            if (ShowDialogs)
+            {
+                DialogResult result = MessageBox.Show("About to move files from\r\n" + exportPath + "\r\nto\r\n" + wwwDir+ "\r\nAre these the correct paths?", "Moving exported files?", System.Windows.Forms.MessageBoxButtons.YesNo);
+
+                if (result == DialogResult.Yes)
+                {
+                    //Move all the files below the exportPath to the data\www directory.
+                    MoveAll(exportPath);
+                }
+                else if (result == DialogResult.No)
+                {
+                    Console.WriteLine("Export Script Stopped Pre-maturely.");
+                    return false;
+                }
+            }
+            else
+            {
+                //Move all the files below the exportPath to the data\www directory.
+                MoveAll(exportPath);
+            }
+#pragma warning restore CS0162 // Unreachable code detected
 
             //If there are no remaining files in and below the directory, delete the temporary folder.
             if (espSenseTemp.Name == "ESP_Sense" && espSenseTemp.GetFiles("*", SearchOption.AllDirectories).Length == 0)
@@ -90,17 +163,101 @@ namespace BSS_Export_Script
         }
 
         /// <summary>
+        /// Deletes all files in the directory dependant on the <paramref name="searchOption"/>
+        /// </summary>
+        /// <param name="dir"></param>
+        /// <param name="searchOption"></param>
+        /// <returns></returns>
+        static int DeleteAllFiles(DirectoryInfo dir, SearchOption searchOption = SearchOption.AllDirectories)
+        {
+            var files = dir.EnumerateFiles("*", searchOption).ToList();
+            files.ForEach(x => x.Delete());
+            return files.Count;
+        }
+
+        /// <summary>
         /// Searches for and deletes all files of type in or below a directory.
         /// </summary>
         /// <param name="dirPath">Top directory to start deleting files from.</param>
         /// <param name="fileType">File Extension</param>
         /// <param name="searchOption">Speicifies whether to search the current directory, or the directory and all sub-directories.</param>
-        /// <param name="keepFilenames">List of filenames you wish to keep. Including the extension.</param>
-        static void DeleteFilesOfType(DirectoryInfo dirPath, string fileType, SearchOption searchOption = SearchOption.AllDirectories, params string[] keepFilenames)
+        /// <param name="keepFiles">List of filenames you wish to keep. Including the extension.</param>
+        static int DeleteFilesOfType(DirectoryInfo dirPath, string fileType, SearchOption searchOption = SearchOption.AllDirectories, FileMatch keepFiles = null)
         {
             FileInfo[] files = dirPath.GetFiles("*" + (fileType.StartsWith(".") ? "" : ".") + fileType, searchOption);
 
-            DeleteFilesOfType(files, fileType, keepFilenames);
+            return DeleteFilesOfType(files, fileType, keepFiles);
+        }
+
+        static int DeleteFilesWithNames(FileFinder finder)
+        {
+            FileInfo[] files = finder.GetMatches().ToArray();
+
+            if (files == null) return -1;
+
+            foreach (FileInfo file in files)
+            {
+                file.Delete();
+            }
+
+            return files.Length;
+        }
+
+        /// <summary>
+        /// Searches for and deletes all files with a matching name in or below <paramref name="dirPath"/>.
+        /// </summary>
+        /// <param name="dirPath">Top directory to start deleting files from.</param>
+        /// <param name="names">Names to match</param>
+        /// <param name="ignoreExtension">If true, as long as the first part of the name is matching the file will be deleted.</param>
+        /// <param name="searchOption">Speicifies whether to search the current directory, or the directory and all sub-directories.</param>
+        /// <returns>Count of how many files were deleted.</returns>
+        static int DeleteFilesWithNames(DirectoryInfo dirPath, string[] names, bool ignoreExtension = false, SearchOption searchOption = SearchOption.AllDirectories)
+        {
+            FileFinder fileFinder = new FileFinder(dirPath, names, searchOption, ignoreExtension);
+            return DeleteFilesWithNames(fileFinder);
+
+            //FileInfo[] files = dirPath.GetFiles("*name*", searchOption);
+
+            //int count = 0;
+
+            //foreach (FileInfo file in files)
+            //{
+            //    bool match = false;
+            //    if (ignoreExtension)
+            //    {
+            //        foreach (string name in names)
+            //        {
+            //            string noExtName = String.Concat(name.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+            //            string noExtFile = String.Concat(file.Name.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+            //            if (match = noExtName == noExtFile) break;
+            //        }
+            //    }
+            //    else
+            //    {
+            //        match = names.Contains( file.Name );
+            //    }
+
+            //    if (match)
+            //    {
+            //        file.Delete();
+            //        count++;
+            //    }
+            //}
+            //return count;
+        }
+
+        /// <summary>
+        /// Searches for and deletes all files with a matching name in or below <paramref name="dirPath"/>.
+        /// </summary>
+        /// <param name="dirPath">Top directory to start deleting files from.</param>
+        /// <param name="name">Name to match</param>
+        /// <param name="ignoreExtension">If true, as long as the first part of the name is matching the file will be deleted.</param>
+        /// <param name="searchOption">Speicifies whether to search the current directory, or the directory and all sub-directories.</param>
+        /// <returns>Count of how many files were deleted.</returns>
+        static int DeleteFilesWithName(DirectoryInfo dirPath, string name, bool ignoreExtension = false, SearchOption searchOption = SearchOption.AllDirectories)
+        {
+            return DeleteFilesWithNames(dirPath, new string[] { name }, ignoreExtension, searchOption);
         }
 
         /// <summary>
@@ -109,19 +266,22 @@ namespace BSS_Export_Script
         /// <param name="files">Array of file paths to search and destroy.</param>
         /// <param name="fileType">File Extension</param>
         /// <param name="keepFilenames">List of filenames you wish to keep. Including the extension.</param>
-        static void DeleteFilesOfType(FileInfo[] files, string fileType, params string[] keepFilenames)
+        static int DeleteFilesOfType(FileInfo[] files, string fileType, FileMatch keepFiles = null)
         {
+            int count = 0;
             foreach (FileInfo info in files)
             {
                 if (!info.Exists) continue;
                 if (!info.Name.EndsWith(fileType)) continue;
 
-                if (keepFilenames != null && keepFilenames.Length > 0)
-                    if (keepFilenames.Contains(info.Name))
+                if(keepFiles != null)
+                    if(keepFiles.Match(info))
                         continue;
 
                 File.Delete(info.FullName);
+                count++;
             }
+            return count;
         }
 
         /// <summary>
@@ -162,9 +322,13 @@ namespace BSS_Export_Script
             {
                 if (!filepath.Exists) continue;
 
-                RemoveNav(filepath);
-                RemoveFooter(filepath);
+                RemoveElement(filepath, navStart, navEnd, "Nav");
+                RemoveElement(filepath, footerStart, footerEnd, "Footer");
                 HideElementsWithClass(filepath, "main-container");
+
+                //If page contains partial attribute within the html tag,
+                //extract the form 
+                CreatePartialPage(filepath, formStart, formEnd);
             }
         }
 
@@ -202,51 +366,73 @@ namespace BSS_Export_Script
                 File.WriteAllText(path.FullName, file);
         }
 
-#warning create a remove element function and pass nav and footer to.
 
         /// <summary>
-        /// Removes the "nav" element from an HTML file.
+        /// Warning! Not very safe.
         /// </summary>
-        /// <remarks>Quick and Dirty</remarks>
-        /// <param name="path">Path to HTML file.</param>
-        static void RemoveNav(FileInfo path)
+        /// <param name="path"></param>
+        /// <param name="elemStart"></param>
+        /// <param name="elemEnd"></param>
+        /// <param name="name"></param>
+        static void RemoveElement(FileInfo path, string elemStart, string elemEnd, string name = "Element")
         {
-            if (!path.Name.EndsWith(".html")) return;
+#warning create a remove element which properly parses the HTML
+            if (path.Extension != ".html") return;
 
             string fileContents = File.ReadAllText(path.FullName);
 
-            int start = fileContents.IndexOf(navStart);
-            int end = fileContents.IndexOf(navEnd);
+            int start = fileContents.IndexOf(elemStart);
+            int end = fileContents.IndexOf(elemEnd);
 
             if (start != -1 && end != -1)
             {
-                fileContents = fileContents.Remove(start, (end + navEnd.Length) - start);
-                Console.WriteLine("Nav Removed");
+                fileContents = fileContents.Remove(start, (end + elemEnd.Length) - start);
+                Console.WriteLine(name + " Removed");
                 File.WriteAllText(path.FullName, fileContents);
             }
         }
 
+
         /// <summary>
-        /// Removes the "nav" element from an HTML file.
+        /// Extracts one element, and overwrites the page.
         /// </summary>
-        /// <remarks>Quick and Dirty</remarks>
-        /// <param name="path">Path to HTML file.</param>
-        static void RemoveFooter(FileInfo path)
+        /// <param name="path"></param>
+        /// <param name="elemStart"></param>
+        /// <param name="elemEnd"></param>
+        static void CreatePartialPage(FileInfo path, string elemStart, string elemEnd, FileMatch fileMatch = null)
         {
-            if (!path.Name.EndsWith(".html")) return;
+#warning Need to decide what to do with stylesheets.
+            if (path.Extension != ".html") return;
+
+            //If filenames are passed, only process files with matching name.
+            if(fileMatch != null)
+            {
+                if (!fileMatch.Match(path)) return;
+            }
 
             string fileContents = File.ReadAllText(path.FullName);
 
-            int start = fileContents.IndexOf(footerStart);
-            int end = fileContents.IndexOf(footerEnd);
+            int htmlStart = fileContents.IndexOf("<html");
+            int htmlEnd = fileContents.IndexOf('>', htmlStart);
+
+            //Page is not a partial page. Leave.
+            if (fileContents.Substring(htmlStart, htmlEnd - htmlStart).Contains("partial") == false) return;
+
+
+            int start = fileContents.IndexOf(elemStart);
+            int end = fileContents.IndexOf(elemEnd);
+
+            
 
             if (start != -1 && end != -1)
             {
-                fileContents = fileContents.Remove(start, (end + footerEnd.Length) - start);
-                Console.WriteLine("Footer Removed");
+                fileContents = fileContents.Substring(start, end - start);
+                Console.WriteLine("Partial Page Created : " + path.FullName);
                 File.WriteAllText(path.FullName, fileContents);
             }
         }
+
+
 
 
         //static void RemoveElement(ref string contents, string search)
@@ -258,6 +444,150 @@ namespace BSS_Export_Script
         //    int lastIndex = 0;
         //    int times = 0;
         //}
+
+        public class FileMatch
+        {
+            protected string[] filenames;
+            protected DirectoryInfo directory;
+
+            public SearchOption SearchOption { get; set; }
+
+            public bool IgnoreExtension { get; set; }
+
+            public FileMatch(string filename, bool ignoreExtension = false)
+            {
+                filenames = new string[] { filename };
+                IgnoreExtension = ignoreExtension;
+            }
+
+            public FileMatch(string[] filenames, bool ignoreExtension = false)
+            {
+                this.filenames = filenames;
+                IgnoreExtension = ignoreExtension;
+            }
+
+            public FileMatch(DirectoryInfo directory, SearchOption searchOption = SearchOption.AllDirectories)
+            {
+                this.directory = directory;
+                this.SearchOption = searchOption;
+            }
+
+            public FileMatch(DirectoryInfo directory, string filename, SearchOption searchOption = SearchOption.AllDirectories, bool ignoreExtension = false)
+            {
+                filenames = new string[] { filename };
+                this.directory = directory;
+                this.SearchOption = searchOption;
+                IgnoreExtension = ignoreExtension;
+            }
+
+            public FileMatch(DirectoryInfo directory, string[] filenames, SearchOption searchOption = SearchOption.AllDirectories, bool ignoreExtension = false)
+            {
+                this.filenames = filenames;
+                this.directory = directory;
+                this.SearchOption = searchOption;
+                IgnoreExtension = ignoreExtension;
+            }
+
+            public bool Match(FileInfo file)
+            {
+                bool inDir = true;
+                bool nameMatch = true;
+
+                if (directory != null)
+                    if (!InDirectory(directory, file, "*", SearchOption))
+                        inDir = false;
+
+                if (filenames != null)
+                    if (!MatchFileNames(file, filenames, IgnoreExtension))
+                        nameMatch = false;
+
+                return inDir && nameMatch;
+            }
+
+            public static bool InDirectory(DirectoryInfo directory, FileInfo file, string pattern = "*", SearchOption searchOption = SearchOption.AllDirectories)
+            {
+                return directory.EnumerateFiles(pattern, searchOption).Any(x => x.FullName == file.FullName);
+            }
+
+            static string RemoveExtension(string path)
+            {
+                int index = path.LastIndexOf('.');
+
+                if (index != -1)
+                    path = path.Substring(0, index);
+
+                return path;
+            }
+
+            public static bool MatchFileName(FileInfo file, string name, bool ignoreExtension = false)
+            {
+                if (ignoreExtension)
+                    name = RemoveExtension(name);
+
+                if (name.Contains('/') || name.Contains('\\'))
+                {
+                    if (name == (ignoreExtension ? RemoveExtension(file.FullName) : file.FullName))
+                    {
+                        return true;
+                    }
+                }
+                else
+                {
+                    if (name == (ignoreExtension ? RemoveExtension(file.Name) : file.Name))
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            public static bool MatchFileNames(FileInfo file, string[] names, bool ignoreExtension = false)
+            {
+                foreach (string name in names)
+                {
+                    if (MatchFileName(file, name, ignoreExtension)) return true;
+                }
+                return false;
+            }
+        }
+
+
+        public class FileFinder : FileMatch
+        {
+
+            string SearchPattern { get; set; }
+
+            public FileFinder(DirectoryInfo directory, string filename, SearchOption searchOption = SearchOption.AllDirectories, bool ignoreExtension = false, string searchPattern = "*") : base(directory, filename, searchOption, ignoreExtension) 
+            {
+                SearchPattern = searchPattern;
+            }
+
+            public FileFinder(DirectoryInfo directory, string[] filenames, SearchOption searchOption = SearchOption.AllDirectories, bool ignoreExtension = false, string searchPattern = "*") : base(directory, filenames, searchOption, ignoreExtension)
+            {
+                SearchPattern = searchPattern;
+            }
+
+            private bool CanMatch()
+            {
+                if (directory == null || filenames == null) 
+                    return false;
+
+                return true;
+            }
+
+            public List<FileInfo> GetMatches()
+            {
+                if (!CanMatch()) return null;
+                return directory.EnumerateFiles(SearchPattern, SearchOption).Where(x => Match(x)).ToList();
+            }
+
+            public List<string> GetMatchesFullName()
+            {
+                if (!CanMatch()) return null;
+                IEnumerable<FileInfo> enumerable = directory.EnumerateFiles(SearchPattern, SearchOption).Where(x => Match(x));
+                return enumerable.Select(x => x.FullName).ToList();
+            }
+        }
 
     }
 

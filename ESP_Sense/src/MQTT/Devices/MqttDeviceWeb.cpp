@@ -7,6 +7,9 @@
 
 
 #include "MqttDevice.h"
+#include "../../Macros.h"
+#include "../../Network/Server/ServerManager.h"
+#include "../../Network/Server/Authentication.h"
 #include "../../Network/Website/WebStrings.h"
 
 extern DeviceStatus_t status;
@@ -61,8 +64,11 @@ void MqttDeviceWeb::Deinitialize()
 {
 	webStatus.enabled = false;
 
-	if(webStatus.hostingStatusRequest)
-	server.removeHandler(handlers.statusHandler);
+	if (webStatus.hostingStatusRequest)
+	{
+		server.removeHandler(handlers.statusHandler);
+		server.removeHandler(handlers.stateHandler);
+	}
 
 	if (webStatus.hostingWebpage)
 	server.removeHandler(handlers.pageHandler);
@@ -108,14 +114,22 @@ void MqttDeviceWeb::InitializeRequests()
 	if (webStatus.hostingStatusRequest) return;
 
 	MqttDevice* device = _parentDevice;
+	String tempUrl;
 
 	//Get status for device
 	{
 		//Status response
-		String url = GetUrl("status");
-		handlers.statusHandler = &server.on(url.c_str(), HTTP_GET, [device](AsyncWebServerRequest* request) {
+		tempUrl = GetUrl("status");
+		handlers.statusHandler = &server.on(tempUrl.c_str(), HTTP_GET, [device](AsyncWebServerRequest* request) {
 			//this->StatusResponse(request);
 			MqttDeviceWeb::GetStatusResponse(device, request);
+		});
+
+		//State response (For grabbing basic state without requesting status)
+		tempUrl = GetUrl("state");
+		handlers.stateHandler = &server.on(tempUrl.c_str(), HTTP_GET, [device](AsyncWebServerRequest* request) {
+			//this->StatusResponse(request);
+			MqttDeviceWeb::GetStateResponse(device, request);
 		});
 
 		webStatus.hostingStatusRequest = true;
@@ -124,13 +138,13 @@ void MqttDeviceWeb::InitializeRequests()
 	//Get Config for device
 	if (_parentDevice->deviceConfig.website.configurable)
 	{
-		String url = GetUrl("config");
-		handlers.statusHandler = &server.on(url.c_str(), HTTP_GET, [device](AsyncWebServerRequest* request) {
+		tempUrl = GetUrl("config");
+		handlers.statusHandler = &server.on(tempUrl.c_str(), HTTP_GET, [device](AsyncWebServerRequest* request) {
 			//this->StatusResponse(request);
 			MqttDeviceWeb::GetConfigResponse(device, request);
 		});
 
-		handlers.statusHandler = &server.on(url.c_str(), HTTP_POST, [device](AsyncWebServerRequest* request) {
+		handlers.statusHandler = &server.on(tempUrl.c_str(), HTTP_POST, [device](AsyncWebServerRequest* request) {
 			//this->StatusResponse(request);
 			MqttDeviceWeb::SetConfigResponse(device, request);
 		});
@@ -140,8 +154,8 @@ void MqttDeviceWeb::InitializeRequests()
 
 	//Enable or disable device.
 	{
-		String url = GetUrl("setEnabled");
-		handlers.statusHandler = &server.on(url.c_str(), HTTP_POST, [device](AsyncWebServerRequest* request) {
+		tempUrl = GetUrl("setEnabled");
+		handlers.statusHandler = &server.on(tempUrl.c_str(), HTTP_POST, [device](AsyncWebServerRequest* request) {
 			
 			if(!Network::Server::Authentication::IsAuthenticated(request))
 				request->send(401);
@@ -167,6 +181,16 @@ void MqttDeviceWeb::InitializeRequests()
 
 		webStatus.hostingStatusRequest = true;
 	}
+}
+
+#include "../../Network/Server/SpecialRequests.h"
+
+void MqttDeviceWeb::GetStateResponse(MqttDevice* device, AsyncWebServerRequest* request)
+{
+	Network::Server::SpecialRequests::ResponseSerializedData(128, (JsonHelper::PACK_JSON_FUNC)[device](JsonObject& doc) {
+		doc["state"].set((DeviceState)device->deviceStatus.state);
+		return 0;
+	}, request);
 }
 
 void MqttDeviceWeb::GetStatusResponse(MqttDevice* device, AsyncWebServerRequest* request)

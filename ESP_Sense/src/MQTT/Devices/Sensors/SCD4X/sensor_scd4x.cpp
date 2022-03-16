@@ -1626,28 +1626,38 @@ bool canConvertFromJson(JsonVariantConst src, const SCD4x_PowerMode&)
 
 void convertFromJson(JsonVariantConst src, SCD4x_PowerMode& dst)
 {
-	bool success;
-	SCD4x_PowerMode parseResult = (SCD4x_PowerMode)JsonHelper::JsonParseEnum(src, 2, scd4x_powermode_strings, nullptr, &success);
-
-	if (success)
-		dst = parseResult;
-	else
-		DEBUG_LOG_LN("SCD4x_PowerMode Parsing Failed");
+	JsonHelper::UdfHelperConvertFromJsonEnums(src, (EnumClass_t&)dst, 2, "SCD4x_PowerMode", scd4x_powermode_strings, nullptr);
 }
 
 bool convertToJson(const SCD4x_PowerMode& src, JsonVariant dst)
 {
-#if SERIALIZE_ENUMS_TO_STRING
-	bool set = JsonHelper::EnumValueToJson(dst, (uint8_t)src, scd4x_powermode_strings, 2);
-#else
-	bool set = dst.set((uint8_t)src);
-#endif
-
-	if (set) return true;
-
-	DEBUG_LOG_LN("SCD4x_PowerMode Conversion to JSON failed.");
-	return false;
+	JsonHelper::UdfHelperConvertToJsonEnums((EnumClass_t&)src, dst, 2, "SCD4x_PowerMode", scd4x_powermode_strings, nullptr);
 }
+
+//void convertFromJson(JsonVariantConst src, SCD4x_PowerMode& dst)
+//{
+//	bool success;
+//	SCD4x_PowerMode parseResult = (SCD4x_PowerMode)JsonHelper::JsonParseEnum(src, 2, scd4x_powermode_strings, nullptr, &success);
+//
+//	if (success)
+//		dst = parseResult;
+//	else
+//		DEBUG_LOG_LN("SCD4x_PowerMode Parsing Failed");
+//}
+//
+//bool convertToJson(const SCD4x_PowerMode& src, JsonVariant dst)
+//{
+//#if SERIALIZE_ENUMS_TO_STRING
+//	bool set = JsonHelper::EnumValueToJson(dst, (uint8_t)src, scd4x_powermode_strings, 2);
+//#else
+//	bool set = dst.set((uint8_t)src);
+//#endif
+//
+//	if (set) return true;
+//
+//	DEBUG_LOG_LN("SCD4x_PowerMode Conversion to JSON failed.");
+//	return false;
+//}
 
 
 

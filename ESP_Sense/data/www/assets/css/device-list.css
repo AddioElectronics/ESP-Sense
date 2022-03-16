@@ -1,5 +1,5 @@
 main [mqtt=devicelist] {
-  margin: 20px 0px 100px;
+  /*margin: 20px 0px 100px;*/
   position: relative;
 }
 
@@ -19,7 +19,7 @@ main [mqtt=devicelist] .device-group h3 {
   }
 }
 
-main [mqtt=devicelist] .sub-list .grid {
+main [mqtt=devicelist] .sub-list .grid, main [mqtt=devicelist] .grid.head-container {
   /*grid-template-columns: 50% 35% 15%;*/
   grid-template-columns: 40% 40% 20%;
 }
@@ -64,70 +64,45 @@ main [mqtt=devicelist] .sub-list .grid button {
   background-color: black;
 }
 
-main [mqtt=devicelist] {
-  margin: 20px 0px 100px;
-  position: relative;
+.device-group .grid.head-container h3 {
+  grid-column-start: 1;
+  grid-column-end: 2;
 }
 
-main [mqtt=devicelist] .device-group h3 {
-  color: white;
+.device-group .grid.head-container ledgroup, .device-group .grid.head-container .led-group {
+  /*margin-right: 47px;*/
+  grid-column: 3;
+  margin-left: -5px;
 }
 
-@media (max-width: 991px) {
-  .grid.list {
-    grid-template-columns: 100%;
+@media (min-width: 576px) {
+  .device-group .grid.head-container ledgroup {
+    /*margin-right: 57px;*/
+  }
+}
+
+@media (min-width: 768px) {
+  .device-group .grid.head-container ledgroup {
+    /*margin-right: 93px;*/
   }
 }
 
 @media (min-width: 992px) {
-  .grid.list {
-    grid-template-columns: 50% 50%;
+  .device-group .grid.head-container ledgroup {
+    /*margin-right: 48px;*/
   }
 }
 
-main [mqtt=devicelist] .sub-list .grid {
-  /*grid-template-columns: 50% 35% 15%;*/
-  grid-template-columns: 40% 40% 20%;
+@media (min-width: 1200px) {
+  .device-group .grid.head-container ledgroup {
+    /*margin-right: 66px;*/
+  }
 }
 
-main [mqtt=devicelist] .sub-list .grid button {
-  margin-top: -5px;
-  display: in;
-}
-
-.label-container {
-  background-color: rgba(45,72,143,0.44);
-  padding: 10px 10px 10px 20px;
-  color: white;
-}
-
-.device-container {
-  padding: 10px 10px 10px 20px;
-}
-
-.device-container > span, .device-container > a {
-  position: relative;
-}
-
-[state]:after {
-  position: absolute;
-  top: 0px;
-}
-
-.device-container:nth-child(odd) {
-  background-color: rgba(255,255,255,0.06);
-}
-
-.device-container:hover, .device-container:focus {
-  background-color: rgba(0,0,0,0.25);
-}
-
-.device-container[selected] {
-  border: 1px solid green;
-}
-
-.device-container:active {
-  background-color: black;
+@media (min-width: 1400px) {
+  .device-group .grid.head-container ledgroup {
+    /*margin-right: 85px;*/
+  }
 }
 
 [state]:after {
@@ -146,12 +121,16 @@ main [mqtt=devicelist] .sub-list .grid button {
   color: #606060;
 }
 
-[state=ok]:after {
+span[state=ok]:before {
   content: "OK";
 }
 
-[state=error]:after {
+span[state=error]:before {
   content: "Error";
+}
+
+span[state=disabled]:before {
+  content: "Disabled";
 }
 
 main [mqtt=devicelist] button[action=select-device]:not(.position-absolute) {
@@ -172,5 +151,16 @@ main [mqtt=devicelist] button[action=select-device].position-absolute, .vis-dete
   height: 32px;
   width: 100px;
   position: absolute;
+}
+
+.device-group .row.sub-list .col {
+  position: relative;
+}
+
+.device-group .row.sub-list .led-group {
+  /*display: block;*/
+  /*margin: auto;*/
+  /*position: absolute;*/
+  /*right: 85px;*/
 }
 

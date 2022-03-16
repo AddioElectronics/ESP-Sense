@@ -23,7 +23,7 @@ public:
 
 	MqttBinarySensorStatus_t binarySensorStatus;
 
-	MqttBinarySensor(const char* _name, const char* _device, int _index) : MqttDevice(_name, _device, _index) {}
+	MqttBinarySensor(const char* _name, const char* _device, int _index, int _subIndex) : MqttDevice(_name, _device, _index, _subIndex) {}
 
 	MqttDeviceType GetDeviceType() override
 	{
@@ -38,6 +38,12 @@ public:
 	}
 
 	virtual int ReadAndPublish();
+
+	bool SaveConfig() override
+	{
+		#warning load config_sensors.json, modify values for each sensor, and save.
+			return false;
+	}
 
 };
 

@@ -26,6 +26,7 @@ protected:
 
 	struct {
 		AsyncCallbackWebHandler* statusHandler;
+		AsyncCallbackWebHandler* stateHandler;
 		AsyncCallbackWebHandler* pageHandler;
 		AsyncCallbackWebHandler* getConfig;
 		AsyncCallbackWebHandler* setConfig;
@@ -57,6 +58,7 @@ protected:
 
 public:
 	//virtual void GetStatusResponse(AsyncWebServerRequest* request);
+	static void GetStateResponse(MqttDevice* device, AsyncWebServerRequest* request);
 	static void GetStatusResponse(MqttDevice* device, AsyncWebServerRequest* request);
 	static void GetConfigResponse(MqttDevice* device, AsyncWebServerRequest* request);
 	static void SetConfigResponse(MqttDevice* device, AsyncWebServerRequest* request);

@@ -57,7 +57,7 @@ void Network::Server::Authentication::Initialize()
 
 	//AJAX POST request from webpage, parse the data and verify.
 	server.on(Website::Strings::Urls::requestAuth, HTTP_POST, ParseAuthenticationData);
-	server.on(Website::Strings::Urls::requestLogout, HTTP_GET, LogoutRequest);
+	server.on(Website::Strings::Urls::requestLogout, HTTP_POST, LogoutRequest);
 
 	DEBUG_LOG_F("-Username : %s\r\n", config.server.user.c_str());
 	DEBUG_LOG_F("-Password : %s\r\n", config.server.pass.c_str());

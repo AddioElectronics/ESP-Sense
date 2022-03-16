@@ -93,7 +93,7 @@ public:
 		return &mqttSensorBaseTopic;
 	}
 
-	Sht4xSensor(const char* _name, const char* _device, int _index) : MqttSensor(_name, _device, _index) {}
+	Sht4xSensor(const char* _name, const char* _device, int _index, int _subIndex) : MqttSensor(_name, _device, _index, _subIndex) {}
 
 #pragma region MqttDevice Functions
 

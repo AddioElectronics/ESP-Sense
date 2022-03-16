@@ -916,15 +916,17 @@ bool Mqtt::DeviceManager::IsValidSensor(const char* device)
 	}
 }
 
-MqttSensor* Mqtt::DeviceManager::CreateMqttSensor(int deviceIndex, int sensorIndex, const char* name, const char* device)
+#warning Add 
+
+MqttSensor* Mqtt::DeviceManager::CreateMqttSensor(int index, int subindex, const char* name, const char* device)
 {
 	if (strcmp(device, "scd4x") == 0)
 	{
-		return mqttSensors[sensorIndex] = new Scd4xSensor(name, device, deviceIndex);
+		return mqttSensors[index] = new Scd4xSensor(name, device, index, subindex);
 	}
 	else if (strcmp(device, "sht4x") == 0)
 	{
-		return mqttSensors[sensorIndex] = new Sht4xSensor(name, device, deviceIndex);
+		return mqttSensors[index] = new Sht4xSensor(name, device, index, subindex);
 	}
 	else
 	{
@@ -945,11 +947,11 @@ bool Mqtt::DeviceManager::IsValidBinarySensor(const char* device)
 	}
 }
 
-MqttBinarySensor* Mqtt::DeviceManager::CreateMqttBinarySensor(int deviceIndex, int sensorIndex, const char* name, const char* device)
+MqttBinarySensor* Mqtt::DeviceManager::CreateMqttBinarySensor(int index, int subindex, const char* name, const char* device)
 {
 	if (strcmp(device, "llc200d3sh") == 0)
 	{
-		return mqttBinarySensors[sensorIndex] = new Llc200d3sh_Sensor(name, device, deviceIndex);
+		return mqttBinarySensors[subindex] = new Llc200d3sh_Sensor(name, device, index, subindex);
 	}
 	else
 	{

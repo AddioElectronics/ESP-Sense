@@ -658,28 +658,38 @@ bool canConvertFromJson(JsonVariantConst src, const MqttDeviceType&)
 
 void convertFromJson(JsonVariantConst src, MqttDeviceType& dst)
 {
-
-	MqttDeviceType parseResult = (MqttDeviceType)JsonHelper::JsonParseEnum(src, 5, mqtt_deviceType_strings);
-
-	if ((int)parseResult != -1)
-		dst = parseResult;
-	else
-		DEBUG_LOG_LN("MqttDeviceType Parsing Failed");
+	JsonHelper::UdfHelperConvertFromJsonEnums(src, (EnumClass_t&)dst, 5, "MqttDeviceType", mqtt_deviceType_strings, nullptr);
 }
 
 bool convertToJson(const MqttDeviceType& src, JsonVariant dst)
 {
-#if SERIALIZE_ENUMS_TO_STRING
-	bool set = JsonHelper::EnumValueToJson(dst, (int)src, mqtt_deviceType_strings, 5);
-#else
-	bool set = dst.set(src);
-#endif
-
-	if (set) return true;
-
-	DEBUG_LOG_LN("MqttDeviceType Conversion to JSON failed.");
-	return false;
+	JsonHelper::UdfHelperConvertToJsonEnums((EnumClass_t&)src, dst, 5, "MqttDeviceType", mqtt_deviceType_strings, nullptr);
 }
+
+//void convertFromJson(JsonVariantConst src, MqttDeviceType& dst)
+//{
+//
+//	MqttDeviceType parseResult = (MqttDeviceType)JsonHelper::JsonParseEnum(src, 5, mqtt_deviceType_strings);
+//
+//	if ((int)parseResult != -1)
+//		dst = parseResult;
+//	else
+//		DEBUG_LOG_LN("MqttDeviceType Parsing Failed");
+//}
+//
+//bool convertToJson(const MqttDeviceType& src, JsonVariant dst)
+//{
+//#if SERIALIZE_ENUMS_TO_STRING
+//	bool set = JsonHelper::EnumValueToJson(dst, (int)src, mqtt_deviceType_strings, 5);
+//#else
+//	bool set = dst.set(src);
+//#endif
+//
+//	if (set) return true;
+//
+//	DEBUG_LOG_LN("MqttDeviceType Conversion to JSON failed.");
+//	return false;
+//}
 
 //bool canConvertFromJson(JsonVariantConst src, const MqttDeviceTopics_t&)
 //{
@@ -908,6 +918,48 @@ bool convertToJson(const MqttDeviceGlobalStatus_t& src, JsonVariant dst)
 //{
 //	dst["enabled"] = src.enabled;
 //	dst["configured"] = src.configured;
+//}
+
+const char* device_state_strings[3] = { "ok", "disabled", "error" };
+
+bool canConvertFromJson(JsonVariantConst src, const DeviceState&)
+{
+	return JsonHelper::JsonParseEnum(src, 3, device_state_strings, nullptr) != -1;
+}
+
+void convertFromJson(JsonVariantConst src, DeviceState& dst)
+{
+	JsonHelper::UdfHelperConvertFromJsonEnums(src, (EnumClass_t&)dst, 3, "DeviceState", device_state_strings, nullptr);
+}
+
+bool convertToJson(const DeviceState& src, JsonVariant dst)
+{
+	JsonHelper::UdfHelperConvertToJsonEnums((EnumClass_t&)src, dst, 3, "DeviceState", device_state_strings, nullptr);
+}
+
+//void convertFromJson(JsonVariantConst src, DeviceState& dst)
+//{
+//	DeviceState parseResult = (DeviceState)JsonHelper::JsonParseEnum(src, 3, device_state_strings, nullptr);
+//
+//	if ((int)parseResult != -1)
+//		dst = parseResult;
+//	else
+//		DEBUG_LOG_LN("DeviceState Parsing Failed");
+//
+//}
+//
+//bool convertToJson(const DeviceState& src, JsonVariant dst)
+//{
+//#if SERIALIZE_ENUMS_TO_STRING
+//	bool set = JsonHelper::EnumValueToJson(dst, (int)src, device_state_strings, 3);
+//#else
+//	bool set = dst.set(src);
+//#endif
+//
+//	if (set) return true;
+//
+//	DEBUG_LOG_LN("DeviceState Conversion to JSON failed.");
+//	return false;
 //}
 
 #pragma endregion

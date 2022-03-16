@@ -84,9 +84,9 @@ namespace Mqtt
 		static size_t GetMaxFileSize();
 
 		static bool IsValidSensor(const char* device);
-		static MqttSensor* CreateMqttSensor(int deviceIndex, int sensorIndex, const char* name, const char* device);
+		static MqttSensor* CreateMqttSensor(int index, int subIndex, const char* name, const char* device);
 		static bool IsValidBinarySensor(const char* device);
-		static MqttBinarySensor* CreateMqttBinarySensor(int deviceIndex, int sensorIndex, const char* name, const char* device);
+		static MqttBinarySensor* CreateMqttBinarySensor(int index, int subIndex, const char* name, const char* device);
 
 	};
 

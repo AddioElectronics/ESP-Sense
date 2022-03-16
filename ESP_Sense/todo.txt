@@ -1,0 +1,64 @@
+Todo  
+Organize everything, move functions into different files. move files into directories. main namespace, cleanup includes, comments
+After config create file, or show in browser all the topics available.
+Browser - Edit config. Parse json? Config helper: json document sizer. Debug console
+Ethernet?
+Potentially build topics as needed. Split all topics into sections to preserve RAM. (Look into if this would be better, and maybe only if supporting individual instead of just JSON)
+Template files of Home assistant MQTT configuration files for MQTT settings, get via FTP or browser.
+Change some DEBUG_LOG and all Serial.print to SERIAL_PRINT. Also add levels. 
+Add validation code, and the ability to not compile. (Make functions consistant, some have it, some dont)
+Register and validate GPIO to make sure none are overlapping or invalid. (Almost done, need to implement checker to see if in use)
+Add GPIO structure or class, and or button/led
+Make sure json documents are cleared after use.
+Add the ability to unconfigure everything, some has already been added (quickly and poorly), need to fix/test.
+Config monitor isn't really being used
+Web tool to convert json files to new format(after updates, adding ability to configure multiple I2C ports, if using old config, will convert)
+If useDefaults are set, it simply skips reading the next config block. Unless defaults are already set they wont be set. (this overwrites the config when saving, need to stop this.) *Skip options, but when serializing, copy from file
+Boot source, only use config path once. Apply button on webpage
+Buzzer for if MQTT device disconnected. Add a required option in the device config. if a required device is disconnected then buzz on an interval, other wise just blink.
+Add Json UDFs for config structs
+Make initialization functions consistant. Some only enable module if config is enabled, some ignore and set status to enabled. (Make all ignore config, and set status. Then in setup routines, only call init function if config enabled.)
+Add wifi connection checks in task initializers
+Lost keeping up ESP8266, get it up to date.
+MQTT Devices status on webpage. Make it well known if a device did not configure, and especially nit connect
+MqttDeviceManager is a class, should probably match other "Managers"
+Not all tasks are included in the config. Should also narrow down stack sizes. *Can only change task in config in developer mode
+Not sure if I should leave tasks if wifi or mqtt is diconnected, or just put in loop that constantly yields.
+Website json tool, add custom tool which parses each value and validates, showing you which key and line has an error.
+Website control panel, possible side bar, reset device, enable/disable backups, stuff like that.
+Possibly put each MQTT device on their own task
+Remove autobackup mode, and add own bool for each type
+toggleable (at compile time) validation for mqtt IsConnected before each device command. or status.mqtt.connected with the connection being monitored in its own task
+Clean up Messages, add newlines to seperate functions and devices
+Narrow down stack sizes (To get stack size of FTP and MQTT will need to edit libraries, or guess...)
+Add option for server led, ftp, OTA. (RGB LED?)
+Setup browser for first boot. in AP mode
+File to retain status of sensors (Like SCD4X to see if settings have been retained on its EEPROM) save to FS as a binary.
+SSL/Websocket MQTT, SSL browser
+Switch FTP library.
+Add MQTT retained IP for AP. (If wifi loses connection, switch to retained or config, or possibly start looking for IPs)
+Switch FTP library.
+Add MQTT retained IP for AP. (If wifi loses connection, switch to retained or config, or possibly start looking for IPs)
+On device Automation with the option for no MQTT publishing.
+Email warning for sensor failure
+TFT support
+Serial commands (USB Serial not functioning after wifi is enabled, atleast for my dev board)
+Disable mqtt device after so many disconnects.
+Change back to HTTP authentication, maybe add cookie for session ID
+Before MQTT IP detection, ping the local network and get a list of connected IPs to speed things up.
+Redo how JSON payload is created, create a document, then call functions which add either measurement data, device status. sensor status, configs ect..
+Change some MQTT device functions to protected
+Possibly move MQTT Unique structures inside classes
+Check freeheap before serializing JSON documents, and/or if PSRAM is available, use it.
+Verify that MQTT device names are different, if a situation where all JSON data is packed together.
+Possibly optimize website files to save space, serve as multiple responses. (Scripts
+Ability to pass paths in config_sensors.json/sensors: and other config files.
+Ability to modify mqtt device global config from web
+Cleanup mqtt retained (once its added). For MQTT devices that need to retain information, 
+	create a global JSON file to store in file system(and possibly EEPROM) XOR so no modifications are done. 
+	device store by name, cleanup will remove any devices not initializd. SCD4x store if settings have been saved to its EEPROM.
+Add port selection for MQTT devices (SCD/HT4x i2c port), to allow for multiple of each, as they have a fixed address.
+Website, check github tags to see if update is available. One click update, grab release from github, unzip and transfer via webupdate. Make compatibility file to see if config files will work.
+Auto updates from github directly on ESP. Make compatibility file to see if config files will work. Auto-config restructuring.
+Build wizard - Select MQTT devices, and features, and wizard will modify the preprocessor definitions and build.
+Add cache control for requests

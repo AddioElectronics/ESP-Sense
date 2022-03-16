@@ -1,12 +1,15 @@
+
+
 //success(data)
-//error(request, status, error)
-function requestJsonData(url, success, error) {
+//error(xhr, status, error)
+function requestJsonData(url, success, error, complete) {
     $.ajax({
         dataType: "json",
         type: 'GET',
         url: url,
         data: null,
         success: success,
-        error: error
+        error: error,
+        complete: complete
     });
 }

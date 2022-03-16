@@ -16,6 +16,13 @@ function createEvent(name){
     events[name] = new Set();
 }
 
+function deleteEvent(name){
+    try{
+    if(events[name] != undefined)
+        delete events[name];
+    }catch{}
+}
+
 createEvent('auth');
 createEvent('reset');
 createEvent('resetting');

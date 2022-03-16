@@ -1,9 +1,14 @@
 var devMode = true;
+var keepTest = devMode && false;
+var alwaysLoadPage = false;
 
 var devModeLabel = '<span class="dev-mode">Developer Mode</span>';
 var rstHtml = `<button id="esp_reset_button" class="btn btn-primary" type="button" disabled>Reset ESP</button>`;
 
 var rstBut;
+
+if(!keepTest)
+$('.test').remove();
 
 function espControllerInit() {
     console.log('espControllerInit');
@@ -50,7 +55,8 @@ function refreshOnResponse(){
 
 function espIsResetting(){
     console.log('Resetting ESP');
-    enableBlockingMsg('Resetting ESP...');
+    enableBlockingMsg('Resetting ESP...', true);
+    $('*').click(function(){return false;})  
     refreshOnResponse();
 }
 
@@ -90,3 +96,21 @@ EventReady.add(function(){
       $('body').append(devModeLabel);
 }
 });
+
+function addAlwaysLoadPage() {
+    window.addEventListener("pageshow", function(event) {
+        var historyTraversal = event.persisted ||
+            (typeof window.performance != "undefined" &&
+                window.performance.navigation.type === 2);
+        if (historyTraversal) {
+            // Handle page restore.
+            window.location.reload();
+        }
+    });
+}
+
+if(alwaysLoadPage)
+    addAlwaysLoadPage();
+
+
+

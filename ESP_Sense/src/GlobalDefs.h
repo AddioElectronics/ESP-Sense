@@ -1,6 +1,12 @@
 #pragma once
 
+#include <Arduino.h>
+#include <ArduinoJson.h>
+#include <ArduinoJson.hpp>
+
 #include <WiFi.h>
+
+typedef int EnumClass_t;
 
 typedef struct {
 	uint8_t major;

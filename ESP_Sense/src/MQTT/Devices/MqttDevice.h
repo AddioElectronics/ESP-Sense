@@ -51,6 +51,8 @@ enum class DeviceState
 };
 typedef uint8_t DeviceState_t;
 
+extern const char* device_state_strings[3];
+
 /// <summary>
 /// Topics used by individual devices.
 /// </summary>
@@ -144,7 +146,7 @@ public:
 	/// <summary>
 	/// Index of the MQTT device for the specific type. (Binary Sensor, Sensor, ect...)
 	/// </summary>
-	uint8_t indexType;
+	uint8_t subTypeIndex;
 
 	/// <summary>
 	/// Custom name for the MQTT device.
@@ -191,12 +193,13 @@ public:
 	virtual String* GetParentBaseTopic() = 0;
 
 
-	MqttDevice(const char* _name, const char* _device, int _index)
+	MqttDevice(const char* _name, const char* _device, int _index, int _subIndex)
 	{
 		//strlcpy(name, _name, NAME_MAX_LENGTH);
 		name = _name;
 		index = _index;
 		deviceName = _device;
+		subTypeIndex = _subIndex;
 	}
 
 
@@ -432,7 +435,9 @@ bool convertToJson(const MqttDeviceGlobalStatus_t& src, JsonVariant dst);
 //bool convertToJson(const MqttDeviceWebpageStatus_t& src, JsonVariant dst);
 
 
-
+//bool canConvertFromJson(JsonVariantConst src, const DeviceState&);
+void convertFromJson(JsonVariantConst src, DeviceState& dst);
+bool convertToJson(const DeviceState& src, JsonVariant dst);
 
 #pragma endregion
 

@@ -22,7 +22,7 @@ bool canConvertFromJson(JsonVariantConst src, const Version_t&)
 
 void convertFromJson(JsonVariantConst src, Version_t& dst)
 {
-	JsonArrayConst jarray = src.as<JsonArray>();
+	JsonArrayConst jarray = src.as<JsonArrayConst>();
 	dst.major = src[0];
 	dst.minor = src[1];
 	dst.revision = src[2];

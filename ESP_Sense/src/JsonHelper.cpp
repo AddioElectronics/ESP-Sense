@@ -146,36 +146,95 @@ bool JsonHelper::EnumValueToJson(JsonVariant& jvar, int value, const char** stri
 	return jvar.set(str);
 }
 
+/// <summary>
+/// ArduinoJson UDF helper.
+/// Shared helper function for converting JSON objects/variants to enums.
+/// If enum is not a class, create a dummy enum class that can be used for casting.
+/// If parsing fails, the enum will retain its last value.
+/// </summary>
+/// <param name="src">JsonVariant/Object containing the enum value.</param>
+/// <param name="dst">Enum to place the value.</param>
+/// <param name="length">How many values does the enum contain.</param>
+/// <param name="name">(Optional)Name to print when parsing has failed.</param>
+/// <param name="strings">String representation of the enum value.</param>
+/// <param name="values">If enum is not incremented from 0 and on, the values must be stored.</param>
+void JsonHelper::UdfHelperConvertFromJsonEnums(JsonVariantConst src, EnumClass_t& dst, uint8_t length, const char* name, const char** strings, int* values)
+{
+	int parseResult = JsonHelper::JsonParseEnum(src, length, strings, values);
+
+	if (parseResult != -1)
+		dst = parseResult;
+	else
+		DEBUG_LOG_F("%s to JSON Parsing Failed", name != nullptr ? name : "Enum");
+}
+
+/// <summary>
+/// ArduinoJson UDF helper.
+/// Shared helper function for converting enums JSON objects/variants.
+/// If enum is not a class, create a dummy enum class that can be used for casting.
+/// </summary>
+/// <param name="src">Enum to convert.</param>
+/// <param name="dst">JsonVariant/Object to set.</param>
+/// <param name="length">How many values does the enum contain.</param>
+/// <param name="name">(Optional)Name to print when parsing has failed.</param>
+/// <param name="strings">(Optional)String representation of the enum value.</param>
+/// <param name="values">(Optional*)If enum is not incremented from 0 and on, the values must be passed.</param>
+bool JsonHelper::UdfHelperConvertToJsonEnums(const EnumClass_t& src, JsonVariant dst, uint8_t length, const char* name, const char** strings, int* values)
+{
+	bool set = false;
+
+	if (strings != nullptr && SERIALIZE_ENUMS_TO_STRING)
+		set = JsonHelper::EnumValueToJson(dst, src, strings, length, values);
+	else if (values != nullptr /*&& SERIALIZE_ENUMS_TO_INDEX*/)
+	{
+		int value = EnumValueToIndex(src, values, length, &set);
+
+		if (set)
+			set = dst.set(value);
+	}
+	else 
+		set = dst.set(src);	//Enum already is an index.
+
+	if (set) return true;
+
+	DEBUG_LOG_F("%s Conversion to JSON failed.", name != nullptr ? name : "Enum");
+	return false;
+}
+
 #pragma region User Defined Functions
+
+
 
 bool canConvertFromJson(JsonVariantConst src, const ConfigSource&)
 {
 	return JsonHelper::JsonParseEnum(src, 5, config_source_strings, (int*)config_source_values) != -1;
 }
 
+
 void convertFromJson(JsonVariantConst src, ConfigSource& dst)
 {
+	JsonHelper::UdfHelperConvertFromJsonEnums(src, (EnumClass_t&)dst, 5, "ConfigSource", config_source_strings, (int*)config_source_values);
+	//ConfigSource parseResult = (ConfigSource)JsonHelper::JsonParseEnum(src, 5, config_source_strings, (int*)config_source_values);
 
-	ConfigSource parseResult = (ConfigSource)JsonHelper::JsonParseEnum(src, 5, config_source_strings, (int*)config_source_values);
-
-	if ((int)parseResult != -1)
-		dst = parseResult;
-	else
-		DEBUG_LOG_LN("ConfigSource Parsing Failed");
+	//if ((int)parseResult != -1)
+	//	dst = parseResult;
+	//else
+	//	DEBUG_LOG_LN("ConfigSource Parsing Failed");
 }
 
 bool convertToJson(const ConfigSource& src, JsonVariant dst)
 {
-#if SERIALIZE_ENUMS_TO_STRING
-	bool set = JsonHelper::EnumValueToJson(dst, (int)src, config_source_strings, 5);
-#else
-	bool set = dst.set(src);
-#endif
-
-	if (set) return true;
-
-	DEBUG_LOG_LN("ConfigSource Conversion to JSON failed.");
-	return false;
+	JsonHelper::UdfHelperConvertToJsonEnums((EnumClass_t&)src, dst, 5, "ConfigSource", config_source_strings, (int*)config_source_values);
+//#if SERIALIZE_ENUMS_TO_STRING
+//	bool set = JsonHelper::EnumValueToJson(dst, (int)src, config_source_strings, 5);
+//#else
+//	bool set = dst.set(src);
+//#endif
+//
+//	if (set) return true;
+//
+//	DEBUG_LOG_LN("ConfigSource Conversion to JSON failed.");
+//	return false;
 }
 
 #if DEVELOPER_MODE
@@ -281,33 +340,45 @@ bool canConvertFromJson(JsonVariantConst src, const WifiPower&)
 
 void convertFromJson(JsonVariantConst src, WifiPower& dst)
 {
-	bool success;
-	WifiPower parseResult = (WifiPower)JsonHelper::JsonParseEnum(src, 12, wifi_power_strings, (int*)wifi_power_values, &success);
-
-	if (success)
-		dst = parseResult;
-	else
-		DEBUG_LOG_LN("WifiPower Parsing Failed");
+	JsonHelper::UdfHelperConvertFromJsonEnums(src, (EnumClass_t&)dst, 12, "WifiPower", wifi_power_strings, (int*)wifi_power_values);
 }
 
 bool convertToJson(const WifiPower& src, JsonVariant dst)
 {
-#if SERIALIZE_ENUMS_TO_STRING
-	bool set = JsonHelper::EnumValueToJson(dst, (int)src, esp_updater_strings, 12);
-	if (set) return true;
-#else
-	bool set;
-	int index = EnumValueToIndex((int)src, (int*)wifi_power_values, 12, &set);
-	if (set) return dst.set(index);
-#endif
-
-
-
-
-
-	DEBUG_LOG_LN("WifiPower Conversion to JSON failed.");
-	return false;
+	JsonHelper::UdfHelperConvertToJsonEnums((EnumClass_t&)src, dst, 12, "WifiPower", wifi_power_strings, (int*)wifi_power_values);
 }
+
+//void convertFromJson(JsonVariantConst src, WifiPower& dst)
+//{
+//	bool success;
+//	WifiPower parseResult = (WifiPower)JsonHelper::JsonParseEnum(src, 12, wifi_power_strings, (int*)wifi_power_values, &success);
+//
+//	if (success)
+//		dst = parseResult;
+//	else
+//		DEBUG_LOG_LN("WifiPower Parsing Failed");
+//}
+//
+//bool convertToJson(const WifiPower& src, JsonVariant dst)
+//{
+//#if SERIALIZE_ENUMS_TO_STRING
+//	bool set = JsonHelper::EnumValueToJson(dst, (int)src, esp_updater_strings, 12);
+//	if (set) return true;
+//#else
+//	bool set;
+//	int index = EnumValueToIndex((int)src, (int*)wifi_power_values, 12, &set);
+//	if (set) return dst.set(index);
+//#endif
+//
+//
+//
+//
+//
+//	DEBUG_LOG_LN("WifiPower Conversion to JSON failed.");
+//	return false;
+//}
+
+
 
 
 //
@@ -350,28 +421,38 @@ bool canConvertFromJson(JsonVariantConst src, const ConfigAutobackupMode&)
 
 void convertFromJson(JsonVariantConst src, ConfigAutobackupMode& dst)
 {
-	bool success;
-	ConfigAutobackupMode parseResult = (ConfigAutobackupMode)JsonHelper::JsonParseEnum(src, 4, esp_autobackup_strings, nullptr, &success);
-
-	if (success)
-		dst = parseResult;
-	else
-		DEBUG_LOG_LN("ConfigAutobackupMode Parsing Failed");
+	JsonHelper::UdfHelperConvertFromJsonEnums(src, (EnumClass_t&)dst, 4, "ConfigAutobackupMode", esp_autobackup_strings, nullptr);
 }
 
 bool convertToJson(const ConfigAutobackupMode& src, JsonVariant dst)
 {
-#if SERIALIZE_ENUMS_TO_STRING
-	bool set = JsonHelper::EnumValueToJson(dst, (int)src, esp_autobackup_strings, 4);
-#else
-	bool set = dst.set((uint8_t)src);
-#endif
-
-	if (set) return true;
-
-	DEBUG_LOG_LN("ConfigAutobackupMode Conversion to JSON failed.");
-	return false;
+	JsonHelper::UdfHelperConvertToJsonEnums((EnumClass_t&)src, dst, 4, "ConfigAutobackupMode", esp_autobackup_strings, nullptr);
 }
+
+//void convertFromJson(JsonVariantConst src, ConfigAutobackupMode& dst)
+//{
+//	bool success;
+//	ConfigAutobackupMode parseResult = (ConfigAutobackupMode)JsonHelper::JsonParseEnum(src, 4, esp_autobackup_strings, nullptr, &success);
+//
+//	if (success)
+//		dst = parseResult;
+//	else
+//		DEBUG_LOG_LN("ConfigAutobackupMode Parsing Failed");
+//}
+//
+//bool convertToJson(const ConfigAutobackupMode& src, JsonVariant dst)
+//{
+//#if SERIALIZE_ENUMS_TO_STRING
+//	bool set = JsonHelper::EnumValueToJson(dst, (int)src, esp_autobackup_strings, 4);
+//#else
+//	bool set = dst.set((uint8_t)src);
+//#endif
+//
+//	if (set) return true;
+//
+//	DEBUG_LOG_LN("ConfigAutobackupMode Conversion to JSON failed.");
+//	return false;
+//}
 
 
 
@@ -383,29 +464,39 @@ bool canConvertFromJson(JsonVariantConst src, const WifiMode&)
 
 void convertFromJson(JsonVariantConst src, WifiMode& dst)
 {
-
-	WifiMode parseResult = (WifiMode)JsonHelper::JsonParseEnum(src, 4, wifi_mode_strings, nullptr);
-
-	if ((int)parseResult != -1)
-		dst = parseResult;
-	else
-		DEBUG_LOG_LN("WifiMode Parsing Failed");
+	JsonHelper::UdfHelperConvertFromJsonEnums(src, (EnumClass_t&)dst, 4, "WifiMode", wifi_mode_strings, nullptr);
 }
 
 bool convertToJson(const WifiMode& src, JsonVariant dst)
 {
-#if SERIALIZE_ENUMS_TO_STRING
-	bool set = JsonHelper::EnumValueToJson(dst, (int)src, wifi_mode_strings, 4);
-#else
-	bool set = dst.set((uint8_t)src);
-#endif
-
-	if (set) return true;
-
-	DEBUG_LOG_LN("WifiMode Conversion to JSON failed.");
-	return false;
+	JsonHelper::UdfHelperConvertToJsonEnums((EnumClass_t&)src, dst, 4, "WifiMode", wifi_mode_strings, nullptr);
 }
 
+
+//void convertFromJson(JsonVariantConst src, WifiMode& dst)
+//{
+//
+//	WifiMode parseResult = (WifiMode)JsonHelper::JsonParseEnum(src, 4, wifi_mode_strings, nullptr);
+//
+//	if ((int)parseResult != -1)
+//		dst = parseResult;
+//	else
+//		DEBUG_LOG_LN("WifiMode Parsing Failed");
+//}
+//
+//bool convertToJson(const WifiMode& src, JsonVariant dst)
+//{
+//#if SERIALIZE_ENUMS_TO_STRING
+//	bool set = JsonHelper::EnumValueToJson(dst, (int)src, wifi_mode_strings, 4);
+//#else
+//	bool set = dst.set((uint8_t)src);
+//#endif
+//
+//	if (set) return true;
+//
+//	DEBUG_LOG_LN("WifiMode Conversion to JSON failed.");
+//	return false;
+//}
 
 
 
@@ -416,24 +507,34 @@ bool canConvertFromJson(JsonVariantConst src, const UART_DATABITS&)
 
 void convertFromJson(JsonVariantConst src, UART_DATABITS& dst)
 {
-
-	UART_DATABITS parseResult = (UART_DATABITS)JsonHelper::JsonParseEnum(src, 4, nullptr, (int*)uart_databits_values);
-
-	if ((int)parseResult != -1)
-		dst = parseResult;
-	else
-		DEBUG_LOG_LN("UART_DATABITS Parsing Failed");
+	JsonHelper::UdfHelperConvertFromJsonEnums(src, (EnumClass_t&)dst, 4, "UART_DATABITS", nullptr, (int*)uart_databits_values);
 }
 
 bool convertToJson(const UART_DATABITS& src, JsonVariant dst)
 {
-	bool set = JsonHelper::EnumValueToJson(dst, (int)src, (int*)uart_databits_values, 4);
-
-	if (set) return true;
-
-	DEBUG_LOG_LN("UART_DATABITS Conversion to JSON failed.");
-	return false;
+	JsonHelper::UdfHelperConvertToJsonEnums((EnumClass_t&)src, dst, 4, "UART_DATABITS", nullptr, (int*)uart_databits_values);
 }
+
+//void convertFromJson(JsonVariantConst src, UART_DATABITS& dst)
+//{
+//
+//	UART_DATABITS parseResult = (UART_DATABITS)JsonHelper::JsonParseEnum(src, 4, nullptr, (int*)uart_databits_values);
+//
+//	if ((int)parseResult != -1)
+//		dst = parseResult;
+//	else
+//		DEBUG_LOG_LN("UART_DATABITS Parsing Failed");
+//}
+//
+//bool convertToJson(const UART_DATABITS& src, JsonVariant dst)
+//{
+//	bool set = JsonHelper::EnumValueToJson(dst, (int)src, (int*)uart_databits_values, 4);
+//
+//	if (set) return true;
+//
+//	DEBUG_LOG_LN("UART_DATABITS Conversion to JSON failed.");
+//	return false;
+//}
 
 
 
@@ -445,28 +546,38 @@ bool canConvertFromJson(JsonVariantConst src, const UART_PARITY&)
 
 void convertFromJson(JsonVariantConst src, UART_PARITY& dst)
 {
-
-	UART_PARITY parseResult = (UART_PARITY)JsonHelper::JsonParseEnum(src, 3, uart_parity_strings, (int*)uart_parity_values);
-
-	if ((int)parseResult != -1)
-		dst = parseResult;
-	else
-		DEBUG_LOG_LN("UART_PARITY Parsing Failed");
+	JsonHelper::UdfHelperConvertFromJsonEnums(src, (EnumClass_t&)dst, 3, "UART_PARITY", uart_parity_strings, (int*)uart_parity_values);
 }
 
 bool convertToJson(const UART_PARITY& src, JsonVariant dst)
 {
-#if SERIALIZE_ENUMS_TO_STRING
-	bool set = JsonHelper::EnumValueToJson(dst, (int)src, uart_parity_strings, 2, (int*)uart_parity_values);
-#else
-	//return JsonHelper::EnumValueToJson(dst, (int)src, (int*)uart_parity_values, 2);
-	bool set = dst.set(EnumValueToIndex((uint8_t)src, (int*)uart_parity_values, 2));
-#endif
-	if (set) return true;
-
-	DEBUG_LOG_LN("UART_PARITY Conversion to JSON failed.");
-	return false;
+	JsonHelper::UdfHelperConvertToJsonEnums((EnumClass_t&)src, dst, 3, "UART_PARITY", uart_parity_strings, (int*)uart_parity_values);
 }
+
+//void convertFromJson(JsonVariantConst src, UART_PARITY& dst)
+//{
+//
+//	UART_PARITY parseResult = (UART_PARITY)JsonHelper::JsonParseEnum(src, 3, uart_parity_strings, (int*)uart_parity_values);
+//
+//	if ((int)parseResult != -1)
+//		dst = parseResult;
+//	else
+//		DEBUG_LOG_LN("UART_PARITY Parsing Failed");
+//}
+//
+//bool convertToJson(const UART_PARITY& src, JsonVariant dst)
+//{
+//#if SERIALIZE_ENUMS_TO_STRING
+//	bool set = JsonHelper::EnumValueToJson(dst, (int)src, uart_parity_strings, 2, (int*)uart_parity_values);
+//#else
+//	//return JsonHelper::EnumValueToJson(dst, (int)src, (int*)uart_parity_values, 2);
+//	bool set = dst.set(EnumValueToIndex((uint8_t)src, (int*)uart_parity_values, 2));
+//#endif
+//	if (set) return true;
+//
+//	DEBUG_LOG_LN("UART_PARITY Conversion to JSON failed.");
+//	return false;
+//}
 
 
 
@@ -477,25 +588,35 @@ bool canConvertFromJson(JsonVariantConst src, const UART_STOPBITS&)
 
 void convertFromJson(JsonVariantConst src, UART_STOPBITS& dst)
 {
-
-	UART_STOPBITS parseResult = (UART_STOPBITS)JsonHelper::JsonParseEnum(src, 2, nullptr, (int*)uart_stopbits_values);
-
-	if ((int)parseResult != -1)
-		dst = parseResult;
-	else
-		DEBUG_LOG_LN("UART_STOPBITS Parsing Failed");
+	JsonHelper::UdfHelperConvertFromJsonEnums(src, (EnumClass_t&)dst, 2, "UART_PARITY", nullptr, (int*)uart_stopbits_values);
 }
 
 bool convertToJson(const UART_STOPBITS& src, JsonVariant dst)
 {
-	//return JsonHelper::EnumValueToJson(dst, (int)src, (int*)uart_parity_values, 2);
-	bool set = dst.set(EnumValueToIndex((uint8_t)src, (int*)uart_stopbits_values, 2));
-
-	if (set) return true;
-
-	DEBUG_LOG_LN("UART_STOPBITS Conversion to JSON failed.");
-	return false;
+	JsonHelper::UdfHelperConvertToJsonEnums((EnumClass_t&)src, dst, 2, "UART_PARITY", nullptr, (int*)uart_stopbits_values);
 }
+
+//void convertFromJson(JsonVariantConst src, UART_STOPBITS& dst)
+//{
+//
+//	UART_STOPBITS parseResult = (UART_STOPBITS)JsonHelper::JsonParseEnum(src, 2, nullptr, (int*)uart_stopbits_values);
+//
+//	if ((int)parseResult != -1)
+//		dst = parseResult;
+//	else
+//		DEBUG_LOG_LN("UART_STOPBITS Parsing Failed");
+//}
+//
+//bool convertToJson(const UART_STOPBITS& src, JsonVariant dst)
+//{
+//	//return JsonHelper::EnumValueToJson(dst, (int)src, (int*)uart_parity_values, 2);
+//	bool set = dst.set(EnumValueToIndex((uint8_t)src, (int*)uart_stopbits_values, 2));
+//
+//	if (set) return true;
+//
+//	DEBUG_LOG_LN("UART_STOPBITS Conversion to JSON failed.");
+//	return false;
+//}
 
 #pragma endregion
 

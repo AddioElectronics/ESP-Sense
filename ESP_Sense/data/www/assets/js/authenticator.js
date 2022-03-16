@@ -6,6 +6,120 @@ var loginFormHtml = `<div id="auth_con" class="container">
 
 var espAuthenticated = false;
 
+class Authenticator{
+    static authenticated = false;
+    
+    static formHtml = `<div id="auth_con" class="container">
+    <form id="login_form" class="login-box">
+        <h4>Authentication</h4><input id="user_input" class="form-control" type="text" placeholder="Username" /><input id="pass_input" class="form-control" type="password" placeholder="Password" /><button id="login_btn" class="btn btn-primary" type="submit">Login</button><span id="login_msg" style="display: none;">Incorrect Password!</span>
+    </form>
+</div>`;
+    
+    static Start(){
+        console.log("Authenticating...");
+        $.ajax({
+            type: 'GET',
+            url: "/auth",
+            data: null,
+            success: Authenticator.Success,
+            error: Authenticator.Success
+        });
+    }
+    
+    static Logout(){
+        console.log("Logging out...");
+
+        $.ajax({
+            type: 'POST',
+            url: "/logout",
+            data: null,
+            success: refreshPage,
+            error: function(request, status, error){
+                console.log('Logout Failed');
+            }
+        });
+    }
+    
+    static Is(){
+        return Authenticator.authenticated;
+    }
+    
+    static Success(){
+        Authenticator.authenticated = true;
+        Show($('main'));
+        $('#auth_con').remove();
+        console.log('Authorization Successful');
+        invokeEvent('auth');
+        $('html').attr('auth', '');
+        $('#logout_but').click(Authenticator.Logout);
+    }
+    
+    static Failed(){
+        console.log('Authorization Failed');
+
+        $('main').remove();
+
+        if ($('#auth_con').length == 0) {
+            $('#nav_head').after(Authenticator.formHtml);
+        } 
+        Authenticator.AttachFormEvent();
+        Show($('#auth_con'));
+    }
+    
+    //static ValidateForm(){
+        //console.log('validate');
+        //    
+        //if($('#user_input').val().length == 0 || $('#pass_input').val().length == 0){
+        //    //disableObj($('#login_btn'));
+        //    return false;
+        //}
+        ////enableObj($('#login_btn'));
+        //return true;
+    //}
+    
+    static AttachFormEvent(){
+        $('#login_form').submit(function(e) {
+            e.preventDefault();
+            //if(!validateAuthForm()) return;
+            console.log("Login Form Submit");
+
+            var jdata = {};
+            jdata["username"] = strToByteArray(encryptXOR($('#user_input').val(), 0xAA));
+            jdata["password"] = strToByteArray(encryptXOR($('#pass_input').val(), 0xAA));
+
+            //printBits(jdata["password"]);
+            //printBits(encryptXOR(jdata["password"], 0xAA));
+            console.log(jdata["username"]);
+            console.log(jdata["password"]);
+            //console.log(encryptXOR(jdata["username"], 0xAA));
+            //console.log(encryptXOR(jdata["password"], 0xAA));
+
+            var jStr = JSON.stringify(jdata);
+
+            printBits(jStr);
+
+            console.log(jStr);
+
+            $.ajax({
+                url: "/auth",
+                type: 'POST',
+                data: jStr,
+                username: jdata["username"],    //Not used anymore
+                password: jdata["password"],    //Not used anymore
+                success: function() {
+                    console.log("Authentication Successful");
+                    refreshPage();
+                },
+                error: function(request, status, error) {
+                    console.log("Invalid username or password");
+                    $('#login_msg').text("Invalid Username or Password");
+                    Show($('#login_msg'));
+                }
+            });
+        });
+    }
+}
+
 //function validateAuthForm(){
 //    console.log('validate');
 //    
@@ -17,27 +131,7 @@ var espAuthenticated = false;
 //    return true;
 //}
 
-function authSuccess() {
-    espAuthenticated = true;
-    Show($('main'));
-    $('#auth_con').remove();
-    console.log('Authorization Successful');
-    invokeEvent('auth');
-    $('html').attr('auth', '');
-    $('#logout_but').click(logout);
-}
 
-function authFailed(request, status, error) {
-    console.log('Authorization Failed');
-
-    $('main').remove();
-
-    if ($('#auth_con').length == 0) {
-        $('#nav_head').after(loginFormHtml);
-    } 
-    attachFormEvent();
-    Show($('#auth_con'));
-}
 
 function dec2bin(dec){
     return (dec >>> 0).toString(2);
@@ -68,74 +162,6 @@ function printBits(str) {
     }
 }
 
-function attachFormEvent(){
-    $('#login_form').submit(function(e) {
-        e.preventDefault();
-        //if(!validateAuthForm()) return;
-        console.log("Login Form Submit");
-
-        var jdata = {};
-        jdata["username"] = strToByteArray(encryptXOR($('#user_input').val(), 0xAA));
-        jdata["password"] = strToByteArray(encryptXOR($('#pass_input').val(), 0xAA));
-        
-        //printBits(jdata["password"]);
-        //printBits(encryptXOR(jdata["password"], 0xAA));
-        console.log(jdata["username"]);
-        console.log(jdata["password"]);
-        //console.log(encryptXOR(jdata["username"], 0xAA));
-        //console.log(encryptXOR(jdata["password"], 0xAA));
-
-        var jStr = JSON.stringify(jdata);
-        
-        printBits(jStr);
-
-        console.log(jStr);
-
-        $.ajax({
-            url: "/auth",
-            type: 'POST',
-            data: jStr,
-            username: jdata["username"],    //Not used anymore
-            password: jdata["password"],    //Not used anymore
-            success: function() {
-                console.log("Authentication Successful");
-                refreshPage();
-            },
-            error: function(request, status, error) {
-                console.log("Invalid username or password");
-                $('#login_msg').text("Invalid Username or Password");
-                Show($('#login_msg'));
-            }
-        });
-    });
-}
-
-function authenticate() {
-    console.log("Authenticating...");
-
-    $.ajax({
-        type: 'GET',
-        url: "/auth",
-        data: null,
-        success: authSuccess,
-        error: authSuccess
-    });
-}
-
-function logout() {
-    console.log("Logging out...");
-
-    $.ajax({
-        type: 'GET',
-        url: "/logout",
-        data: null,
-        success: refreshPage,
-        error: function(request, status, error){
-            console.log('Logout Failed');
-        }
-    });
-
-}
 
 function encryptXOR(msg, key) {
     var enc = '';
@@ -158,5 +184,5 @@ EventReady.add(function(){
     //$('#user_input').change(validateAuthForm);
     //$('#pass_input').change(validateAuthForm);
     //disableObj($('#login_btn'));
-    authenticate();
+    Authenticator.Start();
 });

@@ -10,157 +10,71 @@
     <link rel="icon" type="image/png" sizes="32x32" href="../../assets/img/favicon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="../../assets/img/favicon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="../../assets/img/favicon.png">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../../assets/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,700">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../../assets/fonts/font-awesome.min.css">
+    <link rel="stylesheet" href="../../assets/css/global-properties.css">
     <link rel="stylesheet" href="../../assets/css/animations.css">
     <link rel="stylesheet" href="../../assets/css/bs-override.css">
     <link rel="stylesheet" href="../../assets/css/codebeauty.css">
     <link rel="stylesheet" href="../../assets/css/control-panel.css">
+    <link rel="stylesheet" href="../../assets/css/mqttDevice.css">
     <link rel="stylesheet" href="../../assets/css/device-list.css">
     <link rel="stylesheet" href="../../assets/css/device-page.css">
+    <link rel="stylesheet" href="../../assets/css/elements/led.css">
     <link rel="stylesheet" href="../../assets/css/footer.css">
     <link rel="stylesheet" href="../../assets/css/grid.css">
     <link rel="stylesheet" href="../../assets/css/login.css">
-    <link rel="stylesheet" href="../../assets/css/Navigation-Clean.css">
+    <link rel="stylesheet" href="../../assets/css/nav.css">
     <link rel="stylesheet" href="../../assets/css/overlay.css">
+    <link rel="stylesheet" href="../../assets/css/scrollbar.css">
     <link rel="stylesheet" href="../../assets/css/status-list.css">
     <link rel="stylesheet" href="../../assets/css/styles.css">
     <link rel="stylesheet" href="../../assets/css/webupdate.css">
+    <link rel="stylesheet" href="../../assets/css/themes/darkfixed.css">
 </head>
 
 <body>
     
-    <main class="d-none main-container">
+    <main class="d-none main-container" contents="mqttdevice">
         <div class="container">
-            <h1 class="device-heading">%NAME%</h1>
-            <section class="device-status"><button class="btn btn-primary border-toggle" type="button" action="border-toggle">Toggle Borders</button><button class="btn btn-primary hide-content" type="button" action="hide-content">Hide</button>
-                <div>
-                    <h4>Device Status</h4>
-                    <div class="font-monospace device_status">
-                        <table class="table">
-                            <tbody>
-                                <tr>
-                                    <td>configured</td>
-                                    <td>true</td>
-                                </tr>
-                                <tr>
-                                    <td>enabled</td>
-                                    <td>true</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <h4>%DEVICETYPE% Status</h4>
-                    <div class="font-monospace deviceType_status">
-                        <table class="table table-sm">
-                            <tbody>
-                                <tr>
-                                    <td>configured</td>
-                                    <td>true</td>
-                                </tr>
-                                <tr>
-                                    <td>enabled</td>
-                                    <td>true</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <h4>Unique Status</h4>
-                    <div class="font-monospace unique_status">
-                        <table class="table table-sm">
-                            <tbody>
-                                <tr>
-                                    <td>configured</td>
-                                    <td>true</td>
-                                </tr>
-                                <tr>
-                                    <td>enabled</td>
-                                    <td>true</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <h4>Website Status</h4>
-                    <div class="font-monospace website_status">
-                        <table class="table table-sm">
-                            <tbody>
-                                <tr>
-                                    <td>configured</td>
-                                    <td>true</td>
-                                </tr>
-                                <tr>
-                                    <td>enabled</td>
-                                    <td>true</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+            <div class="row device-heading">
+                <div class="col">
+                    <h4 device="">Device :</h4>
                 </div>
+                <div class="col">
+                    <h1 name="">Name :</h1>
+                </div>
+                <div class="col"><ledgroup style="padding-top: 16px;">
+    <led class="hover-glow" style="--led-hue: 110;margin-right: 10px;"state="ok"></led>
+    <led class="hover-glow" style="--led-hue: 50;" state="disabled"></led>
+    <led class="hover-glow" style="--led-hue: 0;margin-right: 10px;"state="error"></led>
+    <div id="led_ok" class="led remove-me" style="--led-hue: 110;margin-right: 10px;"></div>
+    <div id="led_disabled" class="led remove-me" style="--led-hue: 50;margin-right: 10px;"></div>
+    <div id="led_error" class="led remove-me" style="--led-hue: 0;margin-right: 10px;"></div>
+</ledgroup></div>
+            </div>
+            <section class="device-status" dev-index="" dev-type="">
+                <div class="row device-heading sub-list">
+                    <div class="col">
+                        <h3>Status</h3>
+                    </div>
+                    <div class="col"></div>
+                    <div class="col"><button class="btn btn-primary" type="button" action="border-toggle" border-id="status">Toggle Borders</button><button class="btn btn-primary" type="button" action="hide-content" hide-id="status" style="margin-left: 15px;">Hide</button></div>
+                </div>
+                <div class="status-list" status-content="mqttdevice" hide-id="status" border-id="status"></div>
             </section>
+            <hr>
             <section class="device-config">
-                <h4>Device Status</h4>
-                <div class="font-monospace device_status">
-                    <table class="table">
-                        <tbody>
-                            <tr>
-                                <td>configured</td>
-                                <td>true</td>
-                            </tr>
-                            <tr>
-                                <td>enabled</td>
-                                <td>true</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="row device-heading sub-list">
+                    <div class="col">
+                        <h3>Config</h3>
+                    </div>
+                    <div class="col"></div>
+                    <div class="col"><button class="btn btn-primary" type="button" action="border-toggle" actionid="config">Toggle Borders</button><button class="btn btn-primary" type="button" action="hide-content" hide-id="config" style="margin-left: 15px;">Hide</button></div>
                 </div>
-                <h4>%DEVICETYPE% Status</h4>
-                <div class="font-monospace deviceType_status">
-                    <table class="table table-sm">
-                        <tbody>
-                            <tr>
-                                <td>configured</td>
-                                <td>true</td>
-                            </tr>
-                            <tr>
-                                <td>enabled</td>
-                                <td>true</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <h4>Unique Status</h4>
-                <div class="font-monospace unique_status">
-                    <table class="table table-sm">
-                        <tbody>
-                            <tr>
-                                <td>configured</td>
-                                <td>true</td>
-                            </tr>
-                            <tr>
-                                <td>enabled</td>
-                                <td>true</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                <h4>Website Status</h4>
-                <div class="font-monospace website_status">
-                    <table class="table table-sm">
-                        <tbody>
-                            <tr>
-                                <td>configured</td>
-                                <td>true</td>
-                            </tr>
-                            <tr>
-                                <td>enabled</td>
-                                <td>true</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-            <form class="config-form" device="scd4x"></form><pre id="scd4x_status" class="json"></pre>
+                <form class="config-form" device="scd4x" action="mqttconfig" border-id="config" hide-id="config"></form>
+            </section><pre id="scd4x_status" class="json"></pre>
 
 <pre id="scd4x_config" class="json"></pre>
 
@@ -168,21 +82,15 @@
         </div>
     </main>
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assets/js/jquery.min.js"></script>
+    <script src="../../assets/bootstrap/js/bootstrap.min.js"></script>
+    <script src="../../assets/js/bootstrap.js"></script>
+    <script src="../../assets/js/jquery.js"></script>
     <script src="../../assets/js/extensions/set.js"></script>
     <script src="../../assets/js/localstorage.js"></script>
     <script src="../../assets/js/delegates/EventWindowResize.js"></script>
     <script src="../../assets/js/delegates/EventWindowScroll.js"></script>
     <script src="../../assets/js/delegates/EventReady.js"></script>
-    <script src="../../assets/js/delegates/EventKeyPress.js"></script>
-    <script src="../../assets/js/delegates/EventKeyUp.js"></script>
-    <script src="../../assets/js/delegates/EventKeyDown.js"></script>
-    <script src="../../assets/js/delegates/EventMouseClick.js"></script>
-    <script src="../../assets/js/delegates/EventMouseDoubleClick.js"></script>
-    <script src="../../assets/js/delegates/EventMouseDown.js"></script>
-    <script src="../../assets/js/delegates/EventMouseUp.js"></script>
-    <script src="../../assets/js/delegates/EventMouseMove.js"></script>
     <script src="../../assets/js/delegates/CustomEvents.js"></script>
     <script src="../../assets/js/elements.js"></script>
     <script src="../../assets/js/globalvars.js"></script>
@@ -191,15 +99,16 @@
     <script src="../../assets/js/codebeauty.js"></script>
     <script src="../../assets/js/esp.js"></script>
     <script src="../../assets/js/authenticator.js"></script>
-    <script src="../../assets/js/mqtt/deviceStatus.js"></script>
+    <script src="../../assets/js/globalStatus.js"></script>
     <script src="../../assets/js/webupdate.js"></script>
     <script src="../../assets/js/jsonTool.js"></script>
+    <script src="../../assets/js/mqtt/devices/mqttDevices.js"></script>
     <script src="../../assets/js/mqtt/devices/device-list.js"></script>
-    <script src="../../assets/js/mqtt/mqttDevices.js"></script>
     <script src="../../assets/js/mqtt/devices/sensors/scd4x.js"></script>
     <script src="../../assets/js/requests.js"></script>
     <script src="../../assets/js/config-status.js"></script>
-    <script src="../../assets/js/control-panel.js"></script>
+    <script src="../../assets/js/mqtt/devices/device-page.js"></script>
+    <script src="../../assets/js/theme.js"></script>
 </body>
 
 </html>

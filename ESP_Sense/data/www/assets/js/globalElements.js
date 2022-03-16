@@ -25,11 +25,16 @@ var footerHtml = `<footer>
     </div>
 </footer>`;
 
-if($('.navbar').length == 0)
+if($('.navbar').length == 0 && $('html').length != 0)
 $('body').prepend(navHtml);
 
-if($('footer').length == 0)
+if($('footer').length == 0 && $('html').length != 0)
 $('body').append(footerHtml);
+
+//if($('.temp-foot-offset').length == 0 && $('html').length != 0)
+//$('footer').before("<div class="temp-foot-offset"></div>");
+
+
 
 function setMainHeight(){
     let navHeight = $('nav').height();
@@ -42,8 +47,6 @@ function setMainHeight(){
 EventWindowResize.add(setMainHeight);
 setMainHeight();
 
-function moveFooter(){
-    
-}
 
 EventWindowScroll.add(setMainHeight);
+

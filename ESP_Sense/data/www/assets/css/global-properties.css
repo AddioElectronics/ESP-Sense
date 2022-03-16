@@ -1,0 +1,17 @@
+@property --glow-size {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 20px;
+}
+
+@property --glow-lightness {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 51.2%;
+}
+
+* {
+  --outline-size: 2px;
+  --glow-size: 20px;
+}
+

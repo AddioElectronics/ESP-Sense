@@ -1,39 +1,40 @@
+//Contains functions for creating tables for displaying status data
+
 function createStatusTable(name, caption, capTop){
 
     let cap = null;
     if(caption != null){
         cap = new Element('caption');
-        head.Text(caption);
+        cap.Text(caption);
         if(capTop != null)
             cap.Classes('caption-top');
     }
     
     
-    let tabRoot = new Element('div');
+    let tabRoot = new ElementBuilder('div');
     tabRoot.Classes('font-monospace'); 
     
-    let table = new Element('table');
+    let table = new ElementBuilder('table');
     table.Classes(['table', 'table-sm']);
     table.Attrs({key:'status-content', value:name})
     
     
-    let tbody = new Element('tbody');
+    let tbody = new ElementBuilder('tbody');
+    
+    var tabRootElem = tabRoot.Create();
+    let tableElem = table.Create();
     let tbodyElem = tbody.Create();    
     
     if(cap != null)
-        table.append(cap.Create());
+        tableElem.append(cap.Create());
     
-    table.append(tbodyElem);
+    tableElem.append(tbodyElem);
+    tabRootElem.append(tableElem);
     
-    let tableElem = table.Create();
-    tabRoot.append(tableElem);
-    
-    var tabRootElem = tabRoot.Create();
-    
-    return tabRootElem;
+    return $(tabRootElem);
 }
 
-function populateStatusTable(elem, jdata){
+function populateStatusTable(elem, jdata, caption){
     console.log('createDeviceStatus');
     console.log(jdata);
     elem.find('tr').remove();
@@ -45,57 +46,29 @@ function populateStatusTable(elem, jdata){
         let name = createElement('td', null, null, null, key);
         let val;
         
+       
         if(value instanceof Object){
-            let subtable = createStatusTable(key);
+            let subtable = createStatusTable(key, caption ? key : null, true);
             val = createElement('td');
-            populateStatusTable(key, val);
+            val.append(subtable);
+            populateStatusTable(subtable.find('tbody'), jdata[key], caption);
         }else{
-            val = createElement('td', null, type, null, value instanceof String ? value : value.toString());            
+            getValueTypeClass(value)
+            val = createElement('td', null, type, null, value instanceof String ? value : value.toString());   
+            
         }
-          
+        
         $(row).append(name);
         $(row).append(val);
-        elem.append(row);
+        $(elem).append(row);
     }
 }
 
-function objectToTables(parent, obj){
-    
+function objectToTables(parent, obj, caption){
     for(let key in obj){
-        let elem = createStatusTable(key);
+        let elem = createStatusTable(key, caption ? key : null, true);
+        $(elem.find('table')[0]).addClass('table-tree');
+        populateStatusTable(elem.find('tbody'), obj[key], caption);
         $(parent).append(elem);
     }
 }
-
-function loadDummyGlobalStatus(){
-    loadData('/assets/js/dummyStatus.json', function(data){
-        let statusObj = data['status'];
-        let retainedObj = data['retainedStatus'];
-        let dsobj = $('#global-status');
-        
-        objectToTables(gsobj, root)
-
-    });
-}
-
-function loadDummyConfigStatus(){
-    loadData('/assets/js/mqtt/dummy-status-test.json', function(data){
-        let rootObj = data['co2'];
-        let dsobj = $('.device-status');
-        populateStatusTable(dsobj.find('[status-content=device]').find('tbody'), rootObj['deviceStatus']);
-        populateStatusTable(dsobj.find('[status-content=deviceType]').find('tbody'), rootObj['sensorStatus']);
-        populateStatusTable(dsobj.find('[status-content=unique]').find('tbody'), rootObj['uniqueStatus']);
-        populateStatusTable(dsobj.find('[status-content=website]').find('tbody'), rootObj['websiteStatus']);
-    });
-}
-
-
-EventReady.add(function(){
-    if ($('[mqtt]') == null) return;
-    onEvent('auth', devicesInfoInit);
-    
-     if(devMode){
-         loadDummyConfigStatus();
-            loadDummyGlobalStatus();   
-     }
-});

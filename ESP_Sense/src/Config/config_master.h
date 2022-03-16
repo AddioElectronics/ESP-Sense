@@ -40,7 +40,8 @@ enum ESP_MEMSIZE
 #define COMPILE_DEBUG_CODE			true						//Compile extra code which makes debugging easier, but increases program size.
 #define SHOW_DEBUG_MESSAGES			true						//Compiles DEBUG_LOG print functions.
 #define DEVELOPER_MODE				true						//Compile extra code which makes life easier when frequently flashing or switching devices(ESP32->8266) *Barely used
-#define SERIALIZE_ENUMS_TO_STRING	true						//If true, when serializing config files for saving, enums will be displayed as strings, and if false their "index."
+#define SERIALIZE_ENUMS_TO_STRING	true						//If true, when serializing config files for saving, enums will be displayed as strings, else serialize to index.
+//#define SERIALIZE_ENUMS_TO_INDEX	true						//If true and TO_STRING is false, enums will be displayed as an index from 0 and incrementing, even if the true value is something else.
 
 #define NEWLINE						\r\n
 

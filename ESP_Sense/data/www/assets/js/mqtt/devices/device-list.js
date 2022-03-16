@@ -1,17 +1,43 @@
 
+var canSelectDevice = true;
+var selectedDeviceElem = null;
+//var deleteOld = false;
+
+
 var testhtml = `<span name>Co2 Sensor</span><span device>SCD4x<br /></span><span status="ok"><br /></span>`
 var navToDevButHtml = `<button class="btn btn-primary" type="button" action="select-device" disabled>Navigate to</button>`;
-
-var selectedDeviceElem = null;
-var deleteOld = false;
 
 var deviceListElem = $('main [mqtt=devicelist]');
 
 var navToDeviceButton = $('main button[action=select-device]');
 var navToDevVisDetector = $('div.vis-detect[button=select-device]');
 
+var clickedDev = false;
+var navingToDev = false;
+
+function navToDevButClick(){
+    if(MqttDevice.activeDevice == null)
+        return;
+    MqttDevice.NavigateToActive();
+}
+
 function initNavToDevBut(){
-    if($('main [mqtt=devicelist]').length == 0) return;
+    console.log('initNavToDevBut');
+    if(navToDeviceButton.length == 0) return;
+    
+    if(MqttDevice.activeDevice == null){
+        disableObj(navToDeviceButton);
+        navToDeviceButton.text('Select A Device');
+    }else{
+        enableObj(navToDeviceButton);
+        navToDeviceButton.text('Navigate to ' + MqttDevice.activeDevice.name);
+        $('.grid.device-container[mqttdevice] [name='+MqttDevice.activeDevice.name+']').parent().attr('selected', '');
+        loadMqttDeviceSummary();
+    }
+    
+    navToDeviceButton.click(MqttDevice.NavigateToActive);
+    
+    return;
     
     if(navToDeviceButton.length == 0 && deviceListElem.length > 0){
         $('main [mqtt=devicelist]').prepend(navToDevButHtml);
@@ -25,14 +51,15 @@ function initNavToDevBut(){
         navToDevVisDetector = $('div.vis-detect[button=select-device]');  
     }
     
-    navToDeviceButton.click(navigateToSelectedDevice);
+    navToDeviceButton.click(MqttDevice.NavigateToActive);
     //moveNavToDevButton(null);
 }
 
 
 
 function moveNavToDevButton(e){
-    if(navToDevVisDetector.isInViewport()){
+    var offset = {top:-$('nav').height(), bottom:-$('footer').height()};
+    if(navToDevVisDetector.isInViewport(offset)){
         if(!navToDeviceButton.hasClass('position-absolute'))
             navToDeviceButton.addClass('position-absolute');
     }else{
@@ -47,7 +74,7 @@ function moveNavToDevButton(e){
         navToDeviceButton.show();    
 }
 
-EventWindowScroll.add(moveNavToDevButton);
+//EventWindowScroll.add(moveNavToDevButton);
 
 function createDeviceList(devices){
     console.log('createDeviceList()')
@@ -55,10 +82,10 @@ function createDeviceList(devices){
     
     var dlistRoot = $('[mqtt=devicelist]');
     
-    if(deleteOld)
-    dlistRoot.find('.grid.list').remove();
+    //if(deleteOld)
+    //dlistRoot.find('.grid.list').remove();
 
-    var dlistcon = createElement('div', null, ['grid', 'list']);
+    var dlistcon = dlistRoot.find('.grid.list');// createElement('div', null, ['grid', 'list']);
     $(dlistRoot.find('.heading')[0]).after(dlistcon);
     
     var senList = createSublist('Sensors', 'sensors', devices.sensors);
@@ -72,19 +99,54 @@ function createDeviceList(devices){
     dlistcon.append(ledList);
     dlistcon.append(butList);
     dlistcon.append(swList);
-    
-    
-    dlistcon.keypress(selectMqttDevice);
-    dlistcon.click(selectMqttDevice);
+    //MqttDevice.eventStatusChanged.Invoke();
+    MqttDevice.SetAllDeviceLeds();
+    MqttDevice.SetAllLedHeadGroups();
+    //console.warn('working');
+    dlistcon.keypress(function(e){        
+        if($(document.activeElement).attr('disabled')) return;
+        selectMqttDevice(e);
+    });
+    dlistcon.click(async function(e){
+        if(clickedDev) return;
+        clickedDev = true;
+        await sleep(300);
+        if(e.originalEvent.detail > 1 || navingToDev){
+            //Because of cache need to set to false.
+            //Need to edit cache control on server
+            navingToDev = false;
+            clickedDev = false;
+            return;
+        }
+        
+        if(!navingToDev){
+            selectMqttDevice(e);
+        }
+        clickedDev = false;
+
+    });
+    dlistcon.dblclick(async function(e){
+        navingToDev = true;
+        //disableDeviceList();
+        selectMqttDevice(e);
+        MqttDevice.NavigateToActive();
+    });
 }
 
 function createSublist(name, dtype, devices){
     console.log('createSublist() ' + name);
-    var devGroup = createElement('div', null, ['device-group'],{key:'device-type', value:'sensors'} );
+    var devGroup = createElement('div', null, ['device-group'],{key:'device-type', value:dtype} );
+    let headCon = createElement('div', null, ['grid', 'head-container']);
+    
     var heading = createElement('h3', null, null, null, name);
+    var ledGroup = MqttDevice.CreateLedController(true, true);
     var listCon = createElement('div', null, 'sub-list');
     
-    devGroup.append(heading);
+    ledGroup.attr('device-type', dtype);
+    
+    headCon.append(heading);
+    headCon.append(ledGroup);
+    devGroup.append(headCon);
     devGroup.append(listCon);
     
     if(devices == null || devices.length == 0) return;
@@ -119,78 +181,100 @@ function createHeadingForDeviceList(dev){
 function createDeviceForList(dev){
     console.log('createDeviceForList()');
     console.log(dev);
-    var devElem = createElement('div',
+    let devElem = createElement('div',
                                 null, 
                                 ['grid', 'device-container'],
                                 [{key:'tabindex', value:0},{key:'mqttdevice'}, {key:'url', value:dev.url}] );
     
-    var nameElem = createElement('span', null, null, {key:'name', value:dev.name}, dev.name)
-    var dtypeElem = createElement('span', null, null, [{key:'device', value:dev.device}, {key:'type', value:dev.type}], dev.device)
-    var stateElem = createElement('span', null, null, {key:'state', value:dev.state})
+    let nameElem = createElement('span', null, null, {key:'name', value:dev.name}, dev.name);
+    let dtypeElem = createElement('span', null, null, [{key:'device', value:dev.device}, {key:'type', value:dev.type}], dev.device);
+
+    let stateElem = MqttDevice.CreateLedController(true, true, true);        
+    dev.ledGroup = stateElem;
+    stateElem.attr('dev-index', dev.index);
+    stateElem.attr('dev-type', dev.type);
+    dev.listElem = devElem;
+    
+    
+    devElem.attr('dev-index', dev.index);
+    devElem.attr('dev-type', dev.type);
     
     devElem.append(nameElem);       
     devElem.append(dtypeElem);
     devElem.append(stateElem);
-    
+        
     return devElem;
 }
 
 function selectMqttDevice(e){
     var elem = e.type == 'click' ? $(e.target) : $(document.activeElement);
     
+    if(elem.is('led'))return null;
+    if(elem.attr('disabled') != undefined) return null;
+    
     if(elem.attr('mqttdevice') == null){
-        if(elem.parent().attr('mqttdevice') == null) return null;
-        
+        if(elem.parent().attr('mqttdevice') == null) return null;        
         elem = elem.parent();
     }
+    
+    disableDeviceList();
     
     console.log('selectMqttDevice()');
     console.log(elem);   
     
-    disableObj(navToDeviceButton);
-    
-    if(selectedDeviceElem != null)
-        selectedDeviceElem.removeAttr('selected');
+    $('[mqttdevice]').removeAttr('selected');
     
     elem.attr('selected', '');
     selectedDeviceElem = elem;
-    //enableObj(navToDeviceButton);
+    let name = elem.find('[name]').attr('name');
+    let type = elem.find('[type]').attr('type');
+    let device = MqttDevice.Find(name, type, true);
     
-    //console.log(navToDeviceButton);
-    //disableObj(navToDeviceButton);
-    enableObj(navToDeviceButton);
-    //navToDeviceButton.hide();
+    if(device == null){
+        selectedDeviceElem = null;
+        console.log('Could not find device! name : ' + name + ' | type : ' + type);
+        navToDeviceButton.text('Error');
+        ensableDeviceList();
+        return null;
+    }
     
-    navToDeviceButton.text('Navigate to ' + selectedDeviceElem.find('[name]').attr('name'));
+        
+    navToDeviceButton.text('Navigate to ' + elem.find('[name]').attr('name'));
+
+    loadMqttDeviceSummary();
+    
+    enableDeviceList();
     
     return elem;
 }
 
-function navigateToDevicePage(device){
-    console.log('navigateToDevicePage()');
-    localStoreObj('device', device);
-    window.location.href = device.info.path + '.html';
-}
-
-function navigateToSelectedDevice(){
-    console.log('navigateToSelectedDevice()');
-    if(selectedDeviceElem == null) return;    
-    console.log(selectedDeviceElem);
-    var name = selectedDeviceElem.find('[name]').attr('name');
-    var type = selectedDeviceElem.find('[type]').attr('type');
-    var device = findMqttDevice(name, type);
-    
-    if(device == null){
-        console.log('Could not find device! name : ' + name + ' | type : ' + type);
-        return;
+function loadMqttDeviceSummary(){
+    if(devMode){
+        loadDummyMqttStatus();
+    }else{
+        disableDeviceList();
+        MqttDevice.activeDevice.GetStatus(function(data){
+            enableDeviceList();
+            setMqttDeviceStatus(MqttDevice.activeDevice, data);
+        }, function(xhr, status, error){
+            enableDeviceList();
+            let device = MqttDevice.activeDevice;
+            $('[status-content=mqttdevice]').text('Could not load ' + device.name + '(' + device.device + ') status | ' + xhr.responseText);
+        });
     }
-    
-    navigateToDevicePage(device);
 }
 
-EventReady.add(function(){
-    initNavToDevBut();
-});
+function disableDeviceList(){
+    disableObj($('section[mqtt=devicelist] *'), true);
+    disableObj(navToDeviceButton);
+}
 
-var test = createElement('div', null, ['grid', 'device-container'],{key:'tabindex', value:0}, testhtml, true );
-$('#testing').after(test);
+function enableDeviceList(){
+    enableObj($('section[mqtt=devicelist] *'), true);
+    enableObj(navToDeviceButton);
+}
+
+
+onEvent('auth', function(){
+    //initNavToDevBut();
+});
