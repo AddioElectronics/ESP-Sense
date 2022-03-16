@@ -174,17 +174,17 @@ void Config::Defaults::RestoreDeviceDefaults(bool flagMonitor)
 void Config::Defaults::InitializeStrings()
 {
 	/*Wifi SSID seems to always set properly. Will initially set to that until the problem is found.*/
-	config.mqtt.publish.unknownPayload = WIFI_SSID;
-	config.mqtt.baseTopics.base = WIFI_SSID;
-	config.mqtt.baseTopics.command = WIFI_SSID;
-	config.mqtt.baseTopics.state = WIFI_SSID;
+	//config.mqtt.publish.unknownPayload = WIFI_SSID;
+	//config.mqtt.baseTopics.base = WIFI_SSID;
+	//config.mqtt.baseTopics.command = WIFI_SSID;
+	//config.mqtt.baseTopics.state = WIFI_SSID;
 
-	config.server.ftp.user = WIFI_SSID;
-	config.server.ftp.pass = WIFI_SSID;
+	//config.server.ftp.user = WIFI_SSID;
+	//config.server.ftp.pass = WIFI_SSID;
 
-	config.server.hostname = WIFI_SSID;
-	config.server.user = WIFI_SSID;
-	config.server.pass = WIFI_SSID;
+	//config.server.hostname = WIFI_SSID;
+	//config.server.user = WIFI_SSID;
+	//config.server.pass = WIFI_SSID;
 }
 
 /// <summary>
@@ -284,7 +284,7 @@ void Config::Defaults::RestoreMqttDefaults(bool flagMonitor)
 		configMonitor.mqtt.publish.availabilityRate = config.mqtt.publish.availabilityRate != MQTT_AVAILABILITY_PUBLISH_RATE * 1000;
 		configMonitor.mqtt.publish.json = config.mqtt.publish.json != true/*MQTT_PUBLISH_AS_JSON*/;
 		//configMonitor.mqtt.publish.onIndividualTopics = config.mqtt.publish.onIndividualTopics != MQTT_PUBLISH_ON_SINGLE_TOPICS;
-		configMonitor.mqtt.publish.unknownPayload = config.mqtt.publish.unknownPayload != SENSOR_DATA_UNKNOWN;
+		//configMonitor.mqtt.publish.unknownPayload = config.mqtt.publish.unknownPayload != SENSOR_DATA_UNKNOWN;
 
 		configMonitor.mqtt.broker.ip = config.mqtt.broker.ip != mqttIp;
 		configMonitor.mqtt.broker.ipAP = config.mqtt.broker.ipAP != mqttIpAP;
@@ -329,7 +329,7 @@ void Config::Defaults::RestoreMqttDefaults(bool flagMonitor)
 	config.mqtt.publish.availabilityRate = MQTT_AVAILABILITY_PUBLISH_RATE * 1000;
 	config.mqtt.publish.json = true/*MQTT_PUBLISH_AS_JSON*/;
 	//config.mqtt.publish.onIndividualTopics = MQTT_PUBLISH_ON_SINGLE_TOPICS;
-	config.mqtt.publish.unknownPayload = SENSOR_DATA_UNKNOWN;
+	//config.mqtt.publish.unknownPayload = SENSOR_DATA_UNKNOWN;
 
 	config.mqtt.broker.ip = mqttIp;
 	config.mqtt.broker.ipAP = mqttIpAP;
@@ -1113,14 +1113,15 @@ bool Config::Documents::SerializeConfig(JsonDocument* doc)
 	mqtt["ledGpio"] = config.mqtt.ledGpio;
 	mqtt["ledOn"] = config.mqtt.ledOn;
 
-	JsonObject mqtt_publish = mqtt.createNestedObject("publish");
-	mqtt_publish["bufferSize"] = config.mqtt.publish.bufferSize;
-	mqtt_publish["rate"] = config.mqtt.publish.rate / 1000;
-	mqtt_publish["errorRate"] = config.mqtt.publish.errorRate / 1000;
-	mqtt_publish["availabilityRate"] = config.mqtt.publish.availabilityRate / 1000;
-	mqtt_publish["json"] = config.mqtt.publish.json;
-	mqtt_publish["asIndividualTopics"] = config.mqtt.publish.onIndividualTopics;
-	mqtt_publish["unknownPayload"] = config.mqtt.publish.unknownPayload;
+	mqtt["publish"].set(config.mqtt.publish);
+	//JsonVariant mqtt_publish = mqtt.createNestedObject("publish");
+	//mqtt_publish["bufferSize"] = config.mqtt.publish.bufferSize;
+	//mqtt_publish["rate"] = config.mqtt.publish.rate / 1000;
+	//mqtt_publish["errorRate"] = config.mqtt.publish.errorRate / 1000;
+	//mqtt_publish["availabilityRate"] = config.mqtt.publish.availabilityRate / 1000;
+	//mqtt_publish["json"] = config.mqtt.publish.json;
+	//mqtt_publish["asIndividualTopics"] = config.mqtt.publish.onIndividualTopics;
+	//mqtt_publish["unknownPayload"] = config.mqtt.publish.unknownPayload;
 
 	JsonObject mqtt_broker = mqtt.createNestedObject("broker");
 	mqtt_broker["timeout"] = config.mqtt.broker.timeout;
@@ -1659,32 +1660,33 @@ bool Config::Documents::SetMqttFromDoc()
 
 	if (mqttObj.containsKey("publish"))
 	{
-		JsonObject publishObj = mqttObj["publish"];
+		convertToJson(config.mqtt.publish, mqttObj["publish"]);
+		//JsonObject publishObj = mqttObj["publish"];
 
-		if (publishObj.containsKey("bufferSize"))
-			config.mqtt.publish.bufferSize = publishObj["bufferSize"];
+		//if (publishObj.containsKey("bufferSize"))
+		//	config.mqtt.publish.bufferSize = publishObj["bufferSize"];
 
-		//Mqtt::ReadKey(config.mqtt.publish.rate, publishObj, "rate");
-		if (publishObj.containsKey("rate"))
-			config.mqtt.publish.rate = ((int)publishObj["rate"]) * 1000;
+		////Mqtt::ReadKey(config.mqtt.publish.rate, publishObj, "rate");
+		//if (publishObj.containsKey("rate"))
+		//	config.mqtt.publish.rate = ((int)publishObj["rate"]) * 1000;
 
-		//Mqtt::ReadKey(config.mqtt.publish.errorRate, publishObj, "errorRate");
-		if (publishObj.containsKey("errorRate"))
-			config.mqtt.publish.errorRate = ((int)publishObj["errorRate"]) * 1000;
+		////Mqtt::ReadKey(config.mqtt.publish.errorRate, publishObj, "errorRate");
+		//if (publishObj.containsKey("errorRate"))
+		//	config.mqtt.publish.errorRate = ((int)publishObj["errorRate"]) * 1000;
 
-		//Mqtt::ReadKey(config.mqtt.publish.availabilityRate, publishObj, "availabilityRate");
-		if (publishObj.containsKey("availabilityRate"))
-			config.mqtt.publish.availabilityRate = ((int)publishObj["availabilityRate"]) * 1000;
+		////Mqtt::ReadKey(config.mqtt.publish.availabilityRate, publishObj, "availabilityRate");
+		//if (publishObj.containsKey("availabilityRate"))
+		//	config.mqtt.publish.availabilityRate = ((int)publishObj["availabilityRate"]) * 1000;
 
-		if (publishObj.containsKey("json"))
-			config.mqtt.publish.json = publishObj["json"];
+		//if (publishObj.containsKey("json"))
+		//	config.mqtt.publish.json = publishObj["json"];
 
-		if (publishObj.containsKey("asIndividualTopics"))
-			config.mqtt.publish.onIndividualTopics = publishObj["asIndividualTopics"];
+		//if (publishObj.containsKey("asIndividualTopics"))
+		//	config.mqtt.publish.onIndividualTopics = publishObj["asIndividualTopics"];
 
 		//Mqtt::ReadKey(config.mqtt.publish.unknownPayload, publishObj, "unknownPayload");
-		if (publishObj.containsKey("unknownPayload"))
-			config.mqtt.publish.unknownPayload = (const char*)publishObj["unknownPayload"];
+		//if (publishObj.containsKey("unknownPayload"))
+		//	config.mqtt.publish.unknownPayload = (const char*)publishObj["unknownPayload"];
 
 	}
 
@@ -3455,6 +3457,801 @@ bool convertToJson(const StatusRetained_t& src, JsonVariant dst)
 	JsonObject retainedStatus_mqtt = dst.createNestedObject("mqtt");
 	retainedStatus_mqtt["ip"].set(statusRetained.mqtt.ip);
 }
+
+//bool canConvertFromJson(JsonVariantConst src, const Boot_bm&)
+//{
+//
+//}
+
+void convertFromJson(JsonVariantConst src, Boot_bm& dst)
+{
+	if (src.containsKey("freshBoot"))
+		dst.freshBoot = src["freshBoot"];
+
+	if (src.containsKey("bootSource"))
+		dst.bootSource = src["bootSource"].as<ConfigSource>();
+
+	if (src.containsKey("wifiMode"))
+		dst.wifiMode = (wifi_mode_t)(src["wifiMode"].as<WifiMode>());
+
+	if (src.containsKey("configMode"))
+		dst.configMode = src["configMode"];
+}
+
+bool convertToJson(const Boot_bm& src, JsonVariant dst)
+{
+	dst["freshBoot"] = src.freshBoot;
+	dst["bootSource"].set<ConfigSource>(src.bootSource);
+	dst["wifiMode"].set<WifiMode>((WifiMode)src.wifiMode);
+	dst["configMode"] = src.configMode;
+}
+
+
+//bool canConvertFromJson(JsonVariantConst src, const WifiStationConfig_t&)
+//{
+//
+//}
+
+void convertFromJson(JsonVariantConst src, WifiStationConfig_t& dst)
+{
+	if (src.containsKey("enabled"))
+		dst.enabled = src["enabled"];
+
+	if (src.containsKey("ledOn"))
+		dst.ledOn = src["ledOn"];
+
+	if (src.containsKey("ssid"))
+		dst.ssid = src["ssid"].as<String>();
+
+	if (src.containsKey("pass"))
+		dst.pass = src["pass"].as<String>();
+
+	if (src.containsKey("ledGpio"))
+		dst.ledGpio = src["ledGpio"];
+
+
+}
+
+bool convertToJson(const WifiStationConfig_t& src, JsonVariant dst)
+{
+	dst["enabled"] = src.enabled;
+	dst["ledOn"] = src.ledOn;
+	dst["ssid"].set(src.ssid);
+	dst["pass"].set(src.pass);
+	dst["ledGpio"] = src.ledGpio;
+
+}
+
+
+//bool canConvertFromJson(JsonVariantConst src, const WifiAccessPointConfig_t&)
+//{
+//
+//}
+
+void convertFromJson(JsonVariantConst src, WifiAccessPointConfig_t& dst)
+{
+	if (src.containsKey("useDefaults"))
+		dst.useDefaults = src["useDefaults"];
+
+	if (src.containsKey("enabled"))
+		dst.enabled = src["enabled"];
+
+	if (src.containsKey("configOnly"))
+		dst.configOnly = src["configOnly"];
+
+	if (src.containsKey("buttonPullup"))
+		dst.buttonPullup = src["buttonPullup"];
+
+	if (src.containsKey("buttonPress"))
+		dst.buttonPress = src["buttonPress"];
+
+	if (src.containsKey("hidden"))
+		dst.hidden = src["hidden"];
+
+	if (src.containsKey("ledOn"))
+		dst.ledOn = src["ledOn"];
+
+	if (src.containsKey("ssid"))
+		dst.ssid = src["ssid"].as<String>();
+
+	if (src.containsKey("pass"))
+		dst.pass = src["pass"].as<String>();
+
+	if (src.containsKey("maxConnections"))
+		dst.maxConnections = src["maxConnections"];
+
+	if (src.containsKey("buttonGpio"))
+		dst.buttonGpio = src["buttonGpio"];
+
+	if (src.containsKey("holdTime"))
+		dst.holdTime = src["holdTime"];
+
+	if (src.containsKey("ledGpio"))
+		dst.ledGpio = src["ledGpio"];
+
+
+}
+
+bool convertToJson(const WifiAccessPointConfig_t& src, JsonVariant dst)
+{
+	dst["useDefaults"] = src.useDefaults;
+	dst["enabled"] = src.enabled;
+	dst["configOnly"] = src.configOnly;
+	dst["buttonPullup"] = src.buttonPullup;
+	dst["buttonPress"] = src.buttonPress;
+	dst["hidden"] = src.hidden;
+	dst["ledOn"] = src.ledOn;
+	dst["ssid"].set(src.ssid);
+	dst["pass"].set(src.pass);
+	dst["maxConnections"] = src.maxConnections;
+	dst["buttonGpio"] = src.buttonGpio;
+	dst["holdTime"] = src.holdTime;
+	dst["ledGpio"] = src.ledGpio;
+}
+
+//bool canConvertFromJson(JsonVariantConst src, const WifiConfig_t&)
+//{
+//
+//}
+
+void convertFromJson(JsonVariantConst src, WifiConfig_t& dst)
+{
+	if (src.containsKey("useDefaults"))
+		dst.useDefaults = src["useDefaults"];
+
+	if (src.containsKey("channel"))
+		dst.channel = src["channel"];
+
+	if (src.containsKey("powerLevel"))
+		dst.powerLevel = (wifi_power_t)(src["powerLevel"].as<WifiPower>());
+
+	if (src.containsKey("station"))
+		convertFromJson(src["station"], dst.station);
+
+	if (src.containsKey("accessPoint"))
+		convertFromJson(src["accessPoint"], dst.accessPoint);
+
+	if (src.containsKey("taskSettings"))
+		convertFromJson(src["taskSettings"], dst.taskSettings);
+}
+
+bool convertToJson(const WifiConfig_t& src, JsonVariant dst)
+{
+	dst["useDefaults"] = src.useDefaults;
+	dst["channel"] = src.channel;
+	dst["powerLevel"].set<WifiPower>((WifiPower)src.powerLevel);
+	dst["station"].set(src.station);
+	dst["accessPoint"].set(src.accessPoint);
+	dst["taskSettings"].set(src.taskSettings);
+
+}
+
+
+//bool canConvertFromJson(JsonVariantConst src, const FtpConfig_t&)
+//{
+//
+//}
+
+void convertFromJson(JsonVariantConst src, FtpConfig_t& dst)
+{
+	if (src.containsKey("useDefaults"))
+		dst.useDefaults = src["useDefaults"];
+
+	if (src.containsKey("enabled"))
+		dst.enabled = src["enabled"];
+
+	if (src.containsKey("anonymous"))
+		dst.anonymous = src["anonymous"];
+
+	if (src.containsKey("user"))
+		dst.user = src["user"].as<String>();
+
+	if (src.containsKey("pass"))
+		dst.pass = src["pass"].as<String>();
+
+	if (src.containsKey("timeout"))
+		dst.timeout = src["timeout"];
+
+	if (src.containsKey("taskSettings"))
+		convertFromJson(src["taskSettings"], dst.taskSettings);
+
+}
+
+
+
+bool convertToJson(const FtpConfig_t& src, JsonVariant dst)
+{
+	dst["useDefaults"] = src.useDefaults;
+	dst["enabled"] = src.enabled;
+	dst["anonymous"] = src.anonymous;
+	dst["user"].set(src.user);
+	dst["pass"].set(src.pass);
+	dst["timeout"] = src.timeout;
+	dst["taskSettings"].set(src.taskSettings);
+}
+
+//bool canConvertFromJson(JsonVariantConst src, const BrowserConfig_t&)
+//{
+//
+//}
+
+void convertFromJson(JsonVariantConst src, BrowserConfig_t& dst)
+{
+	if (src.containsKey("useDefaults"))
+		dst.useDefaults = src["useDefaults"];
+
+	if (src.containsKey("enabled"))
+		dst.enabled = src["enabled"];
+
+	if (src.containsKey("config"))
+		dst.config = src["config"];
+
+	if (src.containsKey("console"))
+		dst.console = src["console"];
+
+	if (src.containsKey("updater"))
+		dst.updater = src["updater"];
+
+	if (src.containsKey("mqttDevices"))
+		dst.mqttDevices = src["mqttDevices"];
+
+	if (src.containsKey("ssl"))
+		dst.ssl = src["ssl"];
+
+	if (src.containsKey("tools"))
+	{
+		if(src.containsKey("fileEditor"))
+			dst.tools.fileEditor = src["fileEditor"];
+
+		if (src.containsKey("jsonVerify"))
+			dst.tools.jsonVerify = src["jsonVerify"];
+	}
+}
+
+
+
+bool convertToJson(const BrowserConfig_t& src, JsonVariant dst)
+{
+	dst["useDefaults"] = src.useDefaults;
+	dst["enabled"] = src.enabled;
+
+	dst["config"] = src.config;
+	dst["console"] = src.console;
+	dst["updater"] = src.updater;
+	dst["mqttDevices"] = src.mqttDevices;
+	dst["ssl"] = src.ssl;
+
+	dst["tools"]["fileEditor"] = src.tools.fileEditor;
+	dst["jsonVerify"]["jsonVerify"] = src.tools.jsonVerify;
+}
+
+
+//bool canConvertFromJson(JsonVariantConst src, const OtaConfig_t&)
+//{
+//
+//}
+
+void convertFromJson(JsonVariantConst src, OtaConfig_t& dst)
+{
+	if (src.containsKey("useDefaults"))
+		dst.useDefaults = src["useDefaults"];
+
+	if (src.containsKey("useDefaults"))
+		dst.useDefaults = src["useDefaults"];
+
+	if (src.containsKey("taskSettings"))
+		convertFromJson(src["taskSettings"], dst.taskSettings);
+
+}
+
+bool convertToJson(const OtaConfig_t& src, JsonVariant dst)
+{
+	dst["useDefaults"] = src.useDefaults;
+	dst["enabled"] = src.enabled;
+
+	dst["taskSettings"].set(src.taskSettings);
+}
+
+
+//bool canConvertFromJson(JsonVariantConst src, const ServerConfig_t&)
+//{
+//
+//}
+
+void convertFromJson(JsonVariantConst src, ServerConfig_t& dst)
+{
+	if (src.containsKey("useDefaults"))
+		dst.useDefaults = src["useDefaults"];
+
+	if (src.containsKey("dns"))
+		dst.dns = src["dns"];
+
+	if (src.containsKey("authenticate"))
+		dst.authenticate = src["authenticate"];
+
+	if (src.containsKey("hostname"))
+		dst.hostname = src["hostname"].as<String>();
+
+	if (src.containsKey("user"))
+		dst.user = src["user"].as<String>();
+
+	if (src.containsKey("pass"))
+		dst.pass = src["pass"].as<String>();
+
+	if (src.containsKey("sessionTimeout"))
+		dst.sessionTimeout = src["sessionTimeout"];
+
+	if (src.containsKey("browser"))
+		convertFromJson(src["browser"], dst.browser);
+
+	if (src.containsKey("ftp"))
+		convertFromJson(src["ftp"], dst.ftp);
+
+	if (src.containsKey("ota"))
+		convertFromJson(src["ota"], dst.ota);
+
+}
+
+bool convertToJson(const ServerConfig_t& src, JsonVariant dst)
+{
+	dst["useDefaults"] = src.useDefaults;
+	dst["dns"] = src.dns;
+	dst["authenticate"] = src.authenticate;
+	dst["hostname"].set(src.hostname);
+	dst["user"].set(src.user);
+	dst["pass"].set(src.pass);
+	dst["sessionTimeout"] = src.sessionTimeout;
+
+	dst["browser"].set(src.browser);
+	dst["ftp"].set(src.ftp);
+	dst["ota"].set(src.ota);
+}
+
+
+//bool canConvertFromJson(JsonVariantConst src, const SerialPortConfig_t&)
+//{
+//
+//}
+
+void convertFromJson(JsonVariantConst src, SerialPortConfig_t& dst)
+{
+	if (src.containsKey("useDefaults"))
+		dst.useDefaults = src["useDefaults"];
+
+	if (src.containsKey("enabled"))
+		dst.enabled = src["enabled"];
+
+	if (src.containsKey("invert"))
+		dst.invert = src["invert"];
+
+	if (src.containsKey("baud"))
+		dst.baud = src["baud"];
+
+	if (src.containsKey("rxGpio"))
+		dst.rxGpio = src["rxGpio"];
+
+	if (src.containsKey("txGpio"))
+		dst.txGpio = src["txGpio"];
+
+	if (src.containsKey("timeout"))
+		dst.timeout = src["timeout"];
+
+	if (src.containsKey("config"))
+		dst.config = src["config"];
+
+	if (src.containsKey("useDefaults"))
+		dst.useDefaults = src["useDefaults"];
+
+}
+
+bool convertToJson(const SerialPortConfig_t& src, JsonVariant dst)
+{
+	dst["useDefaults"] = src.useDefaults;
+	dst["enabled"] = src.enabled;
+	dst["invert"] = src.invert;
+	dst["baud"] = src.baud;
+	dst["rxGpio"] = src.rxGpio;
+	dst["txGpio"] = src.txGpio;
+	dst["timeout"] = src.timeout;
+	dst["config"] = src.config;
+}
+
+
+//bool canConvertFromJson(JsonVariantConst src, const SerialPortConfig_t&)
+//{
+//
+//}
+
+void convertFromJson(JsonVariantConst src, SerialConfig_t& dst)
+{
+	if (src.containsKey("useDefaults"))
+		dst.useDefaults = src["useDefaults"];
+
+	if (src.containsKey("messagePort"))
+		dst.messagePort = src["messagePort"];
+
+	if (src.containsKey("debugPort"))
+		dst.debugPort = src["debugPort"];
+
+	if (src.containsKey("port0"))
+		convertFromJson(src, dst.port0);
+
+	if (src.containsKey("port1"))
+		convertFromJson(src, dst.port1);
+}
+
+bool convertToJson(const SerialConfig_t& src, JsonVariant dst)
+{
+	dst["useDefaults"] = src.useDefaults;
+	dst["messagePort"] = src.messagePort;
+	dst["debugPort"] = src.debugPort;
+	dst["port0"].set(src.port0);
+	dst["port1"].set(src.port1);
+}
+
+//bool canConvertFromJson(JsonVariantConst src, const I2cConfig_t&)
+//{
+//
+//}
+
+void convertFromJson(JsonVariantConst src, I2cConfig_t& dst)
+{
+	if (src.containsKey("useDefaults"))
+		dst.useDefaults = src["useDefaults"];
+
+	if (src.containsKey("enabled"))
+		dst.enabled = src["enabled"];
+
+	if (src.containsKey("sclGpio"))
+		dst.sclGpio = src["sclGpio"];
+
+	if (src.containsKey("sdaGpio"))
+		dst.sdaGpio = src["sdaGpio"];
+
+	if (src.containsKey("freq"))
+		dst.freq = src["freq"];
+}
+
+bool convertToJson(const I2cConfig_t& src, JsonVariant dst)
+{
+	dst["useDefaults"] = src.useDefaults;
+	dst["enabled"] = src.enabled;
+	dst["sclGpio"] = src.sclGpio;
+	dst["sdaGpio"] = src.sdaGpio;
+	dst["freq"] = src.freq;
+}
+
+
+//bool canConvertFromJson(JsonVariantConst src, const ConfigDevice_t&)
+//{
+//
+//}
+
+void convertFromJson(JsonVariantConst src, ConfigDevice_t& dst)
+{
+	if (src.containsKey("useDefaults"))
+		dst.useDefaults = src["useDefaults"];
+
+	if (src.containsKey("autoBackupMode"))
+		dst.autoBackupMode = (ConfigAutobackupMode_t)(src["autoBackupMode"].as< ConfigAutobackupMode>());
+
+	if (src.containsKey("serial"))
+		convertFromJson(src, dst.serial);
+
+	if (src.containsKey("i2c"))
+		convertFromJson(src, dst.i2c);
+
+}
+
+bool convertToJson(const ConfigDevice_t& src, JsonVariant dst)
+{
+	dst["useDefaults"] = src.useDefaults;
+	dst["autoBackupMode"].set<ConfigAutobackupMode>((ConfigAutobackupMode)src.autoBackupMode);
+
+	dst["serial"].set(src.serial);
+	dst["i2c"].set(src.i2c);
+}
+
+
+//bool canConvertFromJson(JsonVariantConst src, const Config_t&)
+//{
+//
+//}
+
+void convertFromJson(JsonVariantConst src, Config_t& dst)
+{
+	if (src.containsKey("wifi"))
+		convertFromJson(src, dst.wifi);
+
+	if (src.containsKey("mqtt"))
+		convertFromJson(src, dst.mqtt);
+
+	if (src.containsKey("device"))
+		convertFromJson(src, dst.device);
+
+	if (src.containsKey("server"))
+		convertFromJson(src, dst.server);
+
+	
+
+}
+
+bool convertToJson(const Config_t& src, JsonVariant dst)
+{
+	dst["wifi"].set(src.wifi);
+	dst["mqtt"].set(src.mqtt);
+	dst["device"].set(src.device);
+	dst["server"].set(src.server);
+}
+
+#pragma region Mqtt UDFs
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttPublishConfig_t&)
+//{
+//
+//}
+
+
+
+void convertFromJson(JsonVariantConst src, MqttPublishConfig_t& dst)
+{
+	if(src.containsKey("bufferSize"))
+		dst.bufferSize = src["bufferSize"];
+
+	if (src.containsKey("rate"))
+		dst.rate = src["rate"] * 1000;
+
+	if (src.containsKey("errorRate"))
+		dst.errorRate = src["errorRate"] * 1000;
+
+	if (src.containsKey("availabilityRate"))
+		dst.availabilityRate = src["availabilityRate"] * 1000;
+
+	if (src.containsKey("json"))
+		dst.json = src["json"];
+
+	//if (src.containsKey("onIndividualTopics"))
+	//	dst.onIndividualTopics = src["onIndividualTopics"];
+
+	//if (src.containsKey("unknownPayload"))
+	//	dst.unknownPayload = src["unknownPayload"];
+
+}
+
+bool convertToJson(const MqttPublishConfig_t& src, JsonVariant dst)
+{
+	dst["bufferSize"] = src.bufferSize;
+	dst["rate"] = src.rate / 1000;
+	dst["errorRate"] = src.errorRate / 1000;
+	dst["availabilityRate"] = src.availabilityRate / 1000;
+	dst["json"] = src.json;
+}
+
+
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttBrokerConfig_t&)
+//{
+//
+//}
+
+
+void convertFromJson(JsonVariantConst src, MqttBrokerConfig_t& dst)
+{
+	if (src.containsKey("autoDetectIP"))
+		dst.autoDetectIp = src["autoDetectIP"];
+
+	if (src.containsKey("wifiMode"))
+		dst.wifiMode = (wifi_mode_t)(src["wifiMode"].as<WifiMode>());
+
+	if (src.containsKey("ip"))
+		dst.ip = src["ip"].as<IPAddress>();
+
+	if (src.containsKey("ipAP"))
+		dst.ipAP = src["ipAP"].as<IPAddress>();
+
+	if (src.containsKey("port"))
+		dst.port = src["port"];
+
+	if (src.containsKey("user"))
+		dst.user = src["user"].as<String>();
+
+	if (src.containsKey("pass"))
+		dst.pass = src["pass"].as<String>();
+
+	if (src.containsKey("maxRetries"))
+		dst.maxRetries = src["maxRetries"];
+
+	if (src.containsKey("autoMaxRetries"))
+		dst.autoMaxRetries = src["autoMaxRetries"];
+
+	if (src.containsKey("autoTimeout"))
+		dst.autoTimeout = src["autoTimeout"];
+
+	if (src.containsKey("timeout"))
+		dst.timeout = src["timeout"];
+
+	if (src.containsKey("connectInterval"))
+		dst.connectInterval = src["connectInterval"];
+	else if (src.containsKey("attemptRate"))
+		dst.connectInterval = src["attemptRate"];
+
+}
+
+bool convertToJson(const MqttBrokerConfig_t& src, JsonVariant dst)
+{
+	dst["autoDetectIp"] = src.autoDetectIp;
+	dst["wifiMode"].set<WifiMode>((WifiMode)src.wifiMode);
+	dst["ip"].set(src.ip);
+	dst["ipAP"].set(src.ipAP);
+	dst["port"] = src.port;
+	dst["user"].set(src.user);
+	dst["pass"].set(src.pass);
+	dst["maxRetries"] = src.maxRetries;
+	dst["autoMaxRetries"] = src.autoMaxRetries;
+	dst["autoTimeout"] = src.autoTimeout;
+	dst["timeout"] = src.timeout;
+	dst["connectInterval"] = src.connectInterval;
+}
+
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttBaseTopics_t&)
+//{
+//
+//}
+
+
+void convertFromJson(JsonVariantConst src, MqttBaseTopics_t& dst)
+{
+	if (src.containsKey("base"))
+		dst.base = src["base"].as<String>();
+
+	if (src.containsKey("availability"))
+		dst.availability = src["availability"].as<String>();
+
+	if (src.containsKey("jsonCommand"))
+		dst.jsonCommand = src["jsonCommand"].as<String>();
+
+	if (src.containsKey("jsonState"))
+		dst.jsonState = src["jsonState"].as<String>();
+
+	if (src.containsKey("command"))
+		dst.command = src["command"].as<String>();
+
+	if (src.containsKey("state"))
+		dst.state = src["state"].as<String>();
+}
+
+bool convertToJson(const MqttBaseTopics_t& src, JsonVariant dst)
+{
+	dst["base"].set(src.base);
+	dst["availability"].set(src.availability);
+	dst["jsonCommand"].set(src.jsonCommand);
+	dst["jsonState"].set(src.jsonState);
+	dst["command"].set(src.command);
+	dst["state"].set(src.state);
+}
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttTopics_t&)
+//{
+//
+//}
+
+
+void convertFromJson(JsonVariantConst src, MqttTopics_t& dst)
+{
+	if (src.containsKey("availability"))
+		dst.availability = src["availability"].as<String>();
+
+	if (src.containsKey("jsonCommand"))
+		dst.jsonCommand = src["jsonCommand"].as<String>();
+
+	if (src.containsKey("jsonState"))
+		dst.jsonState = src["jsonState"].as<String>();
+}
+
+bool convertToJson(const MqttTopics_t& src, JsonVariant dst)
+{
+	dst["availability"].set(src.availability);
+	dst["jsonCommand"].set(src.jsonCommand);
+	dst["jsonState"].set(src.jsonState);
+}
+
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttConfig_t&)
+//{
+//
+//}
+
+
+void convertFromJson(JsonVariantConst src, MqttConfig_t& dst)
+{
+	if (src.containsKey("useDefaults"))
+		dst.useDefaults = src["useDefaults"];
+
+	if (src.containsKey("ledOn"))
+		dst.ledOn = src["ledOn"];
+
+	if (src.containsKey("ledGpio"))
+		dst.ledGpio = src["ledGpio"];
+
+	if (src.containsKey("publish"))
+		convertFromJson(src["publish"], dst.publish);
+
+	if (src.containsKey("broker"))
+		convertFromJson(src["broker"], dst.broker);
+
+	if (src.containsKey("baseTopics"))
+		convertFromJson(src["baseTopics"], dst.baseTopics);
+
+	if (src.containsKey("topics"))
+		convertFromJson(src["topics"], dst.topics);
+
+	if (src.containsKey("taskSettings"))
+		convertFromJson(src["taskSettings"], dst.taskSettings);
+}
+
+bool convertToJson(const MqttConfig_t& src, JsonVariant dst)
+{
+	dst["useDefaults"] = src.useDefaults;
+	dst["ledOn"] = src.ledOn;
+	dst["ledGpio"] = src.ledGpio;
+
+	dst["publish"].set(src.publish);
+	dst["broker"].set(src.broker);
+	dst["baseTopics"].set(src.baseTopics);
+	dst["topics"].set(src.topics);
+	dst["taskSettings"].set(src.taskSettings);
+}
+
+//bool canConvertFromJson(JsonVariantConst src, const DevicesFunctioning_t&)
+//{
+//
+//}
+
+
+//void convertFromJson(JsonVariantConst src, DevicesFunctioning_t& dst)
+//{
+//
+//}
+
+bool convertToJson(const DevicesFunctioning_t& src, JsonVariant dst)
+{
+	dst["bitmap0"] = src.bitmap0;
+	dst["bitmap1"] = src.bitmap1;
+	dst["bitmap2"] = src.bitmap2;
+	dst["bitmap3"] = src.bitmap3;
+}
+
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttDevicesStatus_t&)
+//{
+//
+//}
+
+
+//void convertFromJson(JsonVariantConst src, MqttDevicesStatus_t& dst)
+//{
+//
+//}
+
+bool convertToJson(const MqttDevicesStatus_t& src, JsonVariant dst)
+{
+	dst["subscribedCount"] = src.subscribedCount;
+	dst["enabledCount"] = src.enabledCount;
+	dst["deviceCount"] = src.deviceCount;
+	dst["buttonCount"] = src.buttonCount;
+	dst["switchCount"] = src.switchCount;
+	dst["lightCount"] = src.lightCount;
+	dst["sensorCount"] = src.sensorCount;
+	dst["binarySensorCount"] = src.binarySensorCount;
+	dst["functioningDevices"].set(src.functioningDevices);
+	dst["functioningDevicesImportant"].set(src.functioningDevicesImportant);
+}
+
+#pragma endregion
+
+#pragma region Config Structures
+
 
 #pragma endregion
 

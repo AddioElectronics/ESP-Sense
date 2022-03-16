@@ -145,7 +145,6 @@ typedef struct {
 	uint64_t bitmap3;
 }DevicesFunctioning_t;
 
-#pragma region Config Structures
 
 typedef struct {
 	uint32_t subscribedCount;
@@ -159,6 +158,10 @@ typedef struct {
 	DevicesFunctioning_t functioningDevices;
 	DevicesFunctioning_t functioningDevicesImportant;
 }MqttDevicesStatus_t;
+
+
+#pragma region Config Structures
+
 #warning reminder to remove json or individual
 typedef struct {
 	uint16_t bufferSize;
@@ -167,7 +170,7 @@ typedef struct {
 	uint16_t availabilityRate;
 	bool json;
 	bool onIndividualTopics;
-	String unknownPayload;
+	//String unknownPayload;
 }MqttPublishConfig_t;
 
 typedef struct {

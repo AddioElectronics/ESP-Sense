@@ -403,38 +403,43 @@ typedef union{
 
 
 typedef struct {
+	bool enabled : 1;
+	bool ledOn : 1;
+	String ssid;
+	String pass;
+	int8_t	ledGpio;
+}WifiStationConfig_t;
+
+typedef struct {
+	bool useDefaults : 1;
+	bool enabled : 1;
+	bool configOnly : 1;
+	bool buttonPullup : 1;
+	bool buttonPress : 1;
+	bool hidden : 1;
+	bool ledOn : 1;
+	uint8_t reserved : 1;
+	String ssid;
+	String pass;
+	uint8_t maxConnections;
+	uint8_t buttonGpio;
+	uint16_t holdTime;
+	int8_t ledGpio;
+}WifiAccessPointConfig_t;
+
+typedef struct {
 	bool useDefaults : 1;
 	int32_t channel;
 	wifi_power_t powerLevel;
 
-	struct {
-		bool enabled : 1;
-		bool ledOn : 1;
-		String ssid;
-		String pass;
-		int8_t	ledGpio;
-	}station;
+	WifiStationConfig_t station;
 
 #if COMPILE_ACCESSPOINT
-	struct {
-		bool useDefaults : 1;
-		bool enabled : 1;
-		bool configOnly : 1;
-		bool buttonPullup : 1;
-		bool buttonPress : 1;
-		bool hidden : 1;
-		bool ledOn : 1;
-		uint8_t reserved : 1;
-		String ssid;
-		String pass;
-		uint8_t maxConnections;
-		uint8_t buttonGpio;
-		uint16_t holdTime;
-		int8_t ledGpio;
-	}accessPoint;
+	WifiAccessPointConfig_t accessPoint;
 #endif
 	TaskConfig_t taskSettings;
 }WifiConfig_t;
+
 
 typedef struct {
 	bool useDefaults : 1;
@@ -449,6 +454,28 @@ typedef struct {
 
 typedef struct {
 	bool useDefaults : 1;
+	bool enabled : 1;
+	bool config : 1;				//Enable ConfigBrowser?
+	bool console : 1;				//Enable debug console?
+	bool updater : 1;
+	bool mqttDevices : 1;		//Enable the ability to configure MQTT devices on a webpage?
+	bool ssl : 1;
+	uint8_t reserved : 2;
+	struct {
+		bool fileEditor : 1;
+		bool jsonVerify : 1;
+		uint8_t reserved : 6;
+	}tools;
+}BrowserConfig_t;
+
+typedef struct {
+	bool useDefaults : 1;
+	bool enabled : 1;
+	TaskConfig_t taskSettings;
+}OtaConfig_t;
+
+typedef struct {
+	bool useDefaults : 1;
 	bool dns : 1;
 	bool authenticate : 1;				//Require authentication
 	uint8_t reserved : 5;
@@ -456,27 +483,9 @@ typedef struct {
 	String user;
 	String pass;
 	unsigned long sessionTimeout;
-	struct {
-		bool useDefaults : 1;
-		bool enabled : 1;
-		bool config : 1;				//Enable ConfigBrowser?
-		bool console : 1;				//Enable debug console?
-		bool updater : 1;
-		bool mqttDevices : 1;		//Enable the ability to configure MQTT devices on a webpage?
-		bool ssl : 1;
-		uint8_t reserved : 2;
-		struct {
-			bool fileEditor : 1;
-			bool jsonVerify : 1;
-			uint8_t reserved : 6;
-		}tools;
-	}browser;
+	BrowserConfig_t browser;
 	FtpConfig_t ftp;
-	struct {
-		bool useDefaults : 1;
-		bool enabled : 1;
-		TaskConfig_t taskSettings;
-	}ota;
+	OtaConfig_t ota;
 }ServerConfig_t;
 
 typedef struct {
@@ -507,6 +516,14 @@ typedef struct {
 	SerialPortConfig_t port1;
 }SerialConfig_t;
 
+typedef struct {
+	bool useDefaults : 1;
+	bool enabled : 1;
+	uint8_t reserved : 7;
+	int8_t sclGpio;
+	int8_t sdaGpio;
+	uint32_t freq;
+}I2cConfig_t;
 
 typedef struct {
 	bool useDefaults : 1;
@@ -514,14 +531,7 @@ typedef struct {
 	//bool crcOnBackup : 1;
 	uint8_t reserved : 5;
 	SerialConfig_t serial;
-	struct {
-		bool useDefaults : 1;
-		bool enabled : 1;
-		uint8_t reserved : 7;
-		int8_t sclGpio;
-		int8_t sdaGpio;
-		uint32_t freq;
-	}i2c;
+	I2cConfig_t i2c;
 }ConfigDevice_t;
 
 typedef struct{
