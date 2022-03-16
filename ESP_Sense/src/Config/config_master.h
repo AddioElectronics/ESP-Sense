@@ -868,6 +868,15 @@ typedef struct {
 	size_t eepromBackup;		//Size of the backup on the EEPROM.
 }FileSizes_t;
 
+///// <summary>
+///// Save which modules were functioning to determine if a backup 
+///// </summary>
+//typedef struct {
+//	bool wifiStation : 1;		//Able to connect to WIFI?
+//	bool wifiAccessPoint : 1;	//Clients able to connect to access point?
+//	bool mqtt : 1;				//Able to connect to the MQTT server?
+//	uint16_t mqttDevices;		//How many MQTT devices were able to be configured?
+//}FunctionalStatus_t;
 
 typedef struct {
 	Boot_bm boot;
@@ -878,6 +887,7 @@ typedef struct {
 		//char ip[16];				//Last IP that was able to connect.
 		IPAddress ip;
 	}mqtt;
+	//FunctionalStatus_t functional;
 }StatusRetained_t;
 
 typedef union {

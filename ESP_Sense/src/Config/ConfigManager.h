@@ -70,22 +70,7 @@ namespace Config
 		bool SerializeConfig(JsonDocument* out_doc);
 		size_t SaveConfig();
 
-
 		bool SetConfigFromDoc();
-
-		bool SetDeviceFromDoc();
-		bool SetWifiFromDoc();
-		bool SetMqttFromDoc();
-		//bool SetDocFromDoc();
-#if COMPILE_FTP
-		bool SetFtpFromDoc();
-#endif
-
-#if COMPILE_SERVER
-		bool SetServerFromDoc();
-#endif
-
-
 	}
 
 	namespace Backup
@@ -135,10 +120,6 @@ namespace Config
 	void FactoryReset(bool format = true, bool restart = true, bool keepConnectionSettings = true, bool overwriteConfig = false);
 
 
-	namespace Parsers
-	{
-		void ParseSerialPort(JsonObject& portObj, SerialPortConfig_t& port, SerialPortConfigMonitor_t& portMonitor);
-	}
 
 }
 
