@@ -110,13 +110,13 @@ public:
 #pragma region MqttDevice Functions
 
 
-	bool Init(bool enable) override;
+	bool Init() override;
 
-void ResetStatus() override
-{
-	memset(&uniqueStatus, 0, sizeof(SCD4xStatus_t));
-	MqttSensor::ResetStatus();
-}
+	void ResetStatus() override
+	{
+		memset(&uniqueStatus, 0, sizeof(SCD4xStatus_t));
+		MqttSensor::ResetStatus();
+	}
 
 	void Loop() override;
 
@@ -311,7 +311,7 @@ void convertFromJson(JsonVariantConst src, SCD4x_PowerMode& dst);
 bool convertToJson(const SCD4x_PowerMode& src, JsonVariant dst);
 
 //bool canConvertFromJson(JsonVariantConst src, const SCD4xStatus_t&);
-void convertFromJson(JsonVariantConst src, SCD4xStatus_t& dst);
+//void convertFromJson(JsonVariantConst src, SCD4xStatus_t& dst);
 bool convertToJson(const SCD4xStatus_t& src, JsonVariant dst);
 
 //bool canConvertFromJson(JsonVariantConst src, const Scd4xConfig_t&);

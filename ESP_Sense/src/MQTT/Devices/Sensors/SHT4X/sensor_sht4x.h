@@ -97,7 +97,7 @@ public:
 
 #pragma region MqttDevice Functions
 
-	bool Init(bool enable) override;
+	bool Init() override;
 
 	void ResetStatus() override
 	{
@@ -108,7 +108,7 @@ public:
 	//void Loop() override;
 
 	bool Configure() override;
-	//bool Enable() override;
+	bool Enable() override;
 	//bool Disable() override;
 	bool Subscribe() override;
 	bool Unsubscribe() override;
@@ -228,11 +228,11 @@ extern const char* sht4x_precision_strings[3];
 enum class sht4x_precision {};
 enum class sht4x_heater {};
 
-bool canConvertFromJson(JsonVariantConst src, const sht4x_precision&);
+//bool canConvertFromJson(JsonVariantConst src, const sht4x_precision&);
 void convertFromJson(JsonVariantConst src, sht4x_precision& dst);
 bool convertToJson(const sht4x_precision& src, JsonVariant dst);
 
-bool canConvertFromJson(JsonVariantConst src, const sht4x_heater&);
+//bool canConvertFromJson(JsonVariantConst src, const sht4x_heater&);
 void convertFromJson(JsonVariantConst src, sht4x_heater& dst);
 bool convertToJson(const sht4x_heater& src, JsonVariant dst);
 
@@ -240,7 +240,7 @@ bool convertToJson(const sht4x_heater& src, JsonVariant dst);
 //void convertFromJson(JsonVariantConst src, SHT4xStatus_t& dst);
 //bool convertToJson(const SHT4xStatus_t& src, JsonVariant dst);
 
-bool canConvertFromJson(JsonVariantConst src, const Sht4xConfig_t&);
+//bool canConvertFromJson(JsonVariantConst src, const Sht4xConfig_t&);
 void convertFromJson(JsonVariantConst src, Sht4xConfig_t& dst);
 bool convertToJson(const Sht4xConfig_t& src, JsonVariant dst);
 

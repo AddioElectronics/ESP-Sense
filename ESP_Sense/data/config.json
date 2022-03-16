@@ -4,8 +4,8 @@
 		"power": 6,
 		"station":{
 			"enabled":true,
-			"ssid": "",
-			"pass": "",
+			"ssid": "Addio Electronics",
+			"pass": "o@5xEZ^7b76knuQDH",
 			"ledGpio":32,
 			"ledOn":0
 		},
@@ -76,7 +76,7 @@
 	},
 	"device":{
 		"useDefaults":false,
-		"autoBackupMode":3,
+		"autoBackupMode": "all",
 		"serial":{
 			"useDefaults":false,
 			"messagePort":1,
@@ -126,7 +126,7 @@
 			"config":true,
 			"console":true,
 			"updater":true,
-			"mqttDevices":true,
+			"mqttDeviceConfig":true,
 			"ssl":false,
 			"tools":{
 				"fileEditor":true,

@@ -8,10 +8,10 @@
 
 extern PubSubClient mqttClient;
 
-bool MqttDevice::Init(bool enable)
+bool MqttDevice::Init()
 {
-	if (!status.mqtt.devicesConfigured)
-		ResetStatus();
+	//if (!status.mqtt.devicesConfigured)
+		//ResetStatus();
 
 	if (deviceStatus.configured) return true;
 
@@ -19,15 +19,13 @@ bool MqttDevice::Init(bool enable)
 	//deviceStatus.enabled = true;
 	Configure();
 
-	if (deviceStatus.configured)
-		Enable();
-	else
+	if (!deviceStatus.configured)
 		MarkDisconnected();
 
 	InitWebpage();
 	SetDeviceState();
 
-	return deviceStatus.configured && (deviceStatus.enabled || !enable);
+	return deviceStatus.configured;
 }
 
 void MqttDevice::ResetStatus()
@@ -355,6 +353,9 @@ void MqttDevice::AddConfigData(JsonObject& addTo)
 
 bool MqttDevice::InitWebpage()
 {
+	//If global settings have disabled website, do not configure.
+	if (!config.server.browser.enabled || !config.server.browser.mqttDevices) return false;
+
 	if (website == nullptr)
 		website = new MqttDeviceWeb();
 
@@ -764,38 +765,38 @@ bool convertToJson(const MqttDeviceConfig_t& src, JsonVariant dst)
 //	return src.containsKey("deviceStatus") || src.containsKey("markedDisconnected");
 //}
 
-void convertFromJson(JsonVariantConst src, MqttDeviceStatus_t& dst)
-{
-	JsonVariantConst deviceStatusObj = src;
-
-	if (src.containsKey("deviceStatus"))
-		deviceStatusObj = src["deviceStatus"];
-
-	if (deviceStatusObj.containsKey("configured"))
-		dst.configured = deviceStatusObj["configured"];
-
-	if (deviceStatusObj.containsKey("enabled"))
-		dst.enabled = deviceStatusObj["enabled"];
-
-	if (deviceStatusObj.containsKey("state"))
-		dst.state = deviceStatusObj["state"];
-
-	if (deviceStatusObj.containsKey("subscribed"))
-		dst.subscribed = deviceStatusObj["subscribed"];
-
-	if (deviceStatusObj.containsKey("markedDisconnected"))
-		dst.markedDisconnected = deviceStatusObj["markedDisconnected"];
-
-	if (deviceStatusObj.containsKey("configModified"))
-		dst.configModified = deviceStatusObj["configModified"];
-
-	if (deviceStatusObj.containsKey("publishTimestamp"))
-		dst.publishTimestamp = deviceStatusObj["publishTimestamp"];
-
-	if (deviceStatusObj.containsKey("publishErrorTimestamp"))
-		dst.publishErrorTimestamp = deviceStatusObj["publishErrorTimestamp"];
-
-}
+//void convertFromJson(JsonVariantConst src, MqttDeviceStatus_t& dst)
+//{
+//	JsonVariantConst deviceStatusObj = src;
+//
+//	if (src.containsKey("deviceStatus"))
+//		deviceStatusObj = src["deviceStatus"];
+//
+//	if (deviceStatusObj.containsKey("configured"))
+//		dst.configured = deviceStatusObj["configured"];
+//
+//	if (deviceStatusObj.containsKey("enabled"))
+//		dst.enabled = deviceStatusObj["enabled"];
+//
+//	if (deviceStatusObj.containsKey("state"))
+//		dst.state = deviceStatusObj["state"];
+//
+//	if (deviceStatusObj.containsKey("subscribed"))
+//		dst.subscribed = deviceStatusObj["subscribed"];
+//
+//	if (deviceStatusObj.containsKey("markedDisconnected"))
+//		dst.markedDisconnected = deviceStatusObj["markedDisconnected"];
+//
+//	if (deviceStatusObj.containsKey("configModified"))
+//		dst.configModified = deviceStatusObj["configModified"];
+//
+//	if (deviceStatusObj.containsKey("publishTimestamp"))
+//		dst.publishTimestamp = deviceStatusObj["publishTimestamp"];
+//
+//	if (deviceStatusObj.containsKey("publishErrorTimestamp"))
+//		dst.publishErrorTimestamp = deviceStatusObj["publishErrorTimestamp"];
+//
+//}
 
 bool convertToJson(const MqttDeviceStatus_t& src, JsonVariant dst)
 {
@@ -875,18 +876,18 @@ bool convertToJson(const MqttDeviceMqttSettings_t& src, JsonVariant dst)
 
 //}
 
-void convertFromJson(JsonVariantConst src, MqttDeviceGlobalStatus_t& dst)
-{
-	JsonVariantConst obj = src;
-
-	if (src.containsKey("globalDeviceStatus"))
-		obj = src["globalDeviceStatus"];
-
-
-	if (obj.containsKey("configRead"))
-		dst.configRead = obj["configRead"];
-
-}
+//void convertFromJson(JsonVariantConst src, MqttDeviceGlobalStatus_t& dst)
+//{
+//	JsonVariantConst obj = src;
+//
+//	if (src.containsKey("globalDeviceStatus"))
+//		obj = src["globalDeviceStatus"];
+//
+//
+//	if (obj.containsKey("configRead"))
+//		dst.configRead = obj["configRead"];
+//
+//}
 
 bool convertToJson(const MqttDeviceGlobalStatus_t& src, JsonVariant dst)
 {
@@ -922,15 +923,15 @@ bool convertToJson(const MqttDeviceGlobalStatus_t& src, JsonVariant dst)
 
 const char* device_state_strings[3] = { "ok", "disabled", "error" };
 
-bool canConvertFromJson(JsonVariantConst src, const DeviceState&)
-{
-	return JsonHelper::JsonParseEnum(src, 3, device_state_strings, nullptr) != -1;
-}
-
-void convertFromJson(JsonVariantConst src, DeviceState& dst)
-{
-	JsonHelper::UdfHelperConvertFromJsonEnums(src, (EnumClass_t&)dst, 3, "DeviceState", device_state_strings, nullptr);
-}
+//bool canConvertFromJson(JsonVariantConst src, const DeviceState&)
+//{
+//	return JsonHelper::JsonParseEnum(src, 3, device_state_strings, nullptr) != -1;
+//}
+//
+//void convertFromJson(JsonVariantConst src, DeviceState& dst)
+//{
+//	JsonHelper::UdfHelperConvertFromJsonEnums(src, (EnumClass_t&)dst, 3, "DeviceState", device_state_strings, nullptr);
+//}
 
 bool convertToJson(const DeviceState& src, JsonVariant dst)
 {

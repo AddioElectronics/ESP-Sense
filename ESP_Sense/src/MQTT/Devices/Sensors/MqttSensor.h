@@ -41,7 +41,7 @@ public:
 
 	MqttSensor(const char* _name, const char* _device, int _index, int _subIndex) : MqttDevice(_name, _device, _index, _subIndex) {}
 
-	virtual bool Init(bool enable = true);
+	virtual bool Init() override;
 
 	virtual void Loop() override;
 
@@ -110,7 +110,7 @@ public:
 #pragma region JSON UDFs
 
 //bool canConvertFromJson(JsonVariantConst src, const MqttSensorStatus_t&);
-void convertFromJson(JsonVariantConst src, MqttSensorStatus_t& dst);
+//void convertFromJson(JsonVariantConst src, MqttSensorStatus_t& dst);
 bool convertToJson(const MqttSensorStatus_t& src, JsonVariant dst);
 
 #pragma endregion

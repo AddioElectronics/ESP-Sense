@@ -41,8 +41,8 @@ namespace Config
 	{
 		void LoadBootSettings();
 
-		int CheckConfigCrc(bool saveRetained = false);
-		int CheckConfigPathCrc(bool saveRetained = false);
+		int CheckConfigCrc();
+		int CheckConfigPathCrc();
 
 		bool LoadConfiguration();
 		void Reconfigure();
@@ -101,7 +101,7 @@ namespace Config
 
 		void DisableBackups();
 		void EnableBackups();
-		void SetBackupExistFlags();
+		void SetBackupFlags(uint32_t crc);
 	}
 
 

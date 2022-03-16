@@ -21,9 +21,9 @@ using namespace Network::Website::Strings;
 
 void MqttDeviceWeb::Initialize(MqttDevice* parentDevice)
 {
+	DEBUG_LOG_F("Initializing Webpage for %s", parentDevice->name.c_str());
 
-	//If global settings has disabled do not initialize.
-	if (!config.server.browser.mqttDevices) return;
+
 
 	//memset(&webStatus, 0, sizeof(MqttDeviceWeb::Status_t));
 

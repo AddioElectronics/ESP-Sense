@@ -37,13 +37,15 @@ namespace BSS_Export_Script
         /// <example>"data.json"</example>
         static string[] keepFiles = new string[] { };
 
-        static string[] deleteFiles = new string[] {"dummyDelete.html"};
+        static string[] deleteFiles = new string[] { "dummyDelete.html" };
+
+        static string[] deleteDirectories = new string[] { "assets\\js\\pcOnly" };
 
 
         static void Main(string[] args)
         {
 #if DEBUGGING
-            wwwDir = new DirectoryInfo( @"");
+            wwwDir = new DirectoryInfo(@"");
 #else
 
             FileInfo fileInfo = new FileInfo("dummyDelete.html");
@@ -52,13 +54,13 @@ namespace BSS_Export_Script
             DirectoryInfo dir = new FileInfo(System.Reflection.Assembly.GetEntryAssembly().Location).Directory;
 
             //Find the main project folder.
-            while(dir.Name != "ESP_Sense")
+            while (dir.Name != "ESP_Sense")
             {
                 dir = dir.Parent;
             }
 
             //Set the path to the data\www directory.
-            wwwDir = new DirectoryInfo( Path.Combine(dir.FullName, "ESP_Sense\\data\\www"));
+            wwwDir = new DirectoryInfo(Path.Combine(dir.FullName, "ESP_Sense\\data\\www"));
 
 #pragma warning disable CS0162 // Unreachable code detected
             if (ShowDialogs)
@@ -91,6 +93,18 @@ namespace BSS_Export_Script
             FileMatch keepMatch = new FileMatch(keepFiles);
             FileFinder deleteFinder = new FileFinder(wwwDir, deleteFiles);
 
+            string[] deleteDirs = new string[deleteDirectories.Length];
+
+            for(int i = 0; i < deleteDirectories.Length; i++)
+            {
+                deleteDirs[i] = Path.Combine(wwwDir.FullName, deleteDirectories[i]);
+            }
+
+            DirectoryFinder deleteDirFinder = new DirectoryFinder(wwwDir, deleteDirs);
+
+            //Delete all directories maching the names in "deleteDirectories"
+            DeleteDirectoriesWithNames(deleteDirFinder);
+
             //Deletes all files matching the names in "deleteFiles"
             DeleteFilesWithNames(deleteFinder);
             //DeleteFilesWithNames(wwwDir, deleteFiles);
@@ -114,12 +128,12 @@ namespace BSS_Export_Script
         /// <returns>True if the files were moved, false if the files do not exist, or if the <see cref="Directory.GetCurrentDirectory"/> is in the wrong location.</returns>
         static bool MoveExportedFiles()
         {
-            DirectoryInfo exportPath = new DirectoryInfo( Path.Combine(Directory.GetCurrentDirectory(), "temp/ESP_Sense/www"));
+            DirectoryInfo exportPath = new DirectoryInfo(Path.Combine(Directory.GetCurrentDirectory(), "temp/ESP_Sense/www"));
 
             DirectoryInfo espSenseTemp = exportPath.Parent;
 
             //Exe not ran from BSS, files will not be here.
-            if(espSenseTemp.Name == "net5.0")
+            if (espSenseTemp.Name == "net5.0")
             {
                 Console.WriteLine("Not running from export path.");
                 return false;
@@ -135,7 +149,7 @@ namespace BSS_Export_Script
 #pragma warning disable CS0162 // Unreachable code detected
             if (ShowDialogs)
             {
-                DialogResult result = MessageBox.Show("About to move files from\r\n" + exportPath + "\r\nto\r\n" + wwwDir+ "\r\nAre these the correct paths?", "Moving exported files?", System.Windows.Forms.MessageBoxButtons.YesNo);
+                DialogResult result = MessageBox.Show("About to move files from\r\n" + exportPath + "\r\nto\r\n" + wwwDir + "\r\nAre these the correct paths?", "Moving exported files?", System.Windows.Forms.MessageBoxButtons.YesNo);
 
                 if (result == DialogResult.Yes)
                 {
@@ -274,8 +288,8 @@ namespace BSS_Export_Script
                 if (!info.Exists) continue;
                 if (!info.Name.EndsWith(fileType)) continue;
 
-                if(keepFiles != null)
-                    if(keepFiles.Match(info))
+                if (keepFiles != null)
+                    if (keepFiles.Match(info))
                         continue;
 
                 File.Delete(info.FullName);
@@ -283,6 +297,35 @@ namespace BSS_Export_Script
             }
             return count;
         }
+
+        static int DeleteDirectoriesWithNames(DirectoryFinder finder)
+        {
+            DirectoryInfo[] directories = finder.GetMatches().ToArray();
+
+            if (directories == null) return -1;
+
+            foreach (DirectoryInfo dir in directories)
+            {
+                dir.Delete(true);
+            }
+
+            return directories.Length;
+        }
+
+
+        static int DeleteDirectoriesWithNames(DirectoryInfo dirPath, string[] names, SearchOption searchOption = SearchOption.AllDirectories)
+        {
+            DirectoryFinder dirFinder = new DirectoryFinder(dirPath, names, searchOption);
+            return DeleteDirectoriesWithNames(dirFinder);
+        }
+
+
+        static int DeleteDirectoriesWithName(DirectoryInfo dirPath, string name, SearchOption searchOption = SearchOption.AllDirectories)
+        {
+            return DeleteDirectoriesWithNames(dirPath, new string[] { name }, searchOption);
+        }
+
+
 
         /// <summary>
         /// Move all files from the temporary export path to the data\www folder.
@@ -292,7 +335,7 @@ namespace BSS_Export_Script
         {
             FileInfo[] files = path.GetFiles("*", SearchOption.AllDirectories);
 
-            foreach(FileInfo file in files)
+            foreach (FileInfo file in files)
             {
                 if (!file.Exists) continue;
 
@@ -316,7 +359,7 @@ namespace BSS_Export_Script
             FileInfo[] htmlFiles = dir.GetFiles("*.html", SearchOption.AllDirectories);
             Console.Write("Found this many html files " + htmlFiles.Length);
             Console.WriteLine("in " + Environment.CurrentDirectory);
-            
+
 
             foreach (FileInfo filepath in htmlFiles)
             {
@@ -405,7 +448,7 @@ namespace BSS_Export_Script
             if (path.Extension != ".html") return;
 
             //If filenames are passed, only process files with matching name.
-            if(fileMatch != null)
+            if (fileMatch != null)
             {
                 if (!fileMatch.Match(path)) return;
             }
@@ -422,7 +465,7 @@ namespace BSS_Export_Script
             int start = fileContents.IndexOf(elemStart);
             int end = fileContents.IndexOf(elemEnd);
 
-            
+
 
             if (start != -1 && end != -1)
             {
@@ -447,8 +490,8 @@ namespace BSS_Export_Script
 
         public class FileMatch
         {
-            protected string[] filenames;
-            protected DirectoryInfo directory;
+            protected string[] matchPaths;
+            protected DirectoryInfo searchDirectory;
 
             public SearchOption SearchOption { get; set; }
 
@@ -456,49 +499,49 @@ namespace BSS_Export_Script
 
             public FileMatch(string filename, bool ignoreExtension = false)
             {
-                filenames = new string[] { filename };
+                matchPaths = new string[] { filename };
                 IgnoreExtension = ignoreExtension;
             }
 
             public FileMatch(string[] filenames, bool ignoreExtension = false)
             {
-                this.filenames = filenames;
+                this.matchPaths = filenames;
                 IgnoreExtension = ignoreExtension;
             }
 
             public FileMatch(DirectoryInfo directory, SearchOption searchOption = SearchOption.AllDirectories)
             {
-                this.directory = directory;
+                this.searchDirectory = directory;
                 this.SearchOption = searchOption;
             }
 
             public FileMatch(DirectoryInfo directory, string filename, SearchOption searchOption = SearchOption.AllDirectories, bool ignoreExtension = false)
             {
-                filenames = new string[] { filename };
-                this.directory = directory;
+                matchPaths = new string[] { filename };
+                this.searchDirectory = directory;
                 this.SearchOption = searchOption;
                 IgnoreExtension = ignoreExtension;
             }
 
             public FileMatch(DirectoryInfo directory, string[] filenames, SearchOption searchOption = SearchOption.AllDirectories, bool ignoreExtension = false)
             {
-                this.filenames = filenames;
-                this.directory = directory;
+                this.matchPaths = filenames;
+                this.searchDirectory = directory;
                 this.SearchOption = searchOption;
                 IgnoreExtension = ignoreExtension;
             }
 
-            public bool Match(FileInfo file)
+            virtual public bool Match(FileInfo file)
             {
                 bool inDir = true;
                 bool nameMatch = true;
 
-                if (directory != null)
-                    if (!InDirectory(directory, file, "*", SearchOption))
+                if (searchDirectory != null)
+                    if (!InDirectory(searchDirectory, file, "*", SearchOption))
                         inDir = false;
 
-                if (filenames != null)
-                    if (!MatchFileNames(file, filenames, IgnoreExtension))
+                if (matchPaths != null)
+                    if (!MatchFileNames(file, matchPaths, IgnoreExtension))
                         nameMatch = false;
 
                 return inDir && nameMatch;
@@ -555,9 +598,9 @@ namespace BSS_Export_Script
         public class FileFinder : FileMatch
         {
 
-            string SearchPattern { get; set; }
+            protected string SearchPattern { get; set; }
 
-            public FileFinder(DirectoryInfo directory, string filename, SearchOption searchOption = SearchOption.AllDirectories, bool ignoreExtension = false, string searchPattern = "*") : base(directory, filename, searchOption, ignoreExtension) 
+            public FileFinder(DirectoryInfo directory, string filename, SearchOption searchOption = SearchOption.AllDirectories, bool ignoreExtension = false, string searchPattern = "*") : base(directory, filename, searchOption, ignoreExtension)
             {
                 SearchPattern = searchPattern;
             }
@@ -567,28 +610,158 @@ namespace BSS_Export_Script
                 SearchPattern = searchPattern;
             }
 
-            private bool CanMatch()
+            protected bool CanMatch()
             {
-                if (directory == null || filenames == null) 
+                if (searchDirectory == null || matchPaths == null)
                     return false;
 
                 return true;
             }
 
-            public List<FileInfo> GetMatches()
+            virtual public List<FileInfo> GetMatches()
             {
                 if (!CanMatch()) return null;
-                return directory.EnumerateFiles(SearchPattern, SearchOption).Where(x => Match(x)).ToList();
+                return searchDirectory.EnumerateFiles(SearchPattern, SearchOption).Where(x => Match(x)).ToList();
             }
 
-            public List<string> GetMatchesFullName()
+            virtual public List<string> GetMatchesFullName()
             {
                 if (!CanMatch()) return null;
-                IEnumerable<FileInfo> enumerable = directory.EnumerateFiles(SearchPattern, SearchOption).Where(x => Match(x));
+                IEnumerable<FileInfo> enumerable = searchDirectory.EnumerateFiles(SearchPattern, SearchOption).Where(x => Match(x));
                 return enumerable.Select(x => x.FullName).ToList();
             }
         }
-
     }
 
+
+    public class DirectoryMatch
+    {
+        //Reminder to add relative path support.
+        protected string[] matchPaths;
+        protected DirectoryInfo searchDirectory;
+
+
+        public SearchOption SearchOption { get; set; }
+
+        public DirectoryMatch(string directoryName)
+        {
+            matchPaths = new string[] { directoryName };
+        }
+
+        public DirectoryMatch(string[] directoryNames)
+        {
+            this.matchPaths = directoryNames;
+        }
+
+        public DirectoryMatch(DirectoryInfo directory, SearchOption searchOption = SearchOption.AllDirectories)
+        {
+            this.searchDirectory = directory;
+            this.SearchOption = searchOption;
+        }
+
+        public DirectoryMatch(DirectoryInfo directory, string directoryName, SearchOption searchOption = SearchOption.AllDirectories)
+        {
+            matchPaths = new string[] { directoryName };
+            this.searchDirectory = directory;
+            this.SearchOption = searchOption;
+        }
+
+        public DirectoryMatch(DirectoryInfo directory, string[] directoryNames, SearchOption searchOption = SearchOption.AllDirectories)
+        {
+            this.matchPaths = directoryNames;
+            this.searchDirectory = directory;
+            this.SearchOption = searchOption;
+        }
+
+        virtual public bool Match(DirectoryInfo path)
+        {
+            bool inDir = true;
+            bool nameMatch = true;
+
+            if (searchDirectory != null)
+                if (!InDirectory(searchDirectory, path, "*", SearchOption))
+                    inDir = false;
+
+            if (matchPaths != null)
+                if (!MatchDirectoryNames(path, matchPaths))
+                    nameMatch = false;
+
+            return inDir && nameMatch;
+        }
+
+        public static bool InDirectory(DirectoryInfo directory, DirectoryInfo path, string pattern = "*", SearchOption searchOption = SearchOption.AllDirectories)
+        {
+            return directory.EnumerateDirectories(pattern, searchOption).Any(x => x.FullName == path.FullName);
+        }
+
+        static string RemoveExtension(string path)
+        {
+            int index = path.LastIndexOf('.');
+
+            if (index != -1)
+                path = path.Substring(0, index);
+
+            return path;
+        }
+
+        public static bool MathDirectoryName(DirectoryInfo directory, string name)
+        {
+
+
+            if (name == directory.FullName)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        public static bool MatchDirectoryNames(DirectoryInfo file, string[] names)
+        {
+            foreach (string name in names)
+            {
+                if (MathDirectoryName(file, name)) return true;
+            }
+            return false;
+        }
+    }
+
+
+    public class DirectoryFinder : DirectoryMatch
+    {
+
+        protected string SearchPattern { get; set; }
+
+        public DirectoryFinder(DirectoryInfo directory, string directoryName, SearchOption searchOption = SearchOption.AllDirectories, string searchPattern = "*") : base(directory, directoryName, searchOption)
+        {
+            SearchPattern = searchPattern;
+        }
+
+        public DirectoryFinder(DirectoryInfo directory, string[] directoryNames, SearchOption searchOption = SearchOption.AllDirectories, string searchPattern = "*") : base(directory, directoryNames, searchOption)
+        {
+            SearchPattern = searchPattern;
+        }
+
+        protected bool CanMatch()
+        {
+            if (searchDirectory == null || matchPaths == null)
+                return false;
+
+            return true;
+        }
+
+        virtual public List<DirectoryInfo> GetMatches()
+        {
+            if (!CanMatch()) return null;
+            return searchDirectory.EnumerateDirectories(SearchPattern, SearchOption).Where(x => Match(x)).ToList();
+        }
+
+        virtual public List<string> GetMatchesFullName()
+        {
+            if (!CanMatch()) return null;
+            IEnumerable<DirectoryInfo> enumerable = searchDirectory.EnumerateDirectories(SearchPattern, SearchOption).Where(x => Match(x));
+            return enumerable.Select(x => x.FullName).ToList();
+        }
+    }
 }
+

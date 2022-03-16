@@ -80,6 +80,12 @@ public:
 
 #pragma region MqttDevice Functions
 
+	virtual void ResetStatus() override
+	{
+		memset(&uniqueStatus, 0, sizeof(Llc200d3sh_Status_t));
+		MqttBinarySensor::ResetStatus();
+	}
+
 	//bool Configure() override;
 
 	bool Configure() override

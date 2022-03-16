@@ -34,16 +34,16 @@ MqttDeviceGlobalStatus_t Sht4xSensor::globalDeviceStatus;
 
 #pragma region MqttDevice Functions
 
-bool Sht4xSensor::Init(bool enable)
+bool Sht4xSensor::Init()
 {
 	if (!status.device.i2cInitialized)
 		if (!EspSense::InitializeI2C())
 			return false;
 
-	if (!status.mqtt.devicesConfigured)
-	memset(&uniqueStatus, 0, sizeof(SHT4xStatus_t));
+	//if (!status.mqtt.devicesConfigured)
+	//memset(&uniqueStatus, 0, sizeof(SHT4xStatus_t));
 
-	return MqttSensor::Init(enable);
+	return MqttSensor::Init();
 	//memset(&deviceStatus, 0, sizeof(MqttDeviceStatus_t));
 	//memset(&sensorStatus, 0, sizeof(MqttSensorStatus_t));
 
@@ -100,6 +100,15 @@ bool Sht4xSensor::Configure()
 	deviceStatus.configured = true;
 
 	return true;
+}
+
+bool Sht4xSensor::Enable()
+{
+	if (!sensorStatus.connected)
+		if (!Connect())
+			return false;
+
+	return MqttDevice::Enable();
 }
 
 
@@ -494,7 +503,7 @@ bool Sht4xSensor::Read()
 
 	if (sensorStatus.connected && deviceStatus.enabled)
 	{
-		DEBUG_LOG_F("Reading %s(SHT40) Measurement...", name.c_str());
+		DEBUG_LOG_F("Reading %s(SHT4x) Measurement...", name.c_str());
 		sensor.getEvent(&measurementData.humidity, &measurementData.temperature);
 		sensorStatus.newData = measurementData.temperature.temperature != 0;
 

@@ -208,6 +208,7 @@ void setup()
 
 	//Load configuration files.
 	Config::Documents::LoadBootSettings();
+
 	Config::Documents::LoadConfiguration();
 	Config::Documents::SetConfigFromDoc();
 

@@ -25,6 +25,12 @@ public:
 
 	MqttBinarySensor(const char* _name, const char* _device, int _index, int _subIndex) : MqttDevice(_name, _device, _index, _subIndex) {}
 
+	virtual void ResetStatus() override
+	{
+		memset(&binarySensorStatus, 0, sizeof(binarySensorStatus));
+		MqttDevice::ResetStatus();
+	}
+
 	MqttDeviceType GetDeviceType() override
 	{
 		return MqttDeviceType::MQTT_BINARY_SENSOR;

@@ -2,17 +2,19 @@
 
 String MqttSensor::mqttSensorBaseTopic;
 
-bool MqttSensor::Init(bool enable)
+bool MqttSensor::Init()
 {
-	if (!status.mqtt.devicesConfigured)
-	{
-		memset(&deviceStatus, 0, sizeof(MqttDeviceStatus_t));
-		memset(&sensorStatus, 0, sizeof(MqttSensorStatus_t));
-	}
+	//if (!status.mqtt.devicesConfigured)
+	//{
+	//	memset(&deviceStatus, 0, sizeof(MqttDeviceStatus_t));
+	//	memset(&sensorStatus, 0, sizeof(MqttSensorStatus_t));
+	//}
 
 	//deviceStatus.enabled = true;
 
 	Connect();
+
+	return MqttDevice::Init();
 
 	InitWebpage();
 
@@ -138,29 +140,29 @@ void MqttSensor::FailedRead()
 //	return src.containsKey("measurementTimestamp") || src.containsKey("sensorStatus");
 //}
 
-void convertFromJson(JsonVariantConst src, MqttSensorStatus_t& dst)
-{
-	JsonVariantConst sensorStatusObj = src;
-
-	if (src.containsKey("sensorStatus"))
-		sensorStatusObj = src["sensorStatus"];
-
-
-	if (sensorStatusObj.containsKey("connected"))
-		dst.connected = sensorStatusObj["connected"];
-
-	if (sensorStatusObj.containsKey("sleeping"))
-		dst.sleeping = sensorStatusObj["sleeping"];
-
-	if (sensorStatusObj.containsKey("newData"))
-		dst.newData = sensorStatusObj["newData"];
-
-	if (sensorStatusObj.containsKey("failedReads"))
-		dst.failedReads = sensorStatusObj["failedReads"];
-
-	if (sensorStatusObj.containsKey("measurementTimestamp"))
-		dst.measurementTimestamp = sensorStatusObj["measurementTimestamp"];
-}
+//void convertFromJson(JsonVariantConst src, MqttSensorStatus_t& dst)
+//{
+//	JsonVariantConst sensorStatusObj = src;
+//
+//	if (src.containsKey("sensorStatus"))
+//		sensorStatusObj = src["sensorStatus"];
+//
+//
+//	if (sensorStatusObj.containsKey("connected"))
+//		dst.connected = sensorStatusObj["connected"];
+//
+//	if (sensorStatusObj.containsKey("sleeping"))
+//		dst.sleeping = sensorStatusObj["sleeping"];
+//
+//	if (sensorStatusObj.containsKey("newData"))
+//		dst.newData = sensorStatusObj["newData"];
+//
+//	if (sensorStatusObj.containsKey("failedReads"))
+//		dst.failedReads = sensorStatusObj["failedReads"];
+//
+//	if (sensorStatusObj.containsKey("measurementTimestamp"))
+//		dst.measurementTimestamp = sensorStatusObj["measurementTimestamp"];
+//}
 
 bool convertToJson(const MqttSensorStatus_t& src, JsonVariant dst)
 {

@@ -200,10 +200,12 @@ public:
 		index = _index;
 		deviceName = _device;
 		subTypeIndex = _subIndex;
+		website = nullptr;
+		ResetStatus();
 	}
 
 
-	virtual bool Init(bool enable = true);
+	virtual bool Init();
 
 	virtual void ResetStatus();
 
@@ -415,7 +417,7 @@ void convertFromJson(JsonVariantConst src, MqttDeviceConfig_t& dst);
 bool convertToJson(const MqttDeviceConfig_t& src, JsonVariant dst);
 
 //bool canConvertFromJson(JsonVariantConst src, const MqttDeviceStatus_t&);
-void convertFromJson(JsonVariantConst src, MqttDeviceStatus_t& dst);
+//void convertFromJson(JsonVariantConst src, MqttDeviceStatus_t& dst);
 bool convertToJson(const MqttDeviceStatus_t& src, JsonVariant dst);
 
 //bool canConvertFromJson(JsonVariantConst src, const MqttDeviceWebConfig_t&);
@@ -427,7 +429,7 @@ void convertFromJson(JsonVariantConst src, MqttDeviceMqttSettings_t& dst);
 bool convertToJson(const MqttDeviceMqttSettings_t& src, JsonVariant dst);
 
 //bool canConvertFromJson(JsonVariantConst src, const MqttDeviceGlobalStatus_t&);
-void convertFromJson(JsonVariantConst src, MqttDeviceGlobalStatus_t& dst);
+//void convertFromJson(JsonVariantConst src, MqttDeviceGlobalStatus_t& dst);
 bool convertToJson(const MqttDeviceGlobalStatus_t& src, JsonVariant dst);
 
 ////bool canConvertFromJson(JsonVariantConst src, const MqttDeviceWebpageStatus_t&);
@@ -436,7 +438,7 @@ bool convertToJson(const MqttDeviceGlobalStatus_t& src, JsonVariant dst);
 
 
 //bool canConvertFromJson(JsonVariantConst src, const DeviceState&);
-void convertFromJson(JsonVariantConst src, DeviceState& dst);
+//void convertFromJson(JsonVariantConst src, DeviceState& dst);
 bool convertToJson(const DeviceState& src, JsonVariant dst);
 
 #pragma endregion

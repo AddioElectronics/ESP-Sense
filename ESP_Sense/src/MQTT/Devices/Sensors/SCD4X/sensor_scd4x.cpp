@@ -38,19 +38,20 @@ char Scd4xSensor::errorMessage[];
 
 
 
-bool Scd4xSensor::Init(bool enable)
+bool Scd4xSensor::Init()
 {
 	if (!status.device.i2cInitialized)
 	{
 		if (!EspSense::InitializeI2C())
 			return false;
 	}
-	if(!status.mqtt.devicesConfigured)
-	ResetStatus();
+
+	//if(!status.mqtt.devicesConfigured)
+	//ResetStatus();
 
 	sensor.begin(Wire);
 
-	return MqttSensor::Init(enable);
+	return MqttSensor::Init();
 
 	/*ResetStatus(true);
 	deviceStatus.enabled = false;
@@ -196,6 +197,11 @@ bool Scd4xSensor::Enable()
 	if (deviceStatus.enabled) return true;
 
 	DEBUG_LOG_F("Enabling %s (SCD4x)\r\n", name.c_str());
+
+
+	if (!sensorStatus.connected)
+		if (!Connect())
+			return false;
 
 	MqttDevice::Enable();
 
@@ -1160,12 +1166,13 @@ bool Scd4xSensor::GetSerialNumber(SCD4xSerialNumber_t& serialNumber, bool displa
 	
 	DEBUG_LOG_F("-SN : 0x%000x%000x%000x\r\n\r\n", serialNumber.serial0, serialNumber.serial1, serialNumber.serial2);
 
-	if(displayError)
-		if (uniqueStatus.error)
-		{
+	if (uniqueStatus.error)
+	{
+		if (displayError)
 			DisplayError();
-			return false;
-		}
+
+		return false;
+	}
 
 	return true;
 }
@@ -1662,52 +1669,52 @@ bool convertToJson(const SCD4x_PowerMode& src, JsonVariant dst)
 
 
 
-bool canConvertFromJson(JsonVariantConst src, const SCD4xStatus_t&)
-{
-	return src.containsKey("periodicallyMeasuring") || src.containsKey("uniqueStatus");
-}
+//bool canConvertFromJson(JsonVariantConst src, const SCD4xStatus_t&)
+//{
+//	return src.containsKey("periodicallyMeasuring") || src.containsKey("uniqueStatus");
+//}
 
-void convertFromJson(JsonVariantConst src, SCD4xStatus_t& dst)
-{
-	JsonVariantConst uniqueStatusObj = src;
-
-	if (src.containsKey("uniqueStatus"))
-		uniqueStatusObj = src["uniqueStatus"];
-
-
-	if (uniqueStatusObj.containsKey("measurementStarted"))
-		dst.measurementStarted = uniqueStatusObj["measurementStarted"];
-
-	if (uniqueStatusObj.containsKey("periodicallyMeasuring"))
-		dst.periodicallyMeasuring = uniqueStatusObj["periodicallyMeasuring"];
-
-	if (uniqueStatusObj.containsKey("dataReady"))
-		dst.dataReady = uniqueStatusObj["dataReady"];
-
-	if (uniqueStatusObj.containsKey("skipNextMeasurement"))
-		dst.skipNextMeasurement = uniqueStatusObj["skipNextMeasurement"];
-
-	if (uniqueStatusObj.containsKey("performingSelfTest"))
-		dst.performingSelfTest = uniqueStatusObj["performingSelfTest"];
-
-	if (uniqueStatusObj.containsKey("performingFactoryReset"))
-		dst.performingFactoryReset = uniqueStatusObj["performingFactoryReset"];
-
-	if (uniqueStatusObj.containsKey("performingCalibration"))
-		dst.performingCalibration = uniqueStatusObj["performingCalibration"];
-
-	if (uniqueStatusObj.containsKey("reenable"))
-		dst.reenable = uniqueStatusObj["reenable"];
-
-	if (uniqueStatusObj.containsKey("powerMode"))
-		dst.powerMode = uniqueStatusObj["powerMode"].as<SCD4x_PowerMode>();
-
-	if (uniqueStatusObj.containsKey("error"))
-		dst.error = uniqueStatusObj["error"];
-
-	if (uniqueStatusObj.containsKey("selfTestResults"))
-		dst.selfTestResults = uniqueStatusObj["selfTestResults"];
-}
+//void convertFromJson(JsonVariantConst src, SCD4xStatus_t& dst)
+//{
+//	JsonVariantConst uniqueStatusObj = src;
+//
+//	if (src.containsKey("uniqueStatus"))
+//		uniqueStatusObj = src["uniqueStatus"];
+//
+//
+//	if (uniqueStatusObj.containsKey("measurementStarted"))
+//		dst.measurementStarted = uniqueStatusObj["measurementStarted"];
+//
+//	if (uniqueStatusObj.containsKey("periodicallyMeasuring"))
+//		dst.periodicallyMeasuring = uniqueStatusObj["periodicallyMeasuring"];
+//
+//	if (uniqueStatusObj.containsKey("dataReady"))
+//		dst.dataReady = uniqueStatusObj["dataReady"];
+//
+//	if (uniqueStatusObj.containsKey("skipNextMeasurement"))
+//		dst.skipNextMeasurement = uniqueStatusObj["skipNextMeasurement"];
+//
+//	if (uniqueStatusObj.containsKey("performingSelfTest"))
+//		dst.performingSelfTest = uniqueStatusObj["performingSelfTest"];
+//
+//	if (uniqueStatusObj.containsKey("performingFactoryReset"))
+//		dst.performingFactoryReset = uniqueStatusObj["performingFactoryReset"];
+//
+//	if (uniqueStatusObj.containsKey("performingCalibration"))
+//		dst.performingCalibration = uniqueStatusObj["performingCalibration"];
+//
+//	if (uniqueStatusObj.containsKey("reenable"))
+//		dst.reenable = uniqueStatusObj["reenable"];
+//
+//	if (uniqueStatusObj.containsKey("powerMode"))
+//		dst.powerMode = uniqueStatusObj["powerMode"].as<SCD4x_PowerMode>();
+//
+//	if (uniqueStatusObj.containsKey("error"))
+//		dst.error = uniqueStatusObj["error"];
+//
+//	if (uniqueStatusObj.containsKey("selfTestResults"))
+//		dst.selfTestResults = uniqueStatusObj["selfTestResults"];
+//}
 
 bool convertToJson(const SCD4xStatus_t& src, JsonVariant dst)
 {

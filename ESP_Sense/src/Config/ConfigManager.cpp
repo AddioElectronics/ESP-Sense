@@ -658,48 +658,28 @@ void Config::Documents::LoadBootSettings()
 }
 
 /// <summary>
-/// Checks to see if the config file has been updated.
+/// Checks to see if the config's CRC matches the previous boot.
 /// </summary>
-/// <param name="saveRetained">If true statusRetained will be saved to the EEPROM.</param>
 /// <returns>1 if the file has been updated or if it is a different file, 0 if there has been no changes, and -1 if the file does not exist.</returns>
-int Config::Documents::CheckConfigCrc(bool saveRetained)
+int Config::Documents::CheckConfigCrc()
 {
 	uint32_t result = FileManager::GetFileCRC(status.config.path);
 
 	if (result == 0) return -1;
 
-	statusRetainedMonitor.crcs.configFile = result != statusRetained.crcs.configFile;
+	statusRetainedMonitor.crcs.configFile = statusRetained.crcs.configFile != result;
 	statusRetained.crcs.configFile = result;
 
-	if (statusRetainedMonitor.crcs.configFile)
-	{
-		//Config updated
-
-		//Set backed up flags to false
-#if COMPILE_BACKUP
-		status.backup.eepromBackedUp = false;
-		status.backup.filesystemBackedUp = false;
-#endif
-	}
-	else
-	{
-		//No updates.
-		Backup::SetBackupExistFlags();
-
-	}
-
-	if(saveRetained)
-	Status::SaveRetainedStatus();
+	Backup::SetBackupFlags(result);	
 
 	return statusRetainedMonitor.crcs.configFile;
 }
 
 /// <summary>
-/// Checks to see if the config that was loaded is the same file as last time.
+/// Checks to see if the config path is the same path used last boot.
 /// </summary>
-/// <param name="saveRetained">If true statusRetained will be saved to the EEPROM.</param>
 /// <returns>1 if the path has changed since last boot, 0 if the path is the same, and -1 if configPath has not been set.</returns>
-int Config::Documents::CheckConfigPathCrc(bool saveRetained)
+int Config::Documents::CheckConfigPathCrc()
 {
 	uint8_t length = strlen(status.config.path);
 
@@ -717,10 +697,9 @@ int Config::Documents::CheckConfigPathCrc(bool saveRetained)
 	uint32_t result = crc.getCRC();
 
 	statusRetainedMonitor.crcs.configPath = result != statusRetained.crcs.configPath;
-	statusRetained.crcs.configPath = result;
 
 	//Config path has changed.
-	if (statusRetainedMonitor.crcs.configFile)
+	if (statusRetainedMonitor.crcs.configPath)
 	{
 #if COMPILE_BACKUP
 		//Disable backups until manually enabled.
@@ -730,8 +709,6 @@ int Config::Documents::CheckConfigPathCrc(bool saveRetained)
 #endif
 	}
 
-	if (saveRetained)
-		Status::SaveRetainedStatus();
 
 	return statusRetainedMonitor.crcs.configPath;
 }
@@ -752,6 +729,8 @@ bool Config::Documents::LoadConfiguration()
 	//if (statusRetainedMonitor.boot.bootSource)
 	status.config.configSource = statusRetained.boot.bootSource;
 
+
+	Backup::SetBackupFlags(statusRetained.crcs.recentBackup);
 
 ReselectBootSource:
 	DEBUG_LOG("Boot source : ");
@@ -781,9 +760,9 @@ ReselectBootSource:
 
 	case ConfigSource::CFG_BACKUP_FILESYSTEM:
 		DEBUG_LOG_LN("Backup on File System");
-		if (!statusRetained.fileSizes.fileSystemBackup)
+		if (!status.backup.filesystemBackedUp)
 		{
-			DEBUG_LOG_LN("...Cannot load backup from File System! A backup does not exist.\r\n...Using EEPROM config source.");
+			DEBUG_LOG_LN("...Cannot load backup from File System! A backup does not exist or the CRC does not match most recent backup.\r\n...Using EEPROM config source.");
 			status.config.configSource = ConfigSource::CFG_EEPROM;
 			goto ReselectBootSource;
 		}
@@ -795,9 +774,9 @@ ReselectBootSource:
 		if (!SelectConfigPath(status.config.configSource == ConfigSource::CFG_BACKUP_FILESYSTEM))
 		{
 			//If last attempt was from FS Backup, try EEPROM. Else use file system.
-			if (status.config.configSource == ConfigSource::CFG_BACKUP_FILESYSTEM || !statusRetained.fileSizes.fileSystemBackup)
+			if (status.config.configSource == ConfigSource::CFG_BACKUP_FILESYSTEM || !status.backup.filesystemBackedUp)
 			{
-				if (statusRetained.fileSizes.eepromBackup != 0)
+				if (status.backup.eepromBackedUp)
 					goto EEPROM_Config;
 				else
 					goto Firmware_Config;
@@ -814,7 +793,7 @@ ReselectBootSource:
 
 		#if COMPILE_BACKUP
 			//Config failed, try backup or EEPROM.
-			if (statusRetained.fileSizes.fileSystemBackup)
+			if (status.backup.filesystemBackedUp)
 			{
 				FS_Backup_Config:
 
@@ -829,16 +808,20 @@ ReselectBootSource:
 			}
 			else 
 			{
-				EEPROM_Config:				
-				if (statusRetained.fileSizes.eepromBackup) {
+			EEPROM_Config:		
+				if (status.backup.eepromBackedUp) {
 					DEBUG_LOG_LN("...Getting config from EEPROM...");
 					status.config.configSource = ConfigSource::CFG_EEPROM;
-					if(!Backup::DeserializeEepromBackupConfig())
+					if (!Backup::DeserializeEepromBackupConfig())
 					{
-						Firmware_Config:
-						DEBUG_LOG_LN("...Using config from Firmware...");
-						status.config.configSource = ConfigSource::CFG_FIRMWARE;
+						goto Firmware_Config;
 					}
+				}
+				else
+				{
+				Firmware_Config:
+					DEBUG_LOG_LN("...Using config from Firmware...");
+					status.config.configSource = ConfigSource::CFG_FIRMWARE;
 				}
 			}
 		#endif
@@ -990,13 +973,14 @@ bool Config::Documents::DeserializeConfig()
 	File file;
 
 
-	if (!FileManager::OpenFile(&file, path, 'r'))
+	if (!FileManager::OpenFile(&file, path, "r"))
 	{
 		return false;
 	}
 
-	CheckConfigCrc();
 	CheckConfigPathCrc();
+	CheckConfigCrc();
+	
 	//SaveRetainedStatus();
 
 	DEBUG_LOG_LN("...Parsing...");
@@ -1309,7 +1293,7 @@ size_t Config::Documents::SaveConfig()
 
 	File file;
 
-	FileManager::OpenFile(&file, status.config.path, 'w');
+	FileManager::OpenFile(&file, status.config.path, "w");
 
 	DEBUG_LOG_LN("...Serializing to file...");
 	size_t size = serializeJsonPretty(serializeConfigDoc, file);
@@ -2107,8 +2091,9 @@ bool Config::Backup::SaveBackupConfig(bool fs, bool eeprom, bool saveRetained, s
 		return 0;
 	}
 
-	if (status.backup.filesystemBackedUp && status.backup.eepromBackedUp && statusRetained.fileSizes.eepromBackup)
+	if (status.backup.filesystemBackedUp /*&& status.backup.eepromBackedUp && statusRetained.fileSizes.eepromBackup*/)
 	{
+		Label_AlreadyBackedup:
 		DEBUG_LOG_LN("...Backup already saved.");
 		return true;
 	}
@@ -2118,6 +2103,14 @@ bool Config::Backup::SaveBackupConfig(bool fs, bool eeprom, bool saveRetained, s
 	Documents::SerializeConfig(&serializeConfigDoc);
 
 	uint32_t docCRC = FileManager::GetSerializedCRC(serializeConfigDoc);
+
+	DEBUG_LOG_F("Most Recent Backup CRC : 0x%0000000x - Doc CRC : 0x%0000000x\r\n", statusRetained.crcs.recentBackup, docCRC);
+
+	if (docCRC == statusRetained.crcs.recentBackup)
+		goto Label_AlreadyBackedup;
+
+	#warning Backups disabled until they can be fixed.
+	return 0;
 
 	//status.disableRetainCommits = true;
 
@@ -2246,6 +2239,12 @@ size_t Config::Backup::SaveBackupEeprom(JsonDocument* doc, bool saveRetained, co
 		return 1;
 	}
 
+	size_t serializedSize = 0;
+
+	if(status.backup.filesystemBackedUp)
+
+
+
 	DEBUG_LOG("Serializing backup to EEPROM...");
 	EepromStream eepromStream(sizeof(StatusRetained_t), DOC_CONFIG_SERIALIZE_SIZE);
 
@@ -2263,7 +2262,7 @@ size_t Config::Backup::SaveBackupEeprom(JsonDocument* doc, bool saveRetained, co
 
 	if (size)
 	{
-		//Get Saved CRC to validate
+		//Get Saved CRC to validate (starts after StatusRetained)
 		eepromStream = EepromStream(sizeof(StatusRetained_t), size);
 		uint32_t crc = FileManager::GetEepromCRC(eepromStream, size);
 
@@ -2381,7 +2380,7 @@ size_t Config::Backup::SaveBackupFilesystem(JsonDocument* doc, bool saveRetained
 		return 0;
 	}
 
-	if (!FileManager::OpenFile(&file, backupPath.c_str(), 'w'))
+	if (!FileManager::OpenFile(&file, backupPath.c_str(), "w+"))
 	{
 		DEBUG_LOG_LN("Could not open backup file for writing!\r\n");
 		return 0;
@@ -2389,6 +2388,8 @@ size_t Config::Backup::SaveBackupFilesystem(JsonDocument* doc, bool saveRetained
 
 	size_t size = serializeJson(*doc, file);
 	file.close();
+
+	DEBUG_LOG_F("...FS Backup serialized and saved...Size : %dbytes...Checking CRC...", size);
 
 	if (size)
 	{
@@ -2481,11 +2482,11 @@ void Config::Backup::EnableBackups()
 #endif
 }
 
-void Config::Backup::SetBackupExistFlags()
+void Config::Backup::SetBackupFlags(uint32_t crc)
 {
 #if COMPILE_BACKUP
-	status.backup.eepromBackedUp = statusRetained.fileSizes.eepromBackup > 0;
-	status.backup.filesystemBackedUp = statusRetained.fileSizes.fileSystemBackup > 0;
+	status.backup.eepromBackedUp = crc == statusRetained.crcs.eepromBackupFile && statusRetained.fileSizes.eepromBackup > 0 && statusRetained.crcs.eepromBackupFile != statusRetained.crcs.recentBackup;
+	status.backup.filesystemBackedUp = crc == statusRetained.crcs.fileSystemBackupFile && statusRetained.fileSizes.fileSystemBackup > 0 && statusRetained.crcs.fileSystemBackupFile != statusRetained.crcs.recentBackup;
 #endif
 }
 

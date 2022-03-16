@@ -57,12 +57,19 @@ bool FileManager::UnMountFileSystem()
 	return false;
 }
 
-
-bool FileManager::OpenFile(File* file, const char* path, const char mode, bool closeOnFail)
+/// <summary>
+/// 
+/// </summary>
+/// <param name="file"></param>
+/// <param name="path"></param>
+/// <param name="mode"></param>
+/// <param name="createOnNull">If file does not exist while trying to write, create.</param>
+/// <returns></returns>
+bool FileManager::OpenFile(File* file, const char* path, const char* mode)
 {
 	file->setTimeout(FILE_STREAM_TIMEOUT);
 
-	DEBUG_LOG_F("Opening %s... to %s.\r\n", path, mode == 'r' ? "read" : "write");
+	DEBUG_LOG_F("Opening %s... to %s.\r\n", path, mode);
 
 	if (!status.storage.fsMounted)
 	{
@@ -71,32 +78,28 @@ bool FileManager::OpenFile(File* file, const char* path, const char mode, bool c
 	}
 
 
-	if (!ESP_FS.exists(path) && mode != 'w')
-		//if (!LittleFS.exists(path))
+	if (!ESP_FS.exists(path) && mode[1] != '+')
 	{
 		DEBUG_LOG_F("The file at path %s does not exist.", path);
 		return false;
 	}
 
-	//*file = LittleFS.open(path, "r");
-	*file = ESP_FS.open(path, "r");
+	*file = ESP_FS.open(path, mode);
 
 	if (!*file)
 	{
-		if (closeOnFail)
-			file->close();
+		file->close();
 
 		DEBUG_LOG_LN("Failed to open!");
 		return false;
 	}
 
 #if DEVELOPER_MODE
-	if (status.misc.developerMode)
+	if (status.misc.developerMode && path[0] == 'r' || path[1] == '+' )
 	{
 		DisplayFileContents(file);
 	}
 #endif
-
 
 
 	DEBUG_LOG_LN("File Opened!");
@@ -129,7 +132,7 @@ bool FileManager::ParseFile(File* file, JsonDocument& doc, const char* filename,
 int FileManager::OpenAndParseFile(const char* path, JsonDocument& doc)
 {
 	File file;
-	if (!OpenFile(&file, path, 'r', true)) return 1;	//Could not open file
+	if (!OpenFile(&file, path, "r")) return 1;	//Could not open file
 
 	int result = ParseFile(&file, doc, path, true);
 
@@ -260,15 +263,16 @@ void FileManager::DisplayFileContents(File* file)
 	{
 		serial->write(file->read());
 	}
-
+	
 	file->seek(0);
+	DEBUG_NEWLINE();
 }
 
 uint32_t FileManager::GetFileCRC(const char* path)
 {
 	File file;
 	//DEBUG_LOG_LN("Opening file to calculate CRC...");
-	if (!OpenFile(&file, path, 'r')) return 0;	
+	if (!OpenFile(&file, path, "r")) return 0;
 	
 	return GetFileCRC(&file, true);
 }

@@ -7,6 +7,8 @@
 #include <ESPAsyncWebServer.h>
 #include <List.hpp>
 
+#include "../../Macros.h"
+
 class MqttDevice;
 
 
@@ -15,10 +17,13 @@ class MqttDeviceWeb
 {
 public:
 	typedef struct {
-		bool enabled : 1;
-		bool hostingWebpage : 1;		//Hosting webpage for status and/or config
-		bool hostingStatusRequest : 1;	//Handling status request.
-		bool hostingConfigRequest : 1;	//Handling config requests.
+		struct {
+			bool enabled : 1;
+			bool hostingWebpage : 1;		//Hosting webpage for status and/or config
+			bool hostingStatusRequest : 1;	//Handling status request.
+			bool hostingConfigRequest : 1;	//Handling config requests.
+			uint8_t reserved : 4;
+		};
 		String url;
 	}Status_t;
 
@@ -41,7 +46,9 @@ public:
 public:
 	MqttDeviceWeb()
 	{
-		memset(&webStatus, 0, sizeof(MqttDeviceWeb::Status_t));
+		DEBUG_LOG_LN("Constructing MqttDeviceWeb");
+		memset(&webStatus, 0, sizeof(MqttDeviceWeb::Status_t) - sizeof(String));
+		webStatus.url = "";
 	}
 
 	virtual void Initialize(MqttDevice* parentDevice);

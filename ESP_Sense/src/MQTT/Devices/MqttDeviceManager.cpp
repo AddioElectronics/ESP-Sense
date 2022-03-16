@@ -551,13 +551,13 @@ device_count_t CreateDevicesOfSubType(const char* deviceTypeName, JsonArrayConst
 		//status.mqtt.devices.deviceCount++;
 		//subTypeCount++;
 
-		if (device->Init(false))
+		if (device->Init())
 		{
 			initializedCount++;
 		}
 		else
 		{
-			DEBUG_LOG_F("%s %s failed to connect or configure! It may succeed later.", deviceTypeName, device->name.c_str());
+			DEBUG_LOG_F("%s %s failed to connect or configure! It may succeed later.\r\n", deviceTypeName, device->name.c_str());
 		}
 	}
 
@@ -573,9 +573,16 @@ void Mqtt::DeviceManager::EnableAll(bool initial)
 
 	for (device_count_t i = 0; i < status.mqtt.devices.sensorCount; i++)
 	{
+		MqttSensor* sensor = mqttSensors[i];
+
+		if (!sensor->sensorStatus.connected)
+			if (!sensor->Connect())
+				goto Label_SensorCantEnable;
+
 		if (mqttSensors[i]->deviceConfig.initiallyEnabled || !initial)
 			mqttSensors[i]->Enable();
 
+		Label_SensorCantEnable:
 		EspSense::YieldWatchdog(5);
 	}
 

@@ -24,7 +24,7 @@ namespace FileManager {
 	bool MountFileSystem();
 	bool UnMountFileSystem();
 
-	bool OpenFile(File* file, const char* path, const char mode, bool closeOnFail = false);
+	bool OpenFile(File* file, const char* path, const char* mode);
 
 	bool ParseFile(File* file, JsonDocument& doc, const char* filename, bool close = true);
 
