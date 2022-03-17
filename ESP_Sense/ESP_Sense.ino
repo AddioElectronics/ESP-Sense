@@ -22,6 +22,7 @@
 #include <Arduino.h>
 
 #include "src/Config/config_master.h"
+#include "src/Config/global_status.h"
 
 #include <StreamUtils.hpp>
 #include <StreamUtils.h>											

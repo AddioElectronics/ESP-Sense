@@ -41,7 +41,7 @@ namespace Config
 	{
 		void LoadBootSettings();
 
-		int CheckConfigCrc();
+		int CheckConfigCrc(JsonDocument& configDoc);
 		int CheckConfigPathCrc();
 
 		bool LoadConfiguration();
@@ -66,11 +66,11 @@ namespace Config
 		bool GenerateBackupPath(const char* path, String* backupPath, String* backupName = nullptr);
 
 		bool DeserializeConfig();
+		bool SetConfigFromDoc();
 		//void SerializeConfig();
 		bool SerializeConfig(JsonDocument* out_doc);
 		size_t SaveConfig();
 
-		bool SetConfigFromDoc();
 	}
 
 	namespace Backup
@@ -82,7 +82,7 @@ namespace Config
 		size_t SaveBackupEeprom(JsonDocument* doc, bool saveRetained = false, const uint32_t crc = 0);
 		size_t SaveBackupFilesystem(bool saveRetained);
 		size_t SaveBackupFilesystem(JsonDocument* doc, bool saveRetained = false, const uint32_t crc = 0);
-		bool DeserializeEepromBackupConfig();
+		bool DeserializeEepromBackupConfig(JsonDocument& doc);
 
 		void DisableBackups();
 		void EnableBackups();

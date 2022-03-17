@@ -175,16 +175,16 @@ void Config::Defaults::InitializeStrings()
 {
 	/*Wifi SSID seems to always set properly. Will initially set to that until the problem is found.*/
 	//config.mqtt.publish.unknownPayload = WIFI_SSID;
-	//config.mqtt.baseTopics.base = WIFI_SSID;
-	//config.mqtt.baseTopics.command = WIFI_SSID;
-	//config.mqtt.baseTopics.state = WIFI_SSID;
+	config.mqtt.baseTopics.base = WIFI_SSID;
+	config.mqtt.baseTopics.command = WIFI_SSID;
+	config.mqtt.baseTopics.state = WIFI_SSID;
 
-	//config.server.ftp.user = WIFI_SSID;
-	//config.server.ftp.pass = WIFI_SSID;
+	config.server.ftp.user = WIFI_SSID;
+	config.server.ftp.pass = WIFI_SSID;
 
-	//config.server.hostname = WIFI_SSID;
-	//config.server.user = WIFI_SSID;
-	//config.server.pass = WIFI_SSID;
+	config.server.hostname = WIFI_SSID;
+	config.server.user = WIFI_SSID;
+	config.server.pass = WIFI_SSID;
 }
 
 /// <summary>
@@ -658,19 +658,19 @@ void Config::Documents::LoadBootSettings()
 }
 
 /// <summary>
-/// Checks to see if the config's CRC matches the previous boot.
+/// Checks to see if the config's CRC after configuration matches the previous boot.
 /// </summary>
 /// <returns>1 if the file has been updated or if it is a different file, 0 if there has been no changes, and -1 if the file does not exist.</returns>
-int Config::Documents::CheckConfigCrc()
+int Config::Documents::CheckConfigCrc(JsonDocument& configDoc)
 {
-	uint32_t result = FileManager::GetFileCRC(status.config.path);
+	if (configDoc.size() == 0) return -1;
 
-	if (result == 0) return -1;
+	status.config.configCRC = FileManager::GetSerializedCRC(configDoc);
 
-	statusRetainedMonitor.crcs.configFile = statusRetained.crcs.configFile != result;
-	statusRetained.crcs.configFile = result;
+	statusRetainedMonitor.crcs.configFile = statusRetained.crcs.configFile != status.config.configCRC;
+	statusRetained.crcs.configFile = status.config.configCRC;
 
-	Backup::SetBackupFlags(result);	
+	Backup::SetBackupFlags(status.config.configCRC);
 
 	return statusRetainedMonitor.crcs.configFile;
 }
@@ -705,7 +705,8 @@ int Config::Documents::CheckConfigPathCrc()
 		//Disable backups until manually enabled.
 		//Do not want to backup a file that may just be used for testing.
 		//May change this in the future.
-		status.backup.backupsDisabled = !status.device.freshBoot;
+		if (!status.device.freshBoot)
+			Config::Backup::DisableBackups();
 #endif
 	}
 
@@ -812,7 +813,7 @@ ReselectBootSource:
 				if (status.backup.eepromBackedUp) {
 					DEBUG_LOG_LN("...Getting config from EEPROM...");
 					status.config.configSource = ConfigSource::CFG_EEPROM;
-					if (!Backup::DeserializeEepromBackupConfig())
+					if (!Backup::DeserializeEepromBackupConfig(configDoc))
 					{
 						goto Firmware_Config;
 					}
@@ -979,7 +980,7 @@ bool Config::Documents::DeserializeConfig()
 	}
 
 	CheckConfigPathCrc();
-	CheckConfigCrc();
+	//CheckConfigCrc();
 	
 	//SaveRetainedStatus();
 
@@ -1002,6 +1003,29 @@ bool Config::Documents::DeserializeConfig()
 	DEBUG_NEWLINE();
 	return true;
 }
+
+bool Config::Documents::SetConfigFromDoc()
+{
+	DEBUG_LOG_LN("Setting config to values from JSON document...");
+
+	if (!status.config.configRead)
+	{
+		DEBUG_LOG_LN("Configuration cannot be set. Config Document has not been deserialized.");
+		return false;
+	}
+
+	JsonVariantConst configVar = configDoc.as<JsonVariantConst>();
+	convertFromJson(configVar, config);
+	CheckConfigCrc(configDoc);
+
+	configDoc.clear();
+	status.config.configRead = false;
+
+	DEBUG_LOG_F("SSID : %s\r\nPASS : %s\r\nMQTT IP : %s\r\nPort : %d\r\nUser : %s\r\nPass : %s\r\n", config.wifi.station.ssid.c_str(), config.wifi.station.pass.c_str(), config.mqtt.broker.ip.toString().c_str(), config.mqtt.broker.port, config.mqtt.broker.user.c_str(), config.mqtt.broker.pass.c_str());
+
+	return status.config.settingsConfigured = true;
+}
+
 
 bool Config::Documents::SerializeConfig(JsonDocument* doc)
 {
@@ -1054,25 +1078,6 @@ size_t Config::Documents::SaveConfig()
 
 
 
-bool Config::Documents::SetConfigFromDoc()
-{
-	DEBUG_LOG_LN("Setting config to values from JSON document...");
-
-	if (!status.config.configRead)
-	{
-		DEBUG_LOG_LN("Configuration cannot be set. Config Document has not been deserialized.");
-		return false;
-	}
-
-	convertFromJson(configDoc, config);
-
-	configDoc.clear();
-	status.config.configRead = false;
-
-	DEBUG_LOG_F("SSID : %s\r\nPASS : %s\r\nMQTT IP : %s\r\nPort : %d\r\nUser : %s\r\nPass : %s\r\n", config.wifi.station.ssid.c_str(), config.wifi.station.pass.c_str(), config.mqtt.broker.ip.toString().c_str(), config.mqtt.broker.port, config.mqtt.broker.user.c_str(), config.mqtt.broker.pass.c_str());
-
-	return status.config.settingsConfigured = true;
-}
 
 
 #pragma endregion
@@ -1114,9 +1119,6 @@ bool Config::Backup::SaveBackupConfig(bool fs, bool eeprom, bool saveRetained, s
 
 	if (docCRC == statusRetained.crcs.recentBackup)
 		goto Label_AlreadyBackedup;
-
-	#warning Backups disabled until they can be fixed.
-	return 0;
 
 	//status.disableRetainCommits = true;
 
@@ -1265,6 +1267,34 @@ size_t Config::Backup::SaveBackupEeprom(JsonDocument* doc, bool saveRetained, co
 
 	size_t size = serializeJson(*doc, eepromStream);
 
+	#warning testing : check if CRC is failing or the backup
+#pragma region Test
+		DEBUG_LOG_LN("FS Test start");
+		doc->clear();
+		DeserializeEepromBackupConfig(*doc);
+
+		String test;
+		serializeJson(*doc, test);
+		DEBUG_LOG_LN(test);
+
+		Config_t fsConfig;		
+		convertFromJson(*doc, fsConfig);
+		if (memcmp(&config, &fsConfig, sizeof(config)) == 0)
+		{
+			DEBUG_LOG_LN("Backup matches");
+		}
+		else
+		{
+			DEBUG_LOG_LN("Backup Doesn't match");
+		}
+
+		doc->clear();
+		if (!FileManager::OpenAndParseFile(status.config.path, *doc))
+		{
+			DEBUG_LOG_LN("Could not open backup file for writing!\r\n");
+			return 0;
+		}
+#pragma endregion
 
 	if (size)
 	{
@@ -1393,7 +1423,40 @@ size_t Config::Backup::SaveBackupFilesystem(JsonDocument* doc, bool saveRetained
 	}
 
 	size_t size = serializeJson(*doc, file);
-	file.close();
+	//file.close();
+
+#warning testing : check if CRC is failing or the backup
+#pragma region Test
+DEBUG_LOG_LN("FS Test start");
+	doc->clear();
+	file.seek(0);
+
+
+
+	Config_t fsConfig;
+	FileManager::ParseFile(&file, *doc, status.config.path, true);
+	String test;
+	serializeJson(*doc, test);
+	DEBUG_LOG_LN(test);
+
+	convertFromJson(*doc, fsConfig);
+	if (memcmp(&config, &fsConfig, sizeof(config)) == 0)
+	{
+		DEBUG_LOG_LN("Backup matches");
+	}
+	else 
+	{
+		DEBUG_LOG_LN("Backup Doesn't match");
+	}
+
+	doc->clear();
+	if (!FileManager::OpenAndParseFile(status.config.path, *doc))
+	{
+		DEBUG_LOG_LN("Could not open backup file for writing!\r\n");
+		return 0;
+	}
+#pragma endregion
+	
 
 	DEBUG_LOG_F("...FS Backup serialized and saved...Size : %dbytes...Checking CRC...", size);
 
@@ -1432,7 +1495,7 @@ size_t Config::Backup::SaveBackupFilesystem(JsonDocument* doc, bool saveRetained
 #endif
 }
 
-bool Config::Backup::DeserializeEepromBackupConfig()
+bool Config::Backup::DeserializeEepromBackupConfig(JsonDocument& doc)
 {
 #if COMPILE_BACKUP
 	/*DEBUG_LOG_LN("Reading Config Backup from EEPROM...");
@@ -1441,10 +1504,10 @@ bool Config::Backup::DeserializeEepromBackupConfig()
 
 	DEBUG_LOG_LN("Reading and deserializing config backup from EEPROM...");
 
-	EepromStream eepromStream(sizeof(Boot_bm), DOC_CONFIG_DESERIALIZE_SIZE);
+	EepromStream eepromStream(sizeof(StatusRetained_t), DOC_CONFIG_DESERIALIZE_SIZE);
 	eepromStream.setTimeout(FILE_STREAM_TIMEOUT);
 
-	DeserializationError derror = deserializeJson(configDoc, eepromStream);
+	DeserializationError derror = deserializeJson(doc, eepromStream);
 
 	if (derror)
 	{
@@ -2003,6 +2066,8 @@ bool convertToJson(const Boot_bm& src, JsonVariant dst)
 
 void convertFromJson(JsonVariantConst src, WifiStationConfig_t& dst)
 {
+	DEBUG_LOG_LN("Converting WifiStationConfig_t from Json");
+
 	if (src.containsKey("enabled"))
 		dst.enabled = src["enabled"];
 
@@ -2010,10 +2075,10 @@ void convertFromJson(JsonVariantConst src, WifiStationConfig_t& dst)
 		dst.ledOn = src["ledOn"];
 
 	if (src.containsKey("ssid"))
-		dst.ssid = src["ssid"].as<String>();
+		dst.ssid = (const char*)src["ssid"];
 
 	if (src.containsKey("pass"))
-		dst.pass = src["pass"].as<String>();
+		dst.pass = (const char*)src["pass"];
 
 	if (src.containsKey("ledGpio"))
 		dst.ledGpio = src["ledGpio"];
@@ -2039,6 +2104,8 @@ bool convertToJson(const WifiStationConfig_t& src, JsonVariant dst)
 
 void convertFromJson(JsonVariantConst src, WifiAccessPointConfig_t& dst)
 {
+	DEBUG_LOG_LN("Converting WifiAccessPointConfig_t from Json");
+
 	if (src.containsKey("useDefaults"))
 		dst.useDefaults = src["useDefaults"];
 
@@ -2061,10 +2128,10 @@ void convertFromJson(JsonVariantConst src, WifiAccessPointConfig_t& dst)
 		dst.ledOn = src["ledOn"];
 
 	if (src.containsKey("ssid"))
-		dst.ssid = src["ssid"].as<String>();
+		dst.ssid = (const char*)src["ssid"];
 
 	if (src.containsKey("pass"))
-		dst.pass = src["pass"].as<String>();
+		dst.pass = (const char*)src["pass"];
 
 	if (src.containsKey("maxConnections"))
 		dst.maxConnections = src["maxConnections"];
@@ -2105,6 +2172,7 @@ bool convertToJson(const WifiAccessPointConfig_t& src, JsonVariant dst)
 
 void convertFromJson(JsonVariantConst src, WifiConfig_t& dst)
 {
+	DEBUG_LOG_LN("Converting WifiConfig_t from Json");
 	if (src.containsKey("useDefaults"))
 		dst.useDefaults = src["useDefaults"];
 
@@ -2153,10 +2221,10 @@ void convertFromJson(JsonVariantConst src, FtpConfig_t& dst)
 		dst.anonymous = src["anonymous"];
 
 	if (src.containsKey("user"))
-		dst.user = src["user"].as<String>();
+		dst.user = (const char*)src["user"];
 
 	if (src.containsKey("pass"))
-		dst.pass = src["pass"].as<String>();
+		dst.pass = (const char*)src["pass"];
 
 	if (src.containsKey("timeout"))
 		dst.timeout = src["timeout"];
@@ -2279,13 +2347,13 @@ void convertFromJson(JsonVariantConst src, ServerConfig_t& dst)
 		dst.authenticate = src["authenticate"];
 
 	if (src.containsKey("hostname"))
-		dst.hostname = src["hostname"].as<String>();
+		dst.hostname = (const char*)src["hostname"];
 
 	if (src.containsKey("user"))
-		dst.user = src["user"].as<String>();
+		dst.user = (const char*)src["user"];
 
 	if (src.containsKey("pass"))
-		dst.pass = src["pass"].as<String>();
+		dst.pass = (const char*)src["pass"];
 
 	if (src.containsKey("sessionTimeout"))
 		dst.sessionTimeout = src["sessionTimeout"];
@@ -2469,17 +2537,18 @@ bool convertToJson(const ConfigDevice_t& src, JsonVariant dst)
 
 void convertFromJson(JsonVariantConst src, Config_t& dst)
 {
+
 	if (src.containsKey("wifi"))
-		convertFromJson(src, dst.wifi);
+		convertFromJson(src["wifi"], dst.wifi);
 
 	if (src.containsKey("mqtt"))
-		convertFromJson(src, dst.mqtt);
+		convertFromJson(src["mqtt"], dst.mqtt);
 
 	if (src.containsKey("device"))
-		convertFromJson(src, dst.device);
+		convertFromJson(src["device"], dst.device);
 
 	if (src.containsKey("server"))
-		convertFromJson(src, dst.server);
+		convertFromJson(src["server"], dst.server);
 
 	
 
@@ -2508,13 +2577,22 @@ void convertFromJson(JsonVariantConst src, MqttPublishConfig_t& dst)
 		dst.bufferSize = src["bufferSize"];
 
 	if (src.containsKey("rate"))
-		dst.rate = src["rate"] * 1000;
+	{
+		dst.rate = src["rate"];
+		dst.rate *= 1000;
+	}
 
 	if (src.containsKey("errorRate"))
-		dst.errorRate = src["errorRate"] * 1000;
+	{
+		dst.errorRate = src["errorRate"];
+		dst.errorRate *= 1000;
+	}
 
 	if (src.containsKey("availabilityRate"))
-		dst.availabilityRate = src["availabilityRate"] * 1000;
+	{
+		dst.availabilityRate = src["availabilityRate"];
+		dst.availabilityRate *= 1000;
+	}
 
 	if (src.containsKey("json"))
 		dst.json = src["json"];
@@ -2562,10 +2640,10 @@ void convertFromJson(JsonVariantConst src, MqttBrokerConfig_t& dst)
 		dst.port = src["port"];
 
 	if (src.containsKey("user"))
-		dst.user = src["user"].as<String>();
+		dst.user = (const char*)src["user"];
 
 	if (src.containsKey("pass"))
-		dst.pass = src["pass"].as<String>();
+		dst.pass = (const char*)src["pass"];
 
 	if (src.containsKey("maxRetries"))
 		dst.maxRetries = src["maxRetries"];
@@ -2612,22 +2690,22 @@ bool convertToJson(const MqttBrokerConfig_t& src, JsonVariant dst)
 void convertFromJson(JsonVariantConst src, MqttBaseTopics_t& dst)
 {
 	if (src.containsKey("base"))
-		dst.base = src["base"].as<String>();
+		dst.base = (const char*)src["base"];
 
 	if (src.containsKey("availability"))
-		dst.availability = src["availability"].as<String>();
+		dst.availability = (const char*)src["availability"];
 
 	if (src.containsKey("jsonCommand"))
-		dst.jsonCommand = src["jsonCommand"].as<String>();
+		dst.jsonCommand = (const char*)src["jsonCommand"];
 
 	if (src.containsKey("jsonState"))
-		dst.jsonState = src["jsonState"].as<String>();
+		dst.jsonState = (const char*)src["jsonState"];
 
 	if (src.containsKey("command"))
-		dst.command = src["command"].as<String>();
+		dst.command = (const char*)src["command"];
 
 	if (src.containsKey("state"))
-		dst.state = src["state"].as<String>();
+		dst.state = (const char*)src["state"];
 }
 
 bool convertToJson(const MqttBaseTopics_t& src, JsonVariant dst)
@@ -2649,13 +2727,13 @@ bool convertToJson(const MqttBaseTopics_t& src, JsonVariant dst)
 void convertFromJson(JsonVariantConst src, MqttTopics_t& dst)
 {
 	if (src.containsKey("availability"))
-		dst.availability = src["availability"].as<String>();
+		dst.availability = (const char*)src["availability"];
 
 	if (src.containsKey("jsonCommand"))
-		dst.jsonCommand = src["jsonCommand"].as<String>();
+		dst.jsonCommand = (const char*)src["jsonCommand"];
 
 	if (src.containsKey("jsonState"))
-		dst.jsonState = src["jsonState"].as<String>();
+		dst.jsonState = (const char*)src["jsonState"];
 }
 
 bool convertToJson(const MqttTopics_t& src, JsonVariant dst)
