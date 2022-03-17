@@ -11,7 +11,7 @@
 
 extern AsyncWebServer server;
 extern Config_t config;
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 
 size_t totalUploadSize = 0;
 

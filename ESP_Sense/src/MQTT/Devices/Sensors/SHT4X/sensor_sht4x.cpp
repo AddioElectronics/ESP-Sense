@@ -19,7 +19,7 @@
 
 
 extern PubSubClient mqttClient;
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 
 MqttDeviceConfig_t Sht4xSensor::globalDeviceConfig;
 MqttDeviceConfigMonitor_t Sht4xSensor::globalDeviceConfigMonitor;

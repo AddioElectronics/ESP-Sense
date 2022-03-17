@@ -5,6 +5,7 @@
 #include <ESPAsyncWebServer.h>
 
 #include "../../Config/config_master.h"
+#include "../../Config/global_status.h"
 
 #if COMPILE_CONFIG_BROWSER
 namespace Network {

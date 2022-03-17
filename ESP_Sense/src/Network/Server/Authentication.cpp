@@ -15,7 +15,7 @@
 #include "../Website/WebpageServer.h"
 
 extern Config_t config;
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 
 #if COMPILE_SERVER
 extern AsyncWebServer server;

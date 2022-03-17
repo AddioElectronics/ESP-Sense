@@ -4,6 +4,7 @@
 #include <Arduino.h>
 
 #include "../../Config/config_master.h"
+#include "../../Config/global_status.h"
 
 namespace Network 
 {

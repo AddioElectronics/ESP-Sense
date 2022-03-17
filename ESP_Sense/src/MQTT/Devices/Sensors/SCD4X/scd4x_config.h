@@ -6,6 +6,7 @@
 #include <SensirionI2CScd4x.h>
 
 #include "../../../../Config/config_master.h"
+#include "../../../../Config/global_status.h"
 #include "../../../../Config/config_mqtt.h"
 #include "../MqttSensor_Config.h"
 

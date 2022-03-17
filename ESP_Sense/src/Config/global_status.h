@@ -1,11 +1,5 @@
 #pragma once
 
-#if defined(ESP8266)
-#include <HardwareSerial.h>
-#elif defined(ESP32)
-#include <esp32-hal-uart.h>
-#endif
-
 #include <WiFi.h>
 
 #include "../GlobalDefs.h"
@@ -16,6 +10,8 @@ typedef struct{
 	bool enabled : 1;
 	bool configured : 1;
 }GenericModuleStatus_t;
+
+#pragma region Device Status
 
 typedef struct {
 	bool enabled : 1;
@@ -39,6 +35,10 @@ typedef struct {
 	GlobalStatusTasks_t tasks;
 }GlobalStatusDevice_t;
 
+#pragma endregion
+
+#pragma region Config
+
 typedef struct {
 	uint32_t configCRC;						//Current CRC of the global config after configuration.
 	bool ableToBackupEeprom : 1;			//Is the config file small enough to fit on the EEPROM?
@@ -61,6 +61,10 @@ typedef struct {
 	char fileName[CONFIG_PATH_MAX_LENGTH];	
 	BackupStatus_t backup;
 }GlobalStatusConfig_t;
+
+#pragma endregion
+
+#pragma region Wifi
 
 typedef struct {
 	bool enabled : 1;					//If connected is intended to be true. (If connected is false and enabled is true, device will attempt to reconnect)
@@ -98,51 +102,21 @@ typedef struct {
 	WifiAccessPointStatus_t accessPoint;
 }WifiStatus_t;
 
-typedef struct {
-	IPAddress ip;
-	uint8_t ipIndex;
-	//uint8_t totalAttemptsCounter;		//How many IP's have tried to connect?
-	uint8_t currentAttemptsCounter;
-	uint8_t maxRetries;
-	wifi_mode_t mode : 2;
-	bool triedRetainedIP : 1;
-	bool triedConfigStation : 1;
-	bool triedConfigAP : 1;
-	bool stationAutoExhausted : 1;
-	bool accessPointAutoExhausted : 1;
-	bool changed : 1;
-	bool autoDetectingStation : 1;
-}GlobalMqttIpStatus_t;
 
-typedef struct {
-	bool enabled : 1;
-	bool connected : 1;
-	bool missingRequiredInfo : 1;
-	bool subscribed : 1;
-	bool devicesConfigured : 1;
-	bool publishingDisabled : 1;
-	bool serverSet : 1;
-	//bool canPublishErrors : 1;
-	uint32_t connectAttempts;
-	unsigned long nextPublish;
-	unsigned long nextDisplayMessages;
-	unsigned long nextPublishAvailability;
-	unsigned long nextMqttConnectAttempt;
-	unsigned long nextWarningBlink;
-	MqttDevicesStatus_t devices;
-	GlobalMqttIpStatus_t ipStatus;
-}GlobalMqttStatus_t;
+#pragma endregion
 
-typedef struct {
-	bool enabled : 1;
-	bool configured : 1;
-}DnsStatus_t;
+#pragma region Server
+
+//typedef struct {
+//	bool enabled : 1;
+//	bool configured : 1;
+//}DnsStatus_t;
 
 typedef struct  {
 	bool enabled : 1;
 	bool configured : 1;
 	bool updating : 1;
-}BrowserUpdaterStatus_t;
+}ServerOtaStatus_t;
 
 typedef struct {
 	GenericModuleStatus_t fileEditor;
@@ -155,7 +129,7 @@ typedef struct {
 	GenericModuleStatus_t console;
 	GenericModuleStatus_t configBrowser;
 	GenericModuleStatus_t mqttDevices;
-	BrowserUpdaterStatus_t updater;
+	ServerOtaStatus_t updater;
 	BrowserToolsStatus_t tools;
 }BrowserStatus_t;
 
@@ -166,28 +140,30 @@ typedef struct {
 typedef struct {
 	bool enabled : 1;
 	bool configured : 1;
-	bool updating : 1;
-}ServerOtaStatus_t;
-
-typedef struct {
-	bool enabled : 1;
-	bool configured : 1;
 	bool authenticated : 1;
 	bool authConfigured : 1;
 	bool specialRequestsConfigured : 1;
 	IPAddress clientIP;
 	UpdateMode updating;
 	unsigned long sessionEnd;
-	DnsStatus_t dns;
+	GenericModuleStatus_t dns;
 	BrowserStatus_t browser;
 	FtpStatus_t ftp;
 	ServerOtaStatus_t ota;
 }ServerStatus_t;
 
+#pragma endregion
+
+#pragma region Misc
+
 typedef struct {
 	Version_t version;
 	bool developerMode : 1;					//Developer mode is only compiled if the definition is true, but can still be disabled at runtime.
 }GlobalMiscStatus_t;
+
+#pragma endregion
+
+
 
 typedef struct {
 	GlobalStatusDevice_t device;
@@ -196,7 +172,11 @@ typedef struct {
 	GlobalMqttStatus_t mqtt;
 	ServerStatus_t server;
 	GlobalMiscStatus_t misc;
-}DeviceStatus_t;
+}GlobalStatus_t;
+
+
+
+#pragma region Retained
 
 typedef struct {
 	uint32_t bootFile;
@@ -224,14 +204,16 @@ typedef struct {
 //}FunctionalStatus_t;
 
 typedef struct {
+	//char ip[16];				//Last IP that was able to connect.
+	IPAddress ip;
+}MqttRetainedStatus_t;
+
+typedef struct {
 	Boot_bm boot;
 	//char lastConfigPath[CONFIG_PATH_MAX_LENGTH];
 	Crcs_t crcs;
 	FileSizes_t fileSizes;
-	struct {
-		//char ip[16];				//Last IP that was able to connect.
-		IPAddress ip;
-	}mqtt;
+	MqttRetainedStatus_t mqtt;
 	//FunctionalStatus_t functional;
 }StatusRetained_t;
 
@@ -260,3 +242,5 @@ typedef union {
 	};
 	uint32_t bitmap;
 }StatusRetainedMonitor_t;
+
+#pragma endregion

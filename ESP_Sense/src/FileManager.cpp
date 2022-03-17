@@ -1,6 +1,7 @@
 #include "FileManager.h"
 
 #include "Config/config_master.h"
+#include "Config/global_status.h"
 #include "../ESP_Sense.h"
 
 #include "CrcStream.h"
@@ -8,7 +9,7 @@
 #include "HelperFunctions.h"
 #include "macros.h"
 
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 extern Config_t config;
 extern HardwareSerial* serial;				//Message
 extern HardwareSerial* serialDebug;		//Debug
@@ -22,9 +23,9 @@ bool FileManager::MountFileSystem()
 #if defined(ESP8266)
 	bool formatted = false;
 RetryConnection:
-	status.storage.fsMounted = ESP_FS.begin();
+	status.device.fsMounted = ESP_FS.begin();
 	//Mounting failed, format and try again.
-	if (!status.storage.fsMounted && !formatted)
+	if (!status.device.fsMounted && !formatted)
 	{
 		formatted = true;
 		ESP_FS.format();
@@ -32,11 +33,11 @@ RetryConnection:
 		goto RetryConnection;
 	}
 #elif defined(ESP32)
-	status.storage.fsMounted = ESP_FS.begin(statusRetained.boot.freshBoot);
+	status.device.fsMounted = ESP_FS.begin(statusRetained.boot.freshBoot);
 #endif
 
 	//Could not mount FS.
-	if (!status.storage.fsMounted)
+	if (!status.device.fsMounted)
 	{
 		DEBUG_LOG_LN("An error has occured while mounting the file system. EEPROM or Firmware configuration data will be used.");
 		return false;
@@ -50,7 +51,7 @@ bool FileManager::UnMountFileSystem()
 {
 	DEBUG_LOG_LN("Un-mounting file system...");
 
-	status.storage.fsMounted = false;
+	status.device.fsMounted = false;
 	ESP_FS.end();
 
 	DEBUG_LOG_LN("File system un-mounted.");
@@ -71,7 +72,7 @@ bool FileManager::OpenFile(File* file, const char* path, const char* mode)
 
 	DEBUG_LOG_F("Opening %s... to %s.\r\n", path, mode);
 
-	if (!status.storage.fsMounted)
+	if (!status.device.fsMounted)
 	{
 		DEBUG_LOG_LN("File cannot be opened as the file system is not mounted.");
 		return false;

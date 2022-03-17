@@ -295,3 +295,39 @@ typedef union {
 	uint64_t bitmap;
 }MqttConfigMonitor_t;
 #pragma endregion
+
+typedef struct {
+	IPAddress ip;
+	uint8_t ipIndex;
+	//uint8_t totalAttemptsCounter;		//How many IP's have tried to connect?
+	uint8_t currentAttemptsCounter;
+	uint8_t maxRetries;
+	wifi_mode_t mode : 2;
+	bool triedRetainedIP : 1;
+	bool triedConfigStation : 1;
+	bool triedConfigAP : 1;
+	bool stationAutoExhausted : 1;
+	bool accessPointAutoExhausted : 1;
+	bool changed : 1;
+	bool autoDetectingStation : 1;
+}GlobalMqttIpStatus_t;
+
+typedef struct {
+	bool enabled : 1;
+	bool connected : 1;
+	bool missingRequiredInfo : 1;
+	bool subscribed : 1;
+	bool devicesConfigured : 1;
+	bool publishingDisabled : 1;
+	bool serverSet : 1;
+	//bool canPublishErrors : 1;
+	uint32_t connectAttempts;
+	unsigned long nextPublish;
+	unsigned long nextDisplayMessages;
+	unsigned long nextPublishAvailability;
+	unsigned long nextMqttConnectAttempt;
+	unsigned long nextWarningBlink;
+	MqttDevicesStatus_t devices;
+	GlobalMqttIpStatus_t ipStatus;
+}GlobalMqttStatus_t;
+

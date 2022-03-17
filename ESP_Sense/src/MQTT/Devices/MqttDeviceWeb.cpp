@@ -12,7 +12,7 @@
 #include "../../Network/Server/Authentication.h"
 #include "../../Network/Website/WebStrings.h"
 
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 
 extern AsyncWebServer server;
 

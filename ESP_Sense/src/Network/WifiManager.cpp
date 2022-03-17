@@ -101,7 +101,7 @@ extern FTPServer ftpServer;
 
 extern PubSubClient mqttClient;
 extern Config_t config;
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 
 #if defined(ESP8266)
 //extern void serialEventRun(void) __attribute__((weak));

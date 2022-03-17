@@ -19,13 +19,13 @@
 //String controllableLedAvailabilityTopic;
 //String controllableLedArrayName;
 //
-// extern DeviceStatus_t status;
+// extern GlobalStatus_t status;
 //
 //bool led_init()
 //{
 //	Serial.println("Initializing Controllable LEDs");
 //
-//	if (!status.storage.fsMounted) return false;
+//	if (!status.device.fsMounted) return false;
 //
 //
 //	File file = LittleFS.open("/led_config.json", "r");

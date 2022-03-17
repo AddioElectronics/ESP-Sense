@@ -1,8 +1,9 @@
 #include "CrcStream.h"
 
 #include "Config/config_master.h"
+#include "Config/global_status.h"
 
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 
 size_t Crc32Stream::write(uint8_t c)
 {
@@ -42,7 +43,7 @@ void Crc32EepromStream::init(EepromStream* _eepromStream)
 
 size_t Crc32EepromStream::write(uint8_t c)
 {
-	if (!status.storage.eepromMounted) return 0;
+	if (!status.device.eepromMounted) return 0;
 
 	crc.add(c);
 	return eepromStream->write(c);
@@ -50,7 +51,7 @@ size_t Crc32EepromStream::write(uint8_t c)
 
 size_t Crc32EepromStream::write(const uint8_t* buffer, size_t length)
 {
-	if (!status.storage.eepromMounted) return 0;
+	if (!status.device.eepromMounted) return 0;
 
 	crc.add(buffer, length);
 	return eepromStream->write(buffer, length);

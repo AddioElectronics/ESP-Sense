@@ -6,6 +6,7 @@
 #include <Arduino.h>
 
 #include "../../Config/config_master.h"
+#include "../../Config/global_status.h"
 
 #if defined(ESP8266)
 #include <ESP8266WiFi.h>

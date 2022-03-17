@@ -23,6 +23,7 @@
 
 #include "src/Config/config_master.h"
 #include "src/Config/global_status.h"
+#include "src/Config/config_udfs.h"
 
 #include <StreamUtils.hpp>
 #include <StreamUtils.h>											
@@ -123,7 +124,7 @@
 
 Config_t config;
 ConfigMonitor_t configMonitor;
-DeviceStatus_t status;
+GlobalStatus_t status;
 ConfigBitmap_bm configBitmap;
 
 extern PubSubClient mqttClient;
@@ -373,7 +374,7 @@ void loop()
 
 void EspSense::BlankStructures()
 {
-	memset(&status, 0, sizeof(DeviceStatus_t));
+	memset(&status, 0, sizeof(GlobalStatus_t));
 	memset(&configMonitor, 0, sizeof(ConfigMonitor_t));
 	memset(&statusRetained, 0, sizeof(StatusRetained_t));
 	memset(&statusRetainedMonitor, 0, sizeof(StatusRetainedMonitor_t));
@@ -549,7 +550,7 @@ void EspSense::ApplySerialSettings(HardwareSerial& port, SerialPortConfig_t& por
 
 bool EspSense::LoadRetainedStatus()
 {
-	if (!status.storage.eepromMounted)
+	if (!status.device.eepromMounted)
 	{
 		DEBUG_LOG_LN("Cannot load Retained Status : EEPROM not mounted!");
 		return status.device.retainedStatusLoaded = false;
@@ -565,8 +566,8 @@ bool EspSense::LoadRetainedStatus()
 	statusRetainedMonitor.boot.configMode = statusRetained.boot.configMode != false;
 
 #if COMPILE_BACKUP
-	status.backup.eepromBackedUp = status.backup.ableToBackupEeprom && statusRetained.crcs.eepromBackupFile != 0;
-	status.backup.filesystemBackedUp = statusRetained.crcs.fileSystemBackupFile != 0;
+	status.config.backup.eepromBackedUp = status.config.backup.ableToBackupEeprom && statusRetained.crcs.eepromBackupFile != 0;
+	status.config.backup.filesystemBackedUp = statusRetained.crcs.fileSystemBackupFile != 0;
 #endif
 
 	return status.device.retainedStatusLoaded = true;
@@ -592,21 +593,21 @@ bool EspSense::MountEEPROM()
 	DEBUG_LOG_LN("Initializing EEPROM...");
 
 #if DOC_CONFIG_SERIALIZE_SIZE + 64 < 4096
-	status.storage.eepromMounted = EEPROM.begin(sizeof(StatusRetained_t) + DOC_CONFIG_SERIALIZE_SIZE);
+	status.device.eepromMounted = EEPROM.begin(sizeof(StatusRetained_t) + DOC_CONFIG_SERIALIZE_SIZE);
 #if COMPILE_BACKUP
-	status.backup.ableToBackupEeprom = status.storage.eepromMounted;
+	status.config.backup.ableToBackupEeprom = status.device.eepromMounted;
 #endif
 #else
-	status.storage.eepromMounted = EEPROM.begin(sizeof(DeviceRetainedStatus_t));
-	status.backup.ableToBackupEeprom = false;
+	status.device.eepromMounted = EEPROM.begin(sizeof(DeviceRetainedStatus_t));
+	status.config.backup.ableToBackupEeprom = false;
 #endif
 
-	if (!status.storage.eepromMounted)
+	if (!status.device.eepromMounted)
 	{
 		DEBUG_LOG_LN("EEPROM Failed to Mount!");
 	}
 
-	return status.storage.eepromMounted;
+	return status.device.eepromMounted;
 }
 
 

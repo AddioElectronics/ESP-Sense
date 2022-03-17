@@ -10,6 +10,7 @@
 #endif
 
 #include "../../Config/config_master.h"
+#include "../../Config/global_status.h"
 #include "../../Config/ConfigManager.h"
 #include "../../JsonHelper.h"
 

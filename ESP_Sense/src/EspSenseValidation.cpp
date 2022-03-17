@@ -4,10 +4,10 @@
 
 #include "../ESP_Sense.h"
 #include "Config/config_master.h"
-
+#include "Config/global_status.h"
 #include "macros.h"
 
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 extern Config_t config;
 
 #if defined(ESP8266)

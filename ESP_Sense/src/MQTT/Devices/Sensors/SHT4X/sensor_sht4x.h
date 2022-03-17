@@ -14,6 +14,7 @@
 #include <Adafruit_SHT4x.h>
 
 #include "../../../../Config/config_master.h"
+#include "../../../../Config/global_status.h"
 #include "sht4x_config.h"
 
 #include "../../MqttDevice.h"

@@ -30,6 +30,7 @@
 //#include <SensirionI2CScd4x.h>
 
 #include "src/Config/config_master.h"
+#include "src/Config/global_status.h"
 
 //////////////////////////////////////////////////////
 //					Function Prototypes

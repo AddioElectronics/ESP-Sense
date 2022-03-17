@@ -66,7 +66,7 @@ extern AsyncWebServer server;
 #pragma endregion
 
 extern Config_t config;
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 extern StatusRetained_t statusRetained;
 
 extern HardwareSerial* serial;			//Message

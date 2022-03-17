@@ -131,7 +131,7 @@ typedef struct {
 
 
 extern Config_t config;
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 extern PubSubClient mqttClient;
 
 class MqttDevice

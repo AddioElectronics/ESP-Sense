@@ -7,6 +7,7 @@
 #include <ArduinoJson.h>
 
 #include "../../Config/config_master.h"
+#include "../../Config/global_status.h"
 #include "../../Config/config_mqtt.h"
 
 #include "MqttDevice.h"

@@ -8,7 +8,7 @@
 #include "../../../../macros.h"
 
 extern PubSubClient mqttClient;
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 
 extern TwoWire Wire;
 

@@ -678,17 +678,19 @@ typedef union {
 	uint64_t bitmap;
 }ConfigDeviceMonitor_t;
 
-#pragma endregion
-
 /// <summary>
 /// Used to determine which settings have been changed.
 /// </summary>
-typedef struct{
+typedef struct {
 	WifiConfigMonitor_t wifi;
 	MqttConfigMonitor_t mqtt;
 	ConfigDeviceMonitor_t device;
 	ServerConfigMonitor_t server;
 }ConfigMonitor_t;
+
+#pragma endregion
+
+
 
 
 /// <summary>

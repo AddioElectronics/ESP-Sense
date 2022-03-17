@@ -26,7 +26,7 @@ typedef struct {
 }MqttSensorStatus_t;
 
 extern PubSubClient mqttClient;
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 
 class MqttSensor : public MqttDevice
 {

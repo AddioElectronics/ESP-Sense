@@ -24,7 +24,7 @@
 
 extern Config_t config;
 extern ConfigMonitor_t configMonitor;
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 extern StatusRetained_t statusRetained;
 extern StatusRetainedMonitor_t statusRetainedMonitor;
 extern ConfigBitmap_bm configBitmap;
@@ -665,12 +665,12 @@ int Config::Documents::CheckConfigCrc(JsonDocument& configDoc)
 {
 	if (configDoc.size() == 0) return -1;
 
-	status.config.configCRC = FileManager::GetSerializedCRC(configDoc);
+	status.config.backup.configCRC = FileManager::GetSerializedCRC(configDoc);
 
-	statusRetainedMonitor.crcs.configFile = statusRetained.crcs.configFile != status.config.configCRC;
-	statusRetained.crcs.configFile = status.config.configCRC;
+	statusRetainedMonitor.crcs.configFile = statusRetained.crcs.configFile != status.config.backup.configCRC;
+	statusRetained.crcs.configFile = status.config.backup.configCRC;
 
-	Backup::SetBackupFlags(status.config.configCRC);
+	Backup::SetBackupFlags(status.config.backup.configCRC);
 
 	return statusRetainedMonitor.crcs.configFile;
 }
@@ -761,7 +761,7 @@ ReselectBootSource:
 
 	case ConfigSource::CFG_BACKUP_FILESYSTEM:
 		DEBUG_LOG_LN("Backup on File System");
-		if (!status.backup.filesystemBackedUp)
+		if (!status.config.backup.filesystemBackedUp)
 		{
 			DEBUG_LOG_LN("...Cannot load backup from File System! A backup does not exist or the CRC does not match most recent backup.\r\n...Using EEPROM config source.");
 			status.config.configSource = ConfigSource::CFG_EEPROM;
@@ -775,9 +775,9 @@ ReselectBootSource:
 		if (!SelectConfigPath(status.config.configSource == ConfigSource::CFG_BACKUP_FILESYSTEM))
 		{
 			//If last attempt was from FS Backup, try EEPROM. Else use file system.
-			if (status.config.configSource == ConfigSource::CFG_BACKUP_FILESYSTEM || !status.backup.filesystemBackedUp)
+			if (status.config.configSource == ConfigSource::CFG_BACKUP_FILESYSTEM || !status.config.backup.filesystemBackedUp)
 			{
-				if (status.backup.eepromBackedUp)
+				if (status.config.backup.eepromBackedUp)
 					goto EEPROM_Config;
 				else
 					goto Firmware_Config;
@@ -790,11 +790,11 @@ ReselectBootSource:
 	//Deserialize the config into a document.
 	if (!DeserializeConfig())
 	{
-		status.backup.backupsDisabled = true;
+		status.config.backup.backupsDisabled = true;
 
 		#if COMPILE_BACKUP
 			//Config failed, try backup or EEPROM.
-			if (status.backup.filesystemBackedUp)
+			if (status.config.backup.filesystemBackedUp)
 			{
 				FS_Backup_Config:
 
@@ -810,7 +810,7 @@ ReselectBootSource:
 			else 
 			{
 			EEPROM_Config:		
-				if (status.backup.eepromBackedUp) {
+				if (status.config.backup.eepromBackedUp) {
 					DEBUG_LOG_LN("...Getting config from EEPROM...");
 					status.config.configSource = ConfigSource::CFG_EEPROM;
 					if (!Backup::DeserializeEepromBackupConfig(configDoc))
@@ -962,7 +962,7 @@ bool Config::Documents::DeserializeConfig()
 		return false;
 	}
 
-	if (!status.storage.fsMounted)
+	if (!status.device.fsMounted)
 	{
 		DEBUG_LOG_LN("Config cannot be opened as the file system is not mounted.");
 		return false;
@@ -1044,7 +1044,7 @@ size_t Config::Documents::SaveConfig()
 
 	DEBUG_LOG_LN("Saving config...");
 
-	if (!status.storage.fsMounted)
+	if (!status.device.fsMounted)
 	{
 		DEBUG_LOG_LN("Config cannot be saved as the file system is not mounted.");
 		return false;
@@ -1090,7 +1090,7 @@ bool Config::Backup::SaveBackupConfig(bool fs, bool eeprom, bool saveRetained, s
 	DEBUG_NEWLINE();
 	DEBUG_LOG_LN("Saving backup config...");
 
-	if (status.backup.backupsDisabled)
+	if (status.config.backup.backupsDisabled)
 	{
 		DEBUG_LOG_LN("...Backups are disabled.");
 		return false;
@@ -1102,7 +1102,7 @@ bool Config::Backup::SaveBackupConfig(bool fs, bool eeprom, bool saveRetained, s
 		return 0;
 	}
 
-	if (status.backup.filesystemBackedUp /*&& status.backup.eepromBackedUp && statusRetained.fileSizes.eepromBackup*/)
+	if (status.config.backup.filesystemBackedUp /*&& status.config.backup.eepromBackedUp && statusRetained.fileSizes.eepromBackup*/)
 	{
 		Label_AlreadyBackedup:
 		DEBUG_LOG_LN("...Backup already saved.");
@@ -1137,7 +1137,7 @@ bool Config::Backup::SaveBackupConfig(bool fs, bool eeprom, bool saveRetained, s
 	if (out_sizeFileSystem != nullptr)
 		*out_sizeFileSystem = sizeFS;
 
-	if (eeprom && status.backup.ableToBackupEeprom)
+	if (eeprom && status.config.backup.ableToBackupEeprom)
 	{
 		DEBUG_LOG("...Saving to EEPROM...");
 		sizeEeprom = SaveBackupEeprom(&serializeConfigDoc, docCRC);
@@ -1149,7 +1149,7 @@ bool Config::Backup::SaveBackupConfig(bool fs, bool eeprom, bool saveRetained, s
 	if (out_sizeEeprom != nullptr)
 		*out_sizeEeprom = sizeEeprom;
 
-	if (!status.backup.ableToBackupEeprom && sizeFS > 1)
+	if (!status.config.backup.ableToBackupEeprom && sizeFS > 1)
 	{
 		//New backup saved, EEPROM out of date.
 		//Could not save to EEPROM, flag that backup does not exist.
@@ -1175,7 +1175,7 @@ bool Config::Backup::AutoSaveBackupConfig(bool saveRetained, size_t* out_sizeFil
 
 	DEBUG_LOG_LN("Auto-saving backup config...");
 
-	if (status.backup.backupsDisabled)
+	if (status.config.backup.backupsDisabled)
 	{
 		DEBUG_LOG_LN("...Backups are disabled.");
 		return false;
@@ -1193,19 +1193,19 @@ size_t Config::Backup::SaveBackupEeprom(bool saveRetained)
 #if COMPILE_BACKUP
 	DEBUG_LOG_LN("Saving config backup to EEPROM...\r\n...Creating json document...");
 
-	if (status.backup.backupsDisabled)
+	if (status.config.backup.backupsDisabled)
 	{
 		DEBUG_LOG_LN("...Backups are disabled.");
 		return false;
 	}
 
-	if (!status.storage.eepromMounted)
+	if (!status.device.eepromMounted)
 	{
 		DEBUG_LOG_LN("...Backup cannot be saved as the EEPROM is not mounted.");
 		return false;
 	}
 
-	if (!status.backup.eepromBackedUp /*&& statusRetained.fileSizes.eepromBackup*/)
+	if (!status.config.backup.eepromBackedUp /*&& statusRetained.fileSizes.eepromBackup*/)
 	{
 		DEBUG_LOG_LN("...EEPROM backup already saved.");
 		return true;
@@ -1223,13 +1223,13 @@ size_t Config::Backup::SaveBackupEeprom(bool saveRetained)
 size_t Config::Backup::SaveBackupEeprom(JsonDocument* doc, bool saveRetained, const  uint32_t crc)
 {
 #if COMPILE_BACKUP
-	if (status.backup.backupsDisabled)
+	if (status.config.backup.backupsDisabled)
 	{
 		DEBUG_LOG_LN("Backups are disabled.\r\n");
 		return false;
 	}
 
-	if (!status.storage.eepromMounted)
+	if (!status.device.eepromMounted)
 	{
 		DEBUG_LOG_LN("Backup cannot be saved as the EEPROM is not mounted.\r\n");
 		return false;
@@ -1241,7 +1241,7 @@ size_t Config::Backup::SaveBackupEeprom(JsonDocument* doc, bool saveRetained, co
 		return 0;
 	}
 
-	if (status.backup.eepromBackedUp /*&& statusRetained.fileSizes.eepromBackup*/)
+	if (status.config.backup.eepromBackedUp /*&& statusRetained.fileSizes.eepromBackup*/)
 	{
 		DEBUG_LOG_LN("EEPROM backup already saved.\r\n");
 		return 1;
@@ -1249,7 +1249,7 @@ size_t Config::Backup::SaveBackupEeprom(JsonDocument* doc, bool saveRetained, co
 
 	size_t serializedSize = 0;
 
-	if(status.backup.filesystemBackedUp)
+	if(status.config.backup.filesystemBackedUp)
 
 
 
@@ -1310,7 +1310,7 @@ size_t Config::Backup::SaveBackupEeprom(JsonDocument* doc, bool saveRetained, co
 		}
 
 		DEBUG_LOG_F("...Backup saved to EEPROM. Size : %d bytes\r\n", size);
-		status.backup.eepromBackedUp = true;
+		status.config.backup.eepromBackedUp = true;
 		statusRetainedMonitor.crcs.recentBackup = statusRetained.crcs.recentBackup != crc;
 		statusRetainedMonitor.crcs.eepromBackupFile = statusRetained.crcs.eepromBackupFile != crc;
 		statusRetainedMonitor.fileSizes.recentBackup = statusRetained.fileSizes.recentBackup != size;
@@ -1337,19 +1337,19 @@ size_t Config::Backup::SaveBackupFilesystem(bool saveRetained)
 #if COMPILE_BACKUP
 	DEBUG_LOG_LN("Saving config backup to File System...");
 
-	if (status.backup.backupsDisabled)
+	if (status.config.backup.backupsDisabled)
 	{
 		DEBUG_LOG_LN("...Backups are disabled.");
 		return false;
 	}
 
-	if (status.backup.filesystemBackedUp /*&& statusRetained.fileSizes.fileSystemBackup*/)
+	if (status.config.backup.filesystemBackedUp /*&& statusRetained.fileSizes.fileSystemBackup*/)
 	{
 		DEBUG_LOG_LN("...File System backup already saved.");
 		return true;
 	}
 
-	if (!status.storage.fsMounted)
+	if (!status.device.fsMounted)
 	{
 		DEBUG_LOG_LN("...Backup cannot be saved as the file system is not mounted.");
 		return false;
@@ -1370,13 +1370,13 @@ size_t Config::Backup::SaveBackupFilesystem(bool saveRetained)
 size_t Config::Backup::SaveBackupFilesystem(JsonDocument* doc, bool saveRetained, const uint32_t crc)
 {
 #if COMPILE_BACKUP
-	if (status.backup.backupsDisabled)
+	if (status.config.backup.backupsDisabled)
 	{
 		DEBUG_LOG_LN("Backups are disabled.\r\n");
 		return false;
 	}
 
-	if (!status.storage.fsMounted)
+	if (!status.device.fsMounted)
 	{
 		DEBUG_LOG_LN("Backup cannot be saved as the file system is not mounted.\r\n");
 		return false;
@@ -1388,7 +1388,7 @@ size_t Config::Backup::SaveBackupFilesystem(JsonDocument* doc, bool saveRetained
 		return 0;
 	}
 
-	if (status.backup.filesystemBackedUp /*&& statusRetained.fileSizes.fileSystemBackup*/ /*&& statusRetained.crcs.recentBackup == statusRetained.crcs.fileSystemBackupFile*/)
+	if (status.config.backup.filesystemBackedUp /*&& statusRetained.fileSizes.fileSystemBackup*/ /*&& statusRetained.crcs.recentBackup == statusRetained.crcs.fileSystemBackupFile*/)
 	{
 		DEBUG_LOG_LN("File System backup already saved.\r\n");
 		return 1;
@@ -1473,7 +1473,7 @@ DEBUG_LOG_LN("FS Test start");
 		}
 
 		DEBUG_LOG_F("Backup saved to File System. Size : %d bytes\r\n", size);
-		status.backup.filesystemBackedUp = true;
+		status.config.backup.filesystemBackedUp = true;
 		statusRetainedMonitor.crcs.recentBackup = statusRetained.crcs.recentBackup != crc;
 		statusRetainedMonitor.crcs.fileSystemBackupFile = statusRetained.crcs.fileSystemBackupFile != crc;
 		statusRetainedMonitor.fileSizes.recentBackup = statusRetained.fileSizes.recentBackup != size;
@@ -1534,7 +1534,7 @@ void Config::Backup::DisableBackups()
 {
 #if COMPILE_BACKUP
 	DEBUG_LOG_LN("Auto-backup disabled. To enable, login to the ESP in a browser.");
-	status.backup.backupsDisabled = true;
+	status.config.backup.backupsDisabled = true;
 #endif
 }
 
@@ -1547,15 +1547,15 @@ void Config::Backup::EnableBackups()
 {
 #if COMPILE_BACKUP
 	DEBUG_LOG_LN("Auto-backup enabled.");
-	status.backup.backupsDisabled = false;
+	status.config.backup.backupsDisabled = false;
 #endif
 }
 
 void Config::Backup::SetBackupFlags(uint32_t crc)
 {
 #if COMPILE_BACKUP
-	status.backup.eepromBackedUp = crc == statusRetained.crcs.eepromBackupFile && statusRetained.fileSizes.eepromBackup > 0 && statusRetained.crcs.eepromBackupFile != statusRetained.crcs.recentBackup;
-	status.backup.filesystemBackedUp = crc == statusRetained.crcs.fileSystemBackupFile && statusRetained.fileSizes.fileSystemBackup > 0 && statusRetained.crcs.fileSystemBackupFile != statusRetained.crcs.recentBackup;
+	status.config.backup.eepromBackedUp = crc == statusRetained.crcs.eepromBackupFile && statusRetained.fileSizes.eepromBackup > 0 && statusRetained.crcs.eepromBackupFile != statusRetained.crcs.recentBackup;
+	status.config.backup.filesystemBackedUp = crc == statusRetained.crcs.fileSystemBackupFile && statusRetained.fileSizes.fileSystemBackup > 0 && statusRetained.crcs.fileSystemBackupFile != statusRetained.crcs.recentBackup;
 #endif
 }
 
@@ -1666,7 +1666,7 @@ int Config::Status::PackDeviceStatus(JsonObject& doc)
 
 bool Config::Status::SaveRetainedStatus()
 {
-	if (!status.storage.eepromMounted)
+	if (!status.device.eepromMounted)
 	{
 		DEBUG_LOG_LN("Cannot Save Retained Status : EEPROM Not Mounted!");
 		return false;
@@ -1715,1130 +1715,5 @@ bool Config::Status::SetRetainedConfigPath(bool saveRetained)
 #pragma endregion
 
 
-#pragma region Json UDFs
 
-bool convertToJson(const DeviceStatus_t& src, JsonVariant dst)
-{
-	//Device
-	{
-		JsonObject status_device = dst.createNestedObject("device");
-		status_device["freshboot"] = src.device.freshBoot;
-		status_device["i2cInitialized"] = src.device.i2cInitialized;
-		status_device["retainedStatusLoaded"] = src.device.retainedStatusLoaded;
-		status_device["retainedSnextAliveMessagetatusLoaded"] = src.device.nextAliveMessage;
-
-		JsonObject status_dualcore = status_device.createNestedObject("tasks");
-		status_dualcore["enabled"] = src.device.tasks.enabled;
-		status_dualcore["wifiTaskRunning"] = src.device.tasks.wifiTaskRunning;
-		status_dualcore["ftpTaskRunning"] = src.device.tasks.ftpTaskRunning;
-		status_dualcore["otaTaskRunning"] = src.device.tasks.otaTaskRunning;
-		status_dualcore["mqttTaskRunning"] = src.device.tasks.mqttTaskRunning;
-		status_dualcore["mqttDeviceManagerTaskRunning"] = src.device.tasks.mqttDeviceManagerTaskRunning;
-		status_dualcore["mqttPublishAvailabilityTaskRunning"] = src.device.tasks.mqttPublishAvailabilityTaskRunning;
-	}
-
-	//Config
-	{
-		JsonObject status_config = dst.createNestedObject("config");
-		status_config["setupComplete"] = src.config.setupComplete;
-		status_config["configRead"] = src.config.configRead;
-		status_config["hasRequiredData"] = src.config.hasRequiredData;
-		status_config["settingsConfigured"] = src.config.settingsConfigured;
-		status_config["saveRetainedLoop"] = src.config.saveRetainedLoop;
-		//status_config["configSource"] = (uint8_t)src.config.configSource;
-		status_config["configSource"].set(src.config.configSource);
-		status_config["pathSet"] = src.config.pathSet;
-		status_config["testingConfig"] = src.config.testingConfig;
-		status_config["path"] = src.config.path;
-		status_config["fileName"] = src.config.fileName;
-	}
-
-	//Wifi
-	{
-		JsonObject status_wifi = dst.createNestedObject("wifi");
-		status_wifi["connected"] = src.wifi.connected;
-		status_wifi["configMode"] = src.wifi.configMode;
-		status_wifi["eventsRegistered"] = src.wifi.eventsRegistered;
-		status_wifi["nextDisplayMessage"] = src.wifi.nextDisplayMessage;
-		//status_wifi["hotspotEnabled"] = src.wifi.hotspotEnabled;
-		//status_wifi["mode"]= (uint8_t)src.wifi.mode;
-		status_wifi["mode"].set<WifiMode>((WifiMode)src.wifi.mode);
-		status_wifi["powerLevel"].set((WifiPower)src.wifi.powerLevel);
-		//status_wifi["powerLevel"] = EnumTo(src.wifi.powerLevel, wifi_power_strings, 12, (int*)wifi_power_values);
-
-		JsonObject status_station = status_wifi.createNestedObject("station");
-		status_station["enabled"] = src.wifi.station.enabled;
-		status_station["missingRequiredInfo"] = src.wifi.station.missingRequiredInfo;
-		status_station["connected"] = src.wifi.station.connected;
-		status_station["eventsRegistered"] = src.wifi.station.eventsRegistered;
-		status_station["ip"].set(src.wifi.station.ip);
-		status_station["gotIP"] = src.wifi.station.gotIP;
-		//status_station["startedConnecting"] = src.wifi.station.startedConnecting;
-		status_station["wlstatus"] = (int)WiFi.status();
-		#warning move WiFi status to its own WiFi object
-
-			JsonObject status_ap = status_wifi.createNestedObject("accessPoint");
-		status_ap["enabled"] = src.wifi.accessPoint.enabled;
-		status_ap["connected"] = src.wifi.accessPoint.connected;
-		status_ap["clientCount"] = src.wifi.accessPoint.clientCount;
-		status_ap["ip"].set(src.wifi.accessPoint.ip);
-		status_ap["ipAssigned"] = src.wifi.accessPoint.ipAssigned;
-	}
-
-	//MQTT
-	{
-		JsonObject status_mqtt = dst.createNestedObject("mqtt");
-		status_mqtt["connected"] = src.mqtt.connected;
-		status_mqtt["missingRequiredInfo"] = src.mqtt.missingRequiredInfo;
-		status_mqtt["devicesConfigured"] = src.mqtt.devicesConfigured;
-		//status_mqtt["publishingEnabled"] = src.mqtt.publishingEnabled;
-		status_mqtt["publishingDisabled"] = src.mqtt.publishingDisabled;
-		status_mqtt["serverSet"] = src.mqtt.serverSet;
-		status_mqtt["nextPublish"] = src.mqtt.nextPublish;
-		status_mqtt["nextDisplayMessages"] = src.mqtt.nextDisplayMessages;
-		status_mqtt["nextPublishAvailability"] = src.mqtt.nextPublishAvailability;
-		status_mqtt["nextMqttConnectAttempt"] = src.mqtt.nextMqttConnectAttempt;
-		status_mqtt["nextWarningBlink"] = src.mqtt.nextWarningBlink;
-
-		{
-			JsonObject status_mqtt_devices = status_mqtt.createNestedObject("devices");
-			status_mqtt_devices["deviceCount"] = src.mqtt.devices.deviceCount;
-			status_mqtt_devices["binarySensorCount"] = src.mqtt.devices.binarySensorCount;
-			status_mqtt_devices["buttonCount"] = src.mqtt.devices.buttonCount;
-			status_mqtt_devices["lightCount"] = src.mqtt.devices.lightCount;
-			status_mqtt_devices["sensorCount"] = src.mqtt.devices.sensorCount;
-			status_mqtt_devices["switchCount"] = src.mqtt.devices.switchCount;
-
-			#warning create UDF
-				JsonObject status_functioning_devices = status_mqtt_devices.createNestedObject("functioningDevices");
-			status_functioning_devices["bitmap0"] = src.mqtt.devices.functioningDevices.bitmap0;
-			status_functioning_devices["bitmap1"] = src.mqtt.devices.functioningDevices.bitmap1;
-			status_functioning_devices["bitmap2"] = src.mqtt.devices.functioningDevices.bitmap2;
-			status_functioning_devices["bitmap3"] = src.mqtt.devices.functioningDevices.bitmap3;
-
-			JsonObject status_functioning_devices_important = status_mqtt_devices.createNestedObject("functioningDevicesImportant");
-			status_functioning_devices_important["bitmap0"] = src.mqtt.devices.functioningDevices.bitmap0;
-			status_functioning_devices_important["bitmap1"] = src.mqtt.devices.functioningDevices.bitmap1;
-			status_functioning_devices_important["bitmap2"] = src.mqtt.devices.functioningDevices.bitmap2;
-			status_functioning_devices_important["bitmap3"] = src.mqtt.devices.functioningDevices.bitmap3;
-		}
-
-		{
-			JsonObject status_mqtt_ip = status_mqtt.createNestedObject("ipStatus");
-			status_mqtt_ip["ip"].set(src.mqtt.ipStatus.ip);
-			status_mqtt_ip["ipIndex"] = src.mqtt.ipStatus.ipIndex;
-			status_mqtt_ip["mode"] = (uint8_t)src.mqtt.ipStatus.mode;
-			status_mqtt_ip["mode"].set(src.mqtt.ipStatus.mode);
-			//status_mqtt_ip["totalAttemptsCounter"] = src.mqtt.ipStatus.totalAttemptsCounter;
-			status_mqtt_ip["currentAttemptsCounter"] = src.mqtt.ipStatus.currentAttemptsCounter;
-			status_mqtt_ip["maxRetries"] = src.mqtt.ipStatus.maxRetries;
-			status_mqtt_ip["changed"] = src.mqtt.ipStatus.changed;
-			status_mqtt_ip["triedRetainedIP"] = src.mqtt.ipStatus.triedRetainedIP;
-			status_mqtt_ip["triedConfigStation"] = src.mqtt.ipStatus.triedConfigStation;
-			status_mqtt_ip["triedConfigAP"] = src.mqtt.ipStatus.triedConfigAP;
-			status_mqtt_ip["stationAutoExhausted"] = src.mqtt.ipStatus.stationAutoExhausted;
-			status_mqtt_ip["accessPointAutoExhausted"] = src.mqtt.ipStatus.accessPointAutoExhausted;
-		}
-	}
-
-	//Storage
-	{
-		JsonObject status_storage = dst.createNestedObject("storage");
-		status_storage["fsMounted"] = src.storage.fsMounted;
-		status_storage["eepromMounted"] = src.storage.eepromMounted;
-	}
-
-
-
-#if COMPILE_BACKUP
-	//Backup
-	{
-		JsonObject status_backup = dst.createNestedObject("backup");
-
-		status_backup["ableToBackupEeprom"] = src.backup.ableToBackupEeprom;
-		status_backup["backupsDisabled"] = src.backup.backupsDisabled;
-		status_backup["eepromBackedUp"] = src.backup.eepromBackedUp;
-		status_backup["filesystemBackedUp"] = src.backup.filesystemBackedUp;
-	}
-
-#endif	/*COMPILE_BACKUP*/
-
-#if COMPILE_SERVER
-	//Server
-	{
-		JsonObject status_server = dst.createNestedObject("server");
-
-		status_server["enabled"] = src.server.enabled;
-		status_server["configured"] = src.server.configured;
-		status_server["authenticated"] = src.server.authenticated;
-		status_server["authConfigured"] = src.server.authConfigured;
-		status_server["specialRequestsConfigured"] = src.server.specialRequestsConfigured;
-		status_server["updating"] = (int)src.server.updating;
-		status_server["clientIP"] = src.server.clientIP;
-		status_server["sessionEnd"] = src.server.sessionEnd;
-		#warning convert to string
-
-			//DNS
-		{
-			JsonObject status_dns = status_server.createNestedObject("dns");
-			status_dns["enabled"] = src.server.dns.enabled;
-			status_dns["configured"] = src.server.dns.configured;
-		}
-
-#if COMPILE_OTA
-			//OTA
-		{
-			JsonObject status_ota = status_server.createNestedObject("ota");
-			status_ota["enabled"] = src.server.ota.enabled;
-			status_ota["configured"] = src.server.ota.configured;
-			status_ota["updating"] = src.server.ota.updating;
-		}
-#endif
-
-		//Browser
-		JsonObject status_browser = status_server.createNestedObject("browser");
-		{
-			status_browser["enabled"] = src.server.browser.enabled;
-
-#endif	/*COMPILE_SERVER*/
-
-#if COMPILE_SERVER_CONSOLE
-			{
-				JsonObject status_server_console = status_browser.createNestedObject("console");
-				status_server_console["enabled"] = src.server.browser.console.enabled;
-				status_server_console["configured"] = src.server.browser.console.configured;
-			}
-#endif
-
-#if COMPILE_CONFIG_BROWSER
-			{
-				JsonObject status_server_configBrowser = status_browser.createNestedObject("configBrowser");
-				status_server_configBrowser["enabled"] = src.server.browser.configBrowser.enabled;
-				status_server_configBrowser["configured"] = src.server.browser.configBrowser.configured;
-			}
-#endif	/*COMPILE_CONFIG_BROWSER*/
-
-#if COMPILE_CONFIG_BROWSER_MQTT
-			{
-				JsonObject status_server_mqttConfigBrowser = status_browser.createNestedObject("mqttDevices");
-				status_server_mqttConfigBrowser["enabled"] = src.server.browser.mqttDevices.enabled;
-				status_server_mqttConfigBrowser["configured"] = src.server.browser.mqttDevices.configured;
-			}
-#endif	/*COMPILE_CONFIG_BROWSER*/
-
-#if COMPILE_WEBUPDATE
-			{
-				JsonObject status_server_webUpdate = status_browser.createNestedObject("webUpdate");
-				status_server_webUpdate["enabled"] = src.server.browser.updater.enabled;
-				status_server_webUpdate["configured"] = src.server.browser.updater.configured;
-				status_server_webUpdate["updating"] = src.server.browser.updater.updating;
-			}
-#endif	/*COMPILE_WEBUPDATE*/
-
-#if COMPILE_BROWSER_TOOLS
-			JsonObject status_tools = status_browser.createNestedObject("tools");
-			{
-#if COMPILE_FILE_EDITOR
-				{
-					JsonObject status_fileEditor = status_tools.createNestedObject("fileEditor");
-					status_fileEditor["enabled"] = src.server.browser.tools.fileEditor.enabled;
-					status_fileEditor["configured"] = src.server.browser.tools.fileEditor.configured;
-				}
-#endif
-#if COMPILE_WEB_JSON_VALIDATOR
-				{
-					JsonObject status_JsonVerify = status_tools.createNestedObject("jsonVerify");
-					status_JsonVerify["enabled"] = src.server.browser.tools.jsonVerify.enabled;
-					status_JsonVerify["configured"] = src.server.browser.tools.jsonVerify.configured;
-				}
-#endif
-			}
-#endif
-		}
-
-#if COMPILE_FTP
-		//FTP
-		{
-			JsonObject status_ftp = dst.createNestedObject("ftp");
-			status_ftp["enabled"] = src.server.ftp.enabled;
-		}
-#endif
-	}
-
-	//Misc
-	{
-
-		JsonObject status_misc = dst.createNestedObject("misc");
-		status_misc["version"].set(src.misc.version);
-		status_misc["developerMode"] = src.misc.developerMode;
-	}
-
-}
-
-
-bool canConvertFromJson(JsonVariantConst src, const StatusRetained_t&)
-{
-	return src.containsKey("boot") && src.containsKey("crcs") && src.containsKey("fileSizes") && src.containsKey("mqtt");
-}
-
-void convertFromJson(JsonVariantConst src, StatusRetained_t& dst)
-{
-	//if(src.containsKey("boot"))
-	JsonVariantConst boot = src["boot"];
-	dst.boot.freshBoot = boot["freshBoot"];
-	dst.boot.bootSource = boot["bootSource"].as<ConfigSource>();
-	dst.boot.wifiMode = (wifi_mode_t)((WifiMode)boot["wifiMode"].as<WifiMode>());
-
-	JsonVariantConst crcs = src["crcs"];
-	dst.crcs.bootFile = crcs["bootFile"];
-	dst.crcs.configFile = crcs["configFile"];
-	dst.crcs.configPath= crcs["configPath"];
-	dst.crcs.eepromBackupFile = crcs["eepromBackupFile"];
-	dst.crcs.fileSystemBackupFile = crcs["fileSystemBackupFile"];
-	dst.crcs.recentBackup= crcs["recentBackup"];
-
-	JsonVariantConst fileSizes = src["fileSizes"];
-	dst.fileSizes.eepromBackup = fileSizes["eepromBackup"];
-	dst.fileSizes.fileSystemBackup = fileSizes["fileSystemBackup"];
-	dst.fileSizes.recentBackup = fileSizes["recentBackup"];
-
-	JsonVariantConst mqtt = src["mqtt"];
-	dst.mqtt.ip = mqtt["ip"].as<IPAddress>();
-}
-
-bool convertToJson(const StatusRetained_t& src, JsonVariant dst)
-{
-	JsonObject retainedStatus_boot = dst.createNestedObject("boot");
-	retainedStatus_boot["freshBoot"] = statusRetained.boot.freshBoot;
-	retainedStatus_boot["bootSource"].set(statusRetained.boot.bootSource);
-	retainedStatus_boot["wifiMode"].set<WifiMode>((WifiMode)statusRetained.boot.wifiMode);
-
-	JsonObject retainedStatus_crcs = dst.createNestedObject("crcs");
-	retainedStatus_crcs["bootFile"] = statusRetained.crcs.bootFile;
-	retainedStatus_crcs["configPath"] = statusRetained.crcs.configPath;
-	retainedStatus_crcs["configFile"] = statusRetained.crcs.configFile;
-	retainedStatus_crcs["recentBackup"] = statusRetained.crcs.recentBackup;
-	retainedStatus_crcs["fileSystemBackupFile"] = statusRetained.crcs.fileSystemBackupFile;
-	retainedStatus_crcs["eepromBackupFile"] = statusRetained.crcs.eepromBackupFile;
-
-	JsonObject retainedStatus_fileSizes = dst.createNestedObject("fileSizes");
-	retainedStatus_fileSizes["recentBackup"] = statusRetained.fileSizes.recentBackup;
-	retainedStatus_fileSizes["fileSystemBackup"] = statusRetained.fileSizes.fileSystemBackup;
-	retainedStatus_fileSizes["eepromBackup"] = statusRetained.fileSizes.eepromBackup;
-
-	JsonObject retainedStatus_mqtt = dst.createNestedObject("mqtt");
-	retainedStatus_mqtt["ip"].set(statusRetained.mqtt.ip);
-}
-
-//bool canConvertFromJson(JsonVariantConst src, const Boot_bm&)
-//{
-//
-//}
-
-void convertFromJson(JsonVariantConst src, Boot_bm& dst)
-{
-	if (src.containsKey("freshBoot"))
-		dst.freshBoot = src["freshBoot"];
-
-	if (src.containsKey("bootSource"))
-		dst.bootSource = src["bootSource"].as<ConfigSource>();
-
-	if (src.containsKey("wifiMode"))
-		dst.wifiMode = (wifi_mode_t)(src["wifiMode"].as<WifiMode>());
-
-	if (src.containsKey("configMode"))
-		dst.configMode = src["configMode"];
-}
-
-bool convertToJson(const Boot_bm& src, JsonVariant dst)
-{
-	dst["freshBoot"] = src.freshBoot;
-	dst["bootSource"].set<ConfigSource>(src.bootSource);
-	dst["wifiMode"].set<WifiMode>((WifiMode)src.wifiMode);
-	dst["configMode"] = src.configMode;
-}
-
-
-//bool canConvertFromJson(JsonVariantConst src, const WifiStationConfig_t&)
-//{
-//
-//}
-
-void convertFromJson(JsonVariantConst src, WifiStationConfig_t& dst)
-{
-	DEBUG_LOG_LN("Converting WifiStationConfig_t from Json");
-
-	if (src.containsKey("enabled"))
-		dst.enabled = src["enabled"];
-
-	if (src.containsKey("ledOn"))
-		dst.ledOn = src["ledOn"];
-
-	if (src.containsKey("ssid"))
-		dst.ssid = (const char*)src["ssid"];
-
-	if (src.containsKey("pass"))
-		dst.pass = (const char*)src["pass"];
-
-	if (src.containsKey("ledGpio"))
-		dst.ledGpio = src["ledGpio"];
-
-
-}
-
-bool convertToJson(const WifiStationConfig_t& src, JsonVariant dst)
-{
-	dst["enabled"] = src.enabled;
-	dst["ledOn"] = src.ledOn;
-	dst["ssid"].set(src.ssid);
-	dst["pass"].set(src.pass);
-	dst["ledGpio"] = src.ledGpio;
-
-}
-
-
-//bool canConvertFromJson(JsonVariantConst src, const WifiAccessPointConfig_t&)
-//{
-//
-//}
-
-void convertFromJson(JsonVariantConst src, WifiAccessPointConfig_t& dst)
-{
-	DEBUG_LOG_LN("Converting WifiAccessPointConfig_t from Json");
-
-	if (src.containsKey("useDefaults"))
-		dst.useDefaults = src["useDefaults"];
-
-	if (src.containsKey("enabled"))
-		dst.enabled = src["enabled"];
-
-	if (src.containsKey("configOnly"))
-		dst.configOnly = src["configOnly"];
-
-	if (src.containsKey("buttonPullup"))
-		dst.buttonPullup = src["buttonPullup"];
-
-	if (src.containsKey("buttonPress"))
-		dst.buttonPress = src["buttonPress"];
-
-	if (src.containsKey("hidden"))
-		dst.hidden = src["hidden"];
-
-	if (src.containsKey("ledOn"))
-		dst.ledOn = src["ledOn"];
-
-	if (src.containsKey("ssid"))
-		dst.ssid = (const char*)src["ssid"];
-
-	if (src.containsKey("pass"))
-		dst.pass = (const char*)src["pass"];
-
-	if (src.containsKey("maxConnections"))
-		dst.maxConnections = src["maxConnections"];
-
-	if (src.containsKey("buttonGpio"))
-		dst.buttonGpio = src["buttonGpio"];
-
-	if (src.containsKey("holdTime"))
-		dst.holdTime = src["holdTime"];
-
-	if (src.containsKey("ledGpio"))
-		dst.ledGpio = src["ledGpio"];
-
-
-}
-
-bool convertToJson(const WifiAccessPointConfig_t& src, JsonVariant dst)
-{
-	dst["useDefaults"] = src.useDefaults;
-	dst["enabled"] = src.enabled;
-	dst["configOnly"] = src.configOnly;
-	dst["buttonPullup"] = src.buttonPullup;
-	dst["buttonPress"] = src.buttonPress;
-	dst["hidden"] = src.hidden;
-	dst["ledOn"] = src.ledOn;
-	dst["ssid"].set(src.ssid);
-	dst["pass"].set(src.pass);
-	dst["maxConnections"] = src.maxConnections;
-	dst["buttonGpio"] = src.buttonGpio;
-	dst["holdTime"] = src.holdTime;
-	dst["ledGpio"] = src.ledGpio;
-}
-
-//bool canConvertFromJson(JsonVariantConst src, const WifiConfig_t&)
-//{
-//
-//}
-
-void convertFromJson(JsonVariantConst src, WifiConfig_t& dst)
-{
-	DEBUG_LOG_LN("Converting WifiConfig_t from Json");
-	if (src.containsKey("useDefaults"))
-		dst.useDefaults = src["useDefaults"];
-
-	if (src.containsKey("channel"))
-		dst.channel = src["channel"];
-
-	if (src.containsKey("powerLevel"))
-		dst.powerLevel = (wifi_power_t)(src["powerLevel"].as<WifiPower>());
-
-	if (src.containsKey("station"))
-		convertFromJson(src["station"], dst.station);
-
-	if (src.containsKey("accessPoint"))
-		convertFromJson(src["accessPoint"], dst.accessPoint);
-
-	if (src.containsKey("taskSettings"))
-		convertFromJson(src["taskSettings"], dst.taskSettings);
-}
-
-bool convertToJson(const WifiConfig_t& src, JsonVariant dst)
-{
-	dst["useDefaults"] = src.useDefaults;
-	dst["channel"] = src.channel;
-	dst["powerLevel"].set<WifiPower>((WifiPower)src.powerLevel);
-	dst["station"].set(src.station);
-	dst["accessPoint"].set(src.accessPoint);
-	dst["taskSettings"].set(src.taskSettings);
-
-}
-
-
-//bool canConvertFromJson(JsonVariantConst src, const FtpConfig_t&)
-//{
-//
-//}
-
-void convertFromJson(JsonVariantConst src, FtpConfig_t& dst)
-{
-	if (src.containsKey("useDefaults"))
-		dst.useDefaults = src["useDefaults"];
-
-	if (src.containsKey("enabled"))
-		dst.enabled = src["enabled"];
-
-	if (src.containsKey("anonymous"))
-		dst.anonymous = src["anonymous"];
-
-	if (src.containsKey("user"))
-		dst.user = (const char*)src["user"];
-
-	if (src.containsKey("pass"))
-		dst.pass = (const char*)src["pass"];
-
-	if (src.containsKey("timeout"))
-		dst.timeout = src["timeout"];
-
-	if (src.containsKey("taskSettings"))
-		convertFromJson(src["taskSettings"], dst.taskSettings);
-
-}
-
-
-
-bool convertToJson(const FtpConfig_t& src, JsonVariant dst)
-{
-	dst["useDefaults"] = src.useDefaults;
-	dst["enabled"] = src.enabled;
-	dst["anonymous"] = src.anonymous;
-	dst["user"].set(src.user);
-	dst["pass"].set(src.pass);
-	dst["timeout"] = src.timeout;
-	dst["taskSettings"].set(src.taskSettings);
-}
-
-//bool canConvertFromJson(JsonVariantConst src, const BrowserConfig_t&)
-//{
-//
-//}
-
-void convertFromJson(JsonVariantConst src, BrowserConfig_t& dst)
-{
-	if (src.containsKey("useDefaults"))
-		dst.useDefaults = src["useDefaults"];
-
-	if (src.containsKey("enabled"))
-		dst.enabled = src["enabled"];
-
-	if (src.containsKey("config"))
-		dst.config = src["config"];
-
-	if (src.containsKey("console"))
-		dst.console = src["console"];
-
-	if (src.containsKey("updater"))
-		dst.updater = src["updater"];
-
-	if (src.containsKey("mqttDevices"))
-		dst.mqttDevices = src["mqttDevices"];
-
-	if (src.containsKey("ssl"))
-		dst.ssl = src["ssl"];
-
-	if (src.containsKey("tools"))
-	{
-		if(src.containsKey("fileEditor"))
-			dst.tools.fileEditor = src["fileEditor"];
-
-		if (src.containsKey("jsonVerify"))
-			dst.tools.jsonVerify = src["jsonVerify"];
-	}
-}
-
-
-
-bool convertToJson(const BrowserConfig_t& src, JsonVariant dst)
-{
-	dst["useDefaults"] = src.useDefaults;
-	dst["enabled"] = src.enabled;
-
-	dst["config"] = src.config;
-	dst["console"] = src.console;
-	dst["updater"] = src.updater;
-	dst["mqttDevices"] = src.mqttDevices;
-	dst["ssl"] = src.ssl;
-
-	dst["tools"]["fileEditor"] = src.tools.fileEditor;
-	dst["jsonVerify"]["jsonVerify"] = src.tools.jsonVerify;
-}
-
-
-//bool canConvertFromJson(JsonVariantConst src, const OtaConfig_t&)
-//{
-//
-//}
-
-void convertFromJson(JsonVariantConst src, OtaConfig_t& dst)
-{
-	if (src.containsKey("useDefaults"))
-		dst.useDefaults = src["useDefaults"];
-
-	if (src.containsKey("useDefaults"))
-		dst.useDefaults = src["useDefaults"];
-
-	if (src.containsKey("taskSettings"))
-		convertFromJson(src["taskSettings"], dst.taskSettings);
-
-}
-
-bool convertToJson(const OtaConfig_t& src, JsonVariant dst)
-{
-	dst["useDefaults"] = src.useDefaults;
-	dst["enabled"] = src.enabled;
-
-	dst["taskSettings"].set(src.taskSettings);
-}
-
-
-//bool canConvertFromJson(JsonVariantConst src, const ServerConfig_t&)
-//{
-//
-//}
-
-void convertFromJson(JsonVariantConst src, ServerConfig_t& dst)
-{
-	if (src.containsKey("useDefaults"))
-		dst.useDefaults = src["useDefaults"];
-
-	if (src.containsKey("dns"))
-		dst.dns = src["dns"];
-
-	if (src.containsKey("authenticate"))
-		dst.authenticate = src["authenticate"];
-
-	if (src.containsKey("hostname"))
-		dst.hostname = (const char*)src["hostname"];
-
-	if (src.containsKey("user"))
-		dst.user = (const char*)src["user"];
-
-	if (src.containsKey("pass"))
-		dst.pass = (const char*)src["pass"];
-
-	if (src.containsKey("sessionTimeout"))
-		dst.sessionTimeout = src["sessionTimeout"];
-
-	if (src.containsKey("browser"))
-		convertFromJson(src["browser"], dst.browser);
-
-	if (src.containsKey("ftp"))
-		convertFromJson(src["ftp"], dst.ftp);
-
-	if (src.containsKey("ota"))
-		convertFromJson(src["ota"], dst.ota);
-
-}
-
-bool convertToJson(const ServerConfig_t& src, JsonVariant dst)
-{
-	dst["useDefaults"] = src.useDefaults;
-	dst["dns"] = src.dns;
-	dst["authenticate"] = src.authenticate;
-	dst["hostname"].set(src.hostname);
-	dst["user"].set(src.user);
-	dst["pass"].set(src.pass);
-	dst["sessionTimeout"] = src.sessionTimeout;
-
-	dst["browser"].set(src.browser);
-	dst["ftp"].set(src.ftp);
-	dst["ota"].set(src.ota);
-}
-
-
-//bool canConvertFromJson(JsonVariantConst src, const SerialPortConfig_t&)
-//{
-//
-//}
-
-void convertFromJson(JsonVariantConst src, SerialPortConfig_t& dst)
-{
-	if (src.containsKey("useDefaults"))
-		dst.useDefaults = src["useDefaults"];
-
-	if (src.containsKey("enabled"))
-		dst.enabled = src["enabled"];
-
-	if (src.containsKey("invert"))
-		dst.invert = src["invert"];
-
-	if (src.containsKey("baud"))
-		dst.baud = src["baud"];
-
-	if (src.containsKey("rxGpio"))
-		dst.rxGpio = src["rxGpio"];
-
-	if (src.containsKey("txGpio"))
-		dst.txGpio = src["txGpio"];
-
-	if (src.containsKey("timeout"))
-		dst.timeout = src["timeout"];
-
-	if (src.containsKey("config"))
-		dst.config = src["config"];
-
-	if (src.containsKey("useDefaults"))
-		dst.useDefaults = src["useDefaults"];
-
-}
-
-bool convertToJson(const SerialPortConfig_t& src, JsonVariant dst)
-{
-	dst["useDefaults"] = src.useDefaults;
-	dst["enabled"] = src.enabled;
-	dst["invert"] = src.invert;
-	dst["baud"] = src.baud;
-	dst["rxGpio"] = src.rxGpio;
-	dst["txGpio"] = src.txGpio;
-	dst["timeout"] = src.timeout;
-	dst["config"] = src.config;
-}
-
-
-//bool canConvertFromJson(JsonVariantConst src, const SerialPortConfig_t&)
-//{
-//
-//}
-
-void convertFromJson(JsonVariantConst src, SerialConfig_t& dst)
-{
-	if (src.containsKey("useDefaults"))
-		dst.useDefaults = src["useDefaults"];
-
-	if (src.containsKey("messagePort"))
-		dst.messagePort = src["messagePort"];
-
-	if (src.containsKey("debugPort"))
-		dst.debugPort = src["debugPort"];
-
-	if (src.containsKey("port0"))
-		convertFromJson(src, dst.port0);
-
-	if (src.containsKey("port1"))
-		convertFromJson(src, dst.port1);
-}
-
-bool convertToJson(const SerialConfig_t& src, JsonVariant dst)
-{
-	dst["useDefaults"] = src.useDefaults;
-	dst["messagePort"] = src.messagePort;
-	dst["debugPort"] = src.debugPort;
-	dst["port0"].set(src.port0);
-	dst["port1"].set(src.port1);
-}
-
-//bool canConvertFromJson(JsonVariantConst src, const I2cConfig_t&)
-//{
-//
-//}
-
-void convertFromJson(JsonVariantConst src, I2cConfig_t& dst)
-{
-	if (src.containsKey("useDefaults"))
-		dst.useDefaults = src["useDefaults"];
-
-	if (src.containsKey("enabled"))
-		dst.enabled = src["enabled"];
-
-	if (src.containsKey("sclGpio"))
-		dst.sclGpio = src["sclGpio"];
-
-	if (src.containsKey("sdaGpio"))
-		dst.sdaGpio = src["sdaGpio"];
-
-	if (src.containsKey("freq"))
-		dst.freq = src["freq"];
-}
-
-bool convertToJson(const I2cConfig_t& src, JsonVariant dst)
-{
-	dst["useDefaults"] = src.useDefaults;
-	dst["enabled"] = src.enabled;
-	dst["sclGpio"] = src.sclGpio;
-	dst["sdaGpio"] = src.sdaGpio;
-	dst["freq"] = src.freq;
-}
-
-
-//bool canConvertFromJson(JsonVariantConst src, const ConfigDevice_t&)
-//{
-//
-//}
-
-void convertFromJson(JsonVariantConst src, ConfigDevice_t& dst)
-{
-	if (src.containsKey("useDefaults"))
-		dst.useDefaults = src["useDefaults"];
-
-	if (src.containsKey("autoBackupMode"))
-		dst.autoBackupMode = (ConfigAutobackupMode_t)(src["autoBackupMode"].as< ConfigAutobackupMode>());
-
-	if (src.containsKey("serial"))
-		convertFromJson(src, dst.serial);
-
-	if (src.containsKey("i2c"))
-		convertFromJson(src, dst.i2c);
-
-}
-
-bool convertToJson(const ConfigDevice_t& src, JsonVariant dst)
-{
-	dst["useDefaults"] = src.useDefaults;
-	dst["autoBackupMode"].set<ConfigAutobackupMode>((ConfigAutobackupMode)src.autoBackupMode);
-
-	dst["serial"].set(src.serial);
-	dst["i2c"].set(src.i2c);
-}
-
-
-//bool canConvertFromJson(JsonVariantConst src, const Config_t&)
-//{
-//
-//}
-
-void convertFromJson(JsonVariantConst src, Config_t& dst)
-{
-
-	if (src.containsKey("wifi"))
-		convertFromJson(src["wifi"], dst.wifi);
-
-	if (src.containsKey("mqtt"))
-		convertFromJson(src["mqtt"], dst.mqtt);
-
-	if (src.containsKey("device"))
-		convertFromJson(src["device"], dst.device);
-
-	if (src.containsKey("server"))
-		convertFromJson(src["server"], dst.server);
-
-	
-
-}
-
-bool convertToJson(const Config_t& src, JsonVariant dst)
-{
-	dst["wifi"].set(src.wifi);
-	dst["mqtt"].set(src.mqtt);
-	dst["device"].set(src.device);
-	dst["server"].set(src.server);
-}
-
-#pragma region Mqtt UDFs
-
-//bool canConvertFromJson(JsonVariantConst src, const MqttPublishConfig_t&)
-//{
-//
-//}
-
-
-
-void convertFromJson(JsonVariantConst src, MqttPublishConfig_t& dst)
-{
-	if(src.containsKey("bufferSize"))
-		dst.bufferSize = src["bufferSize"];
-
-	if (src.containsKey("rate"))
-	{
-		dst.rate = src["rate"];
-		dst.rate *= 1000;
-	}
-
-	if (src.containsKey("errorRate"))
-	{
-		dst.errorRate = src["errorRate"];
-		dst.errorRate *= 1000;
-	}
-
-	if (src.containsKey("availabilityRate"))
-	{
-		dst.availabilityRate = src["availabilityRate"];
-		dst.availabilityRate *= 1000;
-	}
-
-	if (src.containsKey("json"))
-		dst.json = src["json"];
-
-	//if (src.containsKey("onIndividualTopics"))
-	//	dst.onIndividualTopics = src["onIndividualTopics"];
-
-	//if (src.containsKey("unknownPayload"))
-	//	dst.unknownPayload = src["unknownPayload"];
-
-}
-
-bool convertToJson(const MqttPublishConfig_t& src, JsonVariant dst)
-{
-	dst["bufferSize"] = src.bufferSize;
-	dst["rate"] = src.rate / 1000;
-	dst["errorRate"] = src.errorRate / 1000;
-	dst["availabilityRate"] = src.availabilityRate / 1000;
-	dst["json"] = src.json;
-}
-
-
-
-//bool canConvertFromJson(JsonVariantConst src, const MqttBrokerConfig_t&)
-//{
-//
-//}
-
-
-void convertFromJson(JsonVariantConst src, MqttBrokerConfig_t& dst)
-{
-	if (src.containsKey("autoDetectIP"))
-		dst.autoDetectIp = src["autoDetectIP"];
-
-	if (src.containsKey("wifiMode"))
-		dst.wifiMode = (wifi_mode_t)(src["wifiMode"].as<WifiMode>());
-
-	if (src.containsKey("ip"))
-		dst.ip = src["ip"].as<IPAddress>();
-
-	if (src.containsKey("ipAP"))
-		dst.ipAP = src["ipAP"].as<IPAddress>();
-
-	if (src.containsKey("port"))
-		dst.port = src["port"];
-
-	if (src.containsKey("user"))
-		dst.user = (const char*)src["user"];
-
-	if (src.containsKey("pass"))
-		dst.pass = (const char*)src["pass"];
-
-	if (src.containsKey("maxRetries"))
-		dst.maxRetries = src["maxRetries"];
-
-	if (src.containsKey("autoMaxRetries"))
-		dst.autoMaxRetries = src["autoMaxRetries"];
-
-	if (src.containsKey("autoTimeout"))
-		dst.autoTimeout = src["autoTimeout"];
-
-	if (src.containsKey("timeout"))
-		dst.timeout = src["timeout"];
-
-	if (src.containsKey("connectInterval"))
-		dst.connectInterval = src["connectInterval"];
-	else if (src.containsKey("attemptRate"))
-		dst.connectInterval = src["attemptRate"];
-
-}
-
-bool convertToJson(const MqttBrokerConfig_t& src, JsonVariant dst)
-{
-	dst["autoDetectIp"] = src.autoDetectIp;
-	dst["wifiMode"].set<WifiMode>((WifiMode)src.wifiMode);
-	dst["ip"].set(src.ip);
-	dst["ipAP"].set(src.ipAP);
-	dst["port"] = src.port;
-	dst["user"].set(src.user);
-	dst["pass"].set(src.pass);
-	dst["maxRetries"] = src.maxRetries;
-	dst["autoMaxRetries"] = src.autoMaxRetries;
-	dst["autoTimeout"] = src.autoTimeout;
-	dst["timeout"] = src.timeout;
-	dst["connectInterval"] = src.connectInterval;
-}
-
-
-//bool canConvertFromJson(JsonVariantConst src, const MqttBaseTopics_t&)
-//{
-//
-//}
-
-
-void convertFromJson(JsonVariantConst src, MqttBaseTopics_t& dst)
-{
-	if (src.containsKey("base"))
-		dst.base = (const char*)src["base"];
-
-	if (src.containsKey("availability"))
-		dst.availability = (const char*)src["availability"];
-
-	if (src.containsKey("jsonCommand"))
-		dst.jsonCommand = (const char*)src["jsonCommand"];
-
-	if (src.containsKey("jsonState"))
-		dst.jsonState = (const char*)src["jsonState"];
-
-	if (src.containsKey("command"))
-		dst.command = (const char*)src["command"];
-
-	if (src.containsKey("state"))
-		dst.state = (const char*)src["state"];
-}
-
-bool convertToJson(const MqttBaseTopics_t& src, JsonVariant dst)
-{
-	dst["base"].set(src.base);
-	dst["availability"].set(src.availability);
-	dst["jsonCommand"].set(src.jsonCommand);
-	dst["jsonState"].set(src.jsonState);
-	dst["command"].set(src.command);
-	dst["state"].set(src.state);
-}
-
-//bool canConvertFromJson(JsonVariantConst src, const MqttTopics_t&)
-//{
-//
-//}
-
-
-void convertFromJson(JsonVariantConst src, MqttTopics_t& dst)
-{
-	if (src.containsKey("availability"))
-		dst.availability = (const char*)src["availability"];
-
-	if (src.containsKey("jsonCommand"))
-		dst.jsonCommand = (const char*)src["jsonCommand"];
-
-	if (src.containsKey("jsonState"))
-		dst.jsonState = (const char*)src["jsonState"];
-}
-
-bool convertToJson(const MqttTopics_t& src, JsonVariant dst)
-{
-	dst["availability"].set(src.availability);
-	dst["jsonCommand"].set(src.jsonCommand);
-	dst["jsonState"].set(src.jsonState);
-}
-
-
-//bool canConvertFromJson(JsonVariantConst src, const MqttConfig_t&)
-//{
-//
-//}
-
-
-void convertFromJson(JsonVariantConst src, MqttConfig_t& dst)
-{
-	if (src.containsKey("useDefaults"))
-		dst.useDefaults = src["useDefaults"];
-
-	if (src.containsKey("ledOn"))
-		dst.ledOn = src["ledOn"];
-
-	if (src.containsKey("ledGpio"))
-		dst.ledGpio = src["ledGpio"];
-
-	if (src.containsKey("publish"))
-		convertFromJson(src["publish"], dst.publish);
-
-	if (src.containsKey("broker"))
-		convertFromJson(src["broker"], dst.broker);
-
-	if (src.containsKey("baseTopics"))
-		convertFromJson(src["baseTopics"], dst.baseTopics);
-
-	if (src.containsKey("topics"))
-		convertFromJson(src["topics"], dst.topics);
-
-	if (src.containsKey("taskSettings"))
-		convertFromJson(src["taskSettings"], dst.taskSettings);
-}
-
-bool convertToJson(const MqttConfig_t& src, JsonVariant dst)
-{
-	dst["useDefaults"] = src.useDefaults;
-	dst["ledOn"] = src.ledOn;
-	dst["ledGpio"] = src.ledGpio;
-
-	dst["publish"].set(src.publish);
-	dst["broker"].set(src.broker);
-	dst["baseTopics"].set(src.baseTopics);
-	dst["topics"].set(src.topics);
-	dst["taskSettings"].set(src.taskSettings);
-}
-
-//bool canConvertFromJson(JsonVariantConst src, const DevicesFunctioning_t&)
-//{
-//
-//}
-
-
-//void convertFromJson(JsonVariantConst src, DevicesFunctioning_t& dst)
-//{
-//
-//}
-
-bool convertToJson(const DevicesFunctioning_t& src, JsonVariant dst)
-{
-	dst["bitmap0"] = src.bitmap0;
-	dst["bitmap1"] = src.bitmap1;
-	dst["bitmap2"] = src.bitmap2;
-	dst["bitmap3"] = src.bitmap3;
-}
-
-
-//bool canConvertFromJson(JsonVariantConst src, const MqttDevicesStatus_t&)
-//{
-//
-//}
-
-
-//void convertFromJson(JsonVariantConst src, MqttDevicesStatus_t& dst)
-//{
-//
-//}
-
-bool convertToJson(const MqttDevicesStatus_t& src, JsonVariant dst)
-{
-	dst["subscribedCount"] = src.subscribedCount;
-	dst["enabledCount"] = src.enabledCount;
-	dst["deviceCount"] = src.deviceCount;
-	dst["buttonCount"] = src.buttonCount;
-	dst["switchCount"] = src.switchCount;
-	dst["lightCount"] = src.lightCount;
-	dst["sensorCount"] = src.sensorCount;
-	dst["binarySensorCount"] = src.binarySensorCount;
-	dst["functioningDevices"].set(src.functioningDevices);
-	dst["functioningDevicesImportant"].set(src.functioningDevicesImportant);
-}
-
-#pragma endregion
-
-#pragma region Config Structures
-
-
-#pragma endregion
 

@@ -7,7 +7,7 @@
 
 extern AsyncWebServer server;
 extern Config_t config;
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 
 
 void Network::Website::Tools::JsonValidator::Initialize()
