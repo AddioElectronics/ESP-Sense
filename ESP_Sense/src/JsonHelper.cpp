@@ -3,6 +3,8 @@
 #include "EspSenseValidation.h"
 #include "Macros.h"
 
+extern HardwareSerial* serial;			//Message
+extern HardwareSerial* serialDebug;		//Debug
 
 DynamicJsonDocument* JsonHelper::CreateDocument(size_t size)
 {
@@ -47,13 +49,13 @@ size_t JsonHelper::CreatePackAndSerialize(size_t docSize, String& serializeTo, D
 
 DynamicJsonDocument* JsonHelper::CreateAndPackDocument(size_t docSize, PACK_JSON_FUNC packFunction)
 {
+	DEBUG_LOG_LN("CreateAndPackDocument");
 	DynamicJsonDocument* doc = JsonHelper::CreateDocument(docSize);
 	
 	if (doc == nullptr) 
 		return nullptr;
 
 	JsonObject docObj = doc->as<JsonObject>();
-
 	packFunction(docObj);
 	return doc;
 }
@@ -200,6 +202,52 @@ bool JsonHelper::UdfHelperConvertToJsonEnums(const EnumClass_t& src, JsonVariant
 	DEBUG_LOG_F("%s Conversion to JSON failed.", name != nullptr ? name : "Enum");
 	return false;
 }
+
+
+JsonHelper::JsonSerialStream::JsonSerialStream(JsonDocument& doc)
+{
+	_doc = &doc;
+	_serial = serial;
+}
+
+JsonHelper::JsonSerialStream::JsonSerialStream(JsonDocument& doc, HardwareSerial* serial) {
+	_doc = &doc;
+	_serial = serial;
+}
+
+
+size_t JsonHelper::JsonSerialStream::write(uint8_t c)
+{
+	return serial->write(c);
+}
+
+size_t JsonHelper::JsonSerialStream::write(const uint8_t* buffer, size_t length)
+{
+	return serial->write(buffer, length);
+}
+
+size_t JsonHelper::JsonSerialStream::PrintContents()
+{
+	_serial->println("Printing Json Doc...");
+	JsonSerialStream* stream = this;
+	size_t size = serializeJson(*_doc, *stream);
+	_serial->println("\r\n...Finished.");
+	return size;
+}
+
+
+size_t JsonHelper::JsonSerialStream::PrintContents(JsonDocument& doc)
+{
+	return PrintContents(doc, serial);
+}
+
+size_t JsonHelper::JsonSerialStream::PrintContents(JsonDocument& doc, HardwareSerial* serial)
+{
+	JsonSerialStream stream = JsonSerialStream(doc, serial);
+	return stream.PrintContents();
+}
+
+
 
 #pragma region User Defined Functions
 
@@ -619,4 +667,5 @@ bool convertToJson(const UART_STOPBITS& src, JsonVariant dst)
 //}
 
 #pragma endregion
+
 

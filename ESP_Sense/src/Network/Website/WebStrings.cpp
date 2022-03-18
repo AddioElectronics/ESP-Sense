@@ -8,6 +8,7 @@ namespace Network {
 
 				const char* unauthorized = "401 : Unauthorized";
 				const char* internalServerError = "500 : Internal Server Error";
+				const char* serviceUnavailable = "503 : Service Unavailable";
 				const char* networkAuthenticationRequried = "511 : Network Authentication Required";
 			}
 

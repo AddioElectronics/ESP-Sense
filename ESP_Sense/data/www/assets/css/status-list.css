@@ -1,7 +1,7 @@
 .status-list [status-content], .config-list[config-content] {
   max-height: 50vh;
-  overflow-y: scroll;
-  overflow-x: hidden;
+  overflow-y: auto;
+  overflow-x: auto;
 }
 
 .status-list *, .config-list * {

@@ -10,6 +10,7 @@ namespace Network {
 
 					extern const char* unauthorized;
 					extern const char* internalServerError;
+					extern const char* serviceUnavailable;
 					extern const char* networkAuthenticationRequried;
 				}
 

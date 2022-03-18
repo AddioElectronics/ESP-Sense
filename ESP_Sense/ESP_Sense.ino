@@ -135,10 +135,10 @@ StatusRetained_t statusRetained;
 StatusRetainedMonitor_t statusRetainedMonitor;
 
 
-HardwareSerial& Serial0 = Serial;	//Reference Serial as Serial0
+HardwareSerial& Serial0 = Serial;			//Reference Serial as Serial0
 
-HardwareSerial* serial;				//Message
-HardwareSerial* serialDebug;		//Debug
+HardwareSerial* serial = nullptr;			//Message
+HardwareSerial* serialDebug = nullptr;		//Debug
 
 unsigned long nextAliveMessage;
 void* stackStart;
@@ -200,11 +200,21 @@ void setup()
 	//Set the Version
 	status.misc.version = {ESP_SENSE_VERSION};
 
+	DEBUG_LOG_F("Version %d.%d.%d\r\n", status.misc.version);
+
 	//Initialize settings to default
 	Config::Defaults::SetAll();
 
 	EspSense::MountEEPROM();
 	FileManager::MountFileSystem();
+
+#if DEVELOPER_MODE
+
+	uint32_t configFileCrc = FileManager::GetFileCRC("/config.json");
+
+	DEBUG_LOG_F("Config File CRC : 0x%0000000X\r\n", configFileCrc);
+
+#endif
 
 	EspSense::LoadRetainedStatus();
 
@@ -281,11 +291,11 @@ void setup()
 	//Configure, connect and enable MQTT devices.
 	Mqtt::DeviceManager::ConfigureDevices();
 
-	//Subscribe to ESP-Sense topics
-	Mqtt::Subscribe();
+	////Subscribe to ESP-Sense topics
+	//Mqtt::Subscribe();
 
-	//Enable all devices that are initially enabled.
-	Mqtt::DeviceManager::EnableAll(true);
+	////Enable all devices that are initially enabled.
+	//Mqtt::DeviceManager::EnableAll(true);
 
 	//If wifi and MQTT is connected, we have required data.
 	status.config.hasRequiredData = true;
@@ -307,7 +317,7 @@ Label_SkipBackup:
 	//Apply changes to EEPROM.
 	Config::Status::SaveRetainedStatus();
 
-	status.config.setupComplete = true;
+	
 	//status.mqtt.publishingEnabled = true;
 
 	////Loop task only used for configuration.
@@ -315,9 +325,19 @@ Label_SkipBackup:
 
 	//Start MQTT tasks
 	if (!status.wifi.configMode)
-		Mqtt::Tasks::StartAllTasks();
+	{
+		//Subscribe to ESP-Sense topics
+		Mqtt::Subscribe();
 
-	DEBUG_LOG_LN("Device Initialized");
+		//Enable all devices that are initially enabled.
+		Mqtt::DeviceManager::EnableAll(true);
+
+		Mqtt::Tasks::StartAllTasks();
+	}
+
+	status.config.setupComplete = true;
+
+	DEBUG_LOG_LN("Device Initialized\r\n\r\n");
 
 	/*EspSense::Initialize();*/
 }
@@ -550,6 +570,7 @@ void EspSense::ApplySerialSettings(HardwareSerial& port, SerialPortConfig_t& por
 
 bool EspSense::LoadRetainedStatus()
 {
+
 	if (!status.device.eepromMounted)
 	{
 		DEBUG_LOG_LN("Cannot load Retained Status : EEPROM not mounted!");
@@ -559,16 +580,16 @@ bool EspSense::LoadRetainedStatus()
 	//Get boot settings.
 	EEPROM.get(0, statusRetained);
 
-	if (statusRetained.boot.freshBoot)
+	if (statusRetained.boot.freshBoot || statusRetained.statusRetainedSize != sizeof(StatusRetained_t))
 		FreshBoot();
 
 
 	statusRetainedMonitor.boot.configMode = statusRetained.boot.configMode != false;
 
-#if COMPILE_BACKUP
-	status.config.backup.eepromBackedUp = status.config.backup.ableToBackupEeprom && statusRetained.crcs.eepromBackupFile != 0;
-	status.config.backup.filesystemBackedUp = statusRetained.crcs.fileSystemBackupFile != 0;
-#endif
+//#if COMPILE_BACKUP
+//	status.config.backup.eepromBackedUp = status.config.backup.ableToBackupEeprom && statusRetained.crcs.eepromBackupFile != 0;
+//	status.config.backup.filesystemBackedUp = statusRetained.crcs.fileSystemBackupFile != 0;
+//#endif
 
 	return status.device.retainedStatusLoaded = true;
 }
@@ -582,6 +603,7 @@ void EspSense::FreshBoot()
 	DEBUG_LOG_LN("Fresh Boot, saving default settings to EEPROM...");
 
 	memset(&statusRetained, 0, sizeof(StatusRetained_t));
+	statusRetained.statusRetainedSize = sizeof(StatusRetained_t);
 
 	EEPROM.put(0, statusRetained);
 	status.device.freshBoot = true;				//Change retained settings to false, but program still needs to know.

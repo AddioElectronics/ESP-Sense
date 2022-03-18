@@ -43,7 +43,7 @@ bool convertToJson(const GlobalStatus_t& src, JsonVariant dst);
 void convertFromJson(JsonVariantConst src, Boot_bm& dst);
 bool convertToJson(const Boot_bm& src, JsonVariant dst);
 
-bool canConvertFromJson(JsonVariantConst src, const StatusRetained_t&);
+//bool canConvertFromJson(JsonVariantConst src, const StatusRetained_t&);
 void convertFromJson(JsonVariantConst src, StatusRetained_t& dst);
 bool convertToJson(const StatusRetained_t& src, JsonVariant dst);
 

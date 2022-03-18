@@ -40,6 +40,7 @@ char Scd4xSensor::errorMessage[];
 
 bool Scd4xSensor::Init()
 {
+	DEBUG_LOG_F("Initializing %s(SCD4x)\r\n", name.c_str());
 	if (!status.device.i2cInitialized)
 	{
 		if (!EspSense::InitializeI2C())
@@ -679,6 +680,7 @@ void Scd4xSensor::ReadConfigObjectUnique(JsonVariantConst& rootObj, Scd4xConfig_
 
 bool Scd4xSensor::Connect()
 {
+	DEBUG_LOG_F("Connecting %s(SCD4x)\r\n", name.c_str());
 	if (sensorStatus.connected)
 		return true;
 

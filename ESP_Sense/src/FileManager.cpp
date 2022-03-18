@@ -70,7 +70,7 @@ bool FileManager::OpenFile(File* file, const char* path, const char* mode)
 {
 	file->setTimeout(FILE_STREAM_TIMEOUT);
 
-	DEBUG_LOG_F("Opening %s... to %s.\r\n", path, mode);
+	DEBUG_LOG_F("Opening %s... Mode : %s.\r\n", path, mode);
 
 	if (!status.device.fsMounted)
 	{
@@ -78,8 +78,10 @@ bool FileManager::OpenFile(File* file, const char* path, const char* mode)
 		return false;
 	}
 
+	bool reading = mode[0] == 'r' || mode[1] == '+';
 
-	if (!ESP_FS.exists(path) && mode[1] != '+')
+
+	if (!ESP_FS.exists(path) && reading)
 	{
 		DEBUG_LOG_F("The file at path %s does not exist.", path);
 		return false;
@@ -96,7 +98,7 @@ bool FileManager::OpenFile(File* file, const char* path, const char* mode)
 	}
 
 #if DEVELOPER_MODE
-	if (status.misc.developerMode && path[0] == 'r' || path[1] == '+' )
+	if (status.misc.developerMode && reading)
 	{
 		DisplayFileContents(file);
 	}
@@ -268,6 +270,27 @@ void FileManager::DisplayFileContents(File* file)
 	file->seek(0);
 	DEBUG_NEWLINE();
 }
+
+void FileManager::DisplayEepromContents(EepromStream& stream)
+{
+	serial->println("Printing EEPROM Contents...");
+
+	while (stream.available()) {
+		serial->write(stream.read());
+	}
+
+	serial->println("\r\n...Finished.");
+	DEBUG_NEWLINE();
+}
+
+void FileManager::DisplayEepromContents(size_t address, size_t length)
+{
+	
+	EepromStream stream(address, length);
+	DisplayEepromContents(stream);
+}
+
+
 
 uint32_t FileManager::GetFileCRC(const char* path)
 {

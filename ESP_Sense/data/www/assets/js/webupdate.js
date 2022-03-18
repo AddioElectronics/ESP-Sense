@@ -125,6 +125,6 @@ function addToConsole(msg) {
     $('#debug_output').append('<p>' + msg + '</p>');
 }
 
-$(document).ready(function() {
+EventReady.Add(function() {
     onEvent('auth', webupdate_init);
 });

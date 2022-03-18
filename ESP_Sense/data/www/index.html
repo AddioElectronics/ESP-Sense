@@ -37,11 +37,11 @@
 <body>
     
     <main>
-        <div class="container">
+        <div class="container"><span class="d-block warning-msg" style="padding: 10px;padding-bottom: 22px;">Notice : Please allow time in-between button presses. There is no limiting to the server requests at this moment.</span>
             <section mqtt="devicelist">
                 <div class="vis-detect" button="select-device"></div><ledgroup device-type="all">
-    <led class="hover-glow" style="--led-hue: 50;" state="disabled"></led>
-    <led class="hover-glow" style="--led-hue: 110;margin-right: 10px;"state="ok"></led>
+    <led class="hover-glow" style="--led-hue: 110;"state="ok"></led>
+    <led class="hover-glow" style="--led-hue: 50;" state="disabled"></led>    
     <div id="led_disabled" class="led remove-me" style="--led-hue: 50;" disabled></div>
     <div id="led_ok" class="led remove-me" style="--led-hue: 110;" disabled></div>
 </ledgroup><button class="btn disabled position-absolute" type="button" action="select-device" disabled="">Need to Load Devices</button>

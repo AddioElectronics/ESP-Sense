@@ -18,36 +18,50 @@ struct Crc32Stream {
 
 	CRC32 crc;
 
+	HardwareSerial* _serial;
+
+	Crc32Stream() 
+	{
+		crc.reset();
+		_serial = nullptr;
+	}
+
+	Crc32Stream(HardwareSerial* _ser)
+	{
+		crc.reset();
+		_serial = _ser;
+	}
+
 	// Writes one byte, returns the number of bytes written (0 or 1)
-	size_t write(uint8_t c);
+	virtual size_t write(uint8_t c);
 	// Writes several bytes, returns the number of bytes written
-	size_t write(const uint8_t* buffer, size_t length);
+	virtual size_t write(const uint8_t* buffer, size_t length);
+
+	virtual size_t writeSerial(uint8_t c);
+	// Writes several bytes, returns the number of bytes written
+	virtual size_t writeSerial(const uint8_t* buffer, size_t length);
 };
 
-struct Crc32FileStream {
+struct Crc32FileStream : Crc32Stream {
 
 	File* file;
-	CRC32 crc;
 
-	void init(File* _file);
+	Crc32FileStream(File* _file);
+	Crc32FileStream(File* _file, HardwareSerial* _ser);
 
-	// Writes one byte, returns the number of bytes written (0 or 1)
-	size_t write(uint8_t c);
-	// Writes several bytes, returns the number of bytes written
-	size_t write(const uint8_t* buffer, size_t length);
+	size_t write(uint8_t c) override;
+	size_t write(const uint8_t* buffer, size_t length) override;
 };
 
-struct Crc32EepromStream {
+struct Crc32EepromStream : Crc32Stream {
 
 	EepromStream* eepromStream;
-	CRC32 crc;
 
-	void init(EepromStream* _eepromStream);
+	Crc32EepromStream(EepromStream* _eepromStream);
+	Crc32EepromStream(EepromStream* _eepromStream, HardwareSerial* _ser);
 
-	// Writes one byte, returns the number of bytes written (0 or 1)
-	size_t write(uint8_t c);
-	// Writes several bytes, returns the number of bytes written
-	size_t write(const uint8_t* buffer, size_t length);
+	size_t write(uint8_t c) override;
+	size_t write(const uint8_t* buffer, size_t length) override;
 };
 
 #endif

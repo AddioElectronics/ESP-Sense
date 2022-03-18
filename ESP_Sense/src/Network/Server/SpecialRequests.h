@@ -39,7 +39,7 @@ namespace Network
 			void Initialize();
 			// void Network::Server::SpecialRequests::ResponseSerializedData(PACK_JSON_DOC_FUNC serializeFunction, AsyncWebServerRequest * request)
 			//void ResponseSerializedData(PACK_JSON_DOC_FUNC serializeFunction, AsyncWebServerRequest* request);
-			int ResponseSerializedData(size_t docSize, JsonHelper::PACK_JSON_FUNC packFunc, AsyncWebServerRequest* request, bool respondOnError = true, bool messagedResponse = true);
+			int ResponseSerializedData(size_t docSize, JsonHelper::PACK_JSON_FUNC packFunc, AsyncWebServerRequest* request, bool requireAuth = true, bool respondOnError = true, bool messagedResponse = true);
 		}
 	}
 }

@@ -4,6 +4,7 @@ String MqttSensor::mqttSensorBaseTopic;
 
 bool MqttSensor::Init()
 {
+	DEBUG_LOG_F("Initializing Sensor %s(SCD4x)\r\n", name.c_str());
 	//if (!status.mqtt.devicesConfigured)
 	//{
 	//	memset(&deviceStatus, 0, sizeof(MqttDeviceStatus_t));

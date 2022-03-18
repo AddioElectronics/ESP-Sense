@@ -5,12 +5,5 @@ if(pageTheme != null){
 }
 
 EventReady.Add(function(){
-    
-    switch(pageTheme){
-        case 'darkneon':
-        case 'darkspooky':
-            $('nav .gradient').appendTo($('nav'));
-            break;
-    }
-    
+    $('nav .gradient').appendTo($('nav'));    
 });

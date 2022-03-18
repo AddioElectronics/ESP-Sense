@@ -23,6 +23,7 @@ function deleteEvent(name){
     }catch{}
 }
 
+createEvent('version');
 createEvent('auth');
 createEvent('reset');
 createEvent('resetting');

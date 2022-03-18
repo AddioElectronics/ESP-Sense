@@ -41,6 +41,8 @@ namespace FileManager {
 	String GetFileName(const char* path);
 
 	void DisplayFileContents(File* file);
+	void DisplayEepromContents(EepromStream& stream);
+	void DisplayEepromContents(size_t address, size_t length);
 
 	uint32_t GetFileCRC(const char* path);
 	uint32_t GetFileCRC(File* file, bool close = true);

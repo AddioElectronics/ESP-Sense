@@ -42,7 +42,8 @@ bool convertToJson(const GlobalStatusDevice_t& src, JsonVariant dst)
 
 bool convertToJson(const BackupStatus_t& src, JsonVariant dst)
 {
-	dst["configCRC"] = src.configCRC;
+	dst["configFileCRC"] = src.configFileCRC;
+	dst["configPathCRC"] = src.configPathCRC;
 	dst["ableToBackupEeprom"] = src.ableToBackupEeprom;
 	dst["backupsDisabled"] = src.backupsDisabled;
 	dst["eepromBackedUp"] = src.eepromBackedUp;
@@ -166,10 +167,10 @@ bool convertToJson(const GlobalStatus_t& src, JsonVariant dst)
 }
 
 
-bool canConvertFromJson(JsonVariantConst src, const StatusRetained_t&)
-{
-	return src.containsKey("boot") && src.containsKey("crcs") && src.containsKey("fileSizes") && src.containsKey("mqtt");
-}
+//bool canConvertFromJson(JsonVariantConst src, const StatusRetained_t&)
+//{
+//	return src.containsKey("boot") && src.containsKey("crcs") && src.containsKey("fileSizes") && src.containsKey("mqtt");
+//}
 
 void convertFromJson(JsonVariantConst src, StatusRetained_t& dst)
 {
@@ -178,6 +179,10 @@ void convertFromJson(JsonVariantConst src, StatusRetained_t& dst)
 	dst.boot.freshBoot = boot["freshBoot"];
 	dst.boot.bootSource = boot["bootSource"].as<ConfigSource>();
 	dst.boot.wifiMode = (wifi_mode_t)((WifiMode)boot["wifiMode"].as<WifiMode>());
+
+
+	dst.fsFailedBackups = src["fsFailedBackups"];
+	dst.eepromFailedBackups = src["eepromFailedBackups"];
 
 	JsonVariantConst crcs = src["crcs"];
 	dst.crcs.bootFile = crcs["bootFile"];
@@ -202,6 +207,9 @@ bool convertToJson(const StatusRetained_t& src, JsonVariant dst)
 	retainedStatus_boot["freshBoot"] = src.boot.freshBoot;
 	retainedStatus_boot["bootSource"].set(src.boot.bootSource);
 	retainedStatus_boot["wifiMode"].set<WifiMode>((WifiMode)src.boot.wifiMode);
+
+	dst["fsFailedBackups"] = src.fsFailedBackups;
+	dst["eepromFailedBackups"] = src.eepromFailedBackups;
 
 	JsonObject retainedStatus_crcs = dst.createNestedObject("crcs");
 	retainedStatus_crcs["bootFile"] = src.crcs.bootFile;
@@ -324,7 +332,7 @@ void convertFromJson(JsonVariantConst src, WifiAccessPointConfig_t& dst)
 		dst.buttonGpio = src["buttonGpio"];
 
 	if (src.containsKey("holdTime"))
-		dst.holdTime = src["holdTime"];
+		dst.holdTime = ((uint16_t)src["holdTime"]) * 1000;
 
 	if (src.containsKey("ledGpio"))
 		dst.ledGpio = src["ledGpio"];
@@ -345,7 +353,7 @@ bool convertToJson(const WifiAccessPointConfig_t& src, JsonVariant dst)
 	dst["pass"].set(src.pass);
 	dst["maxConnections"] = src.maxConnections;
 	dst["buttonGpio"] = src.buttonGpio;
-	dst["holdTime"] = src.holdTime;
+	dst["holdTime"] = src.holdTime / 1000;
 	dst["ledGpio"] = src.ledGpio;
 }
 
@@ -695,6 +703,12 @@ void convertFromJson(JsonVariantConst src, ConfigDevice_t& dst)
 	if (src.containsKey("autoBackupMode"))
 		dst.autoBackupMode = (ConfigAutobackupMode_t)(src["autoBackupMode"].as< ConfigAutobackupMode>());
 
+	if (src.containsKey("verifyBackups"))
+		dst.verifyBackups = src["verifyBackups"];
+
+	if (src.containsKey("maxFailedBackups"))
+		dst.maxFailedBackups = src["maxFailedBackups"];
+
 	if (src.containsKey("serial"))
 		convertFromJson(src, dst.serial);
 
@@ -707,6 +721,8 @@ bool convertToJson(const ConfigDevice_t& src, JsonVariant dst)
 {
 	dst["useDefaults"] = src.useDefaults;
 	dst["autoBackupMode"].set<ConfigAutobackupMode>((ConfigAutobackupMode)src.autoBackupMode);
+	dst["verifyBackups"] = src.verifyBackups;
+	dst["maxFailedBackups"] = src.maxFailedBackups;
 
 	dst["serial"].set(src.serial);
 	dst["i2c"].set(src.i2c);

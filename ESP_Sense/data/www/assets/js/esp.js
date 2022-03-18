@@ -60,15 +60,17 @@ function espIsResetting(){
     refreshOnResponse();
 }
 
-function getEspVersion() {
-    console.log("deviceStatusInit()");
+async function getEspVersion() {
+    console.log("getEspVersion()");
     navWebUpdate = $('#nav_webupdate');
-    requestJsonData("/version", receivedVersion, function(){
-        console.log('GET version failed.')
+    await requestJsonData("/version", receivedVersion, function(){
+        console.log('GET version failed.');
+        invokeEvent('version');
     });    
 }
 
 function receivedVersion(data){
+    devMode = false;
     console.log("Received Version :");
     console.log(data);
     espVersion = data['version'];
@@ -83,14 +85,15 @@ function receivedVersion(data){
     invokeEvent('version');
 }
 
-EventReady.add(function(){
-    espAlive(function(){devMode = false;});
+EventReady.add(async function(){
+    await espAlive(function(){devMode = false;});
+    await getEspVersion();
     rstBut = $('#esp_reset_button');
     console.log(rstBut);
     rstBut.hide();
     onEvent('resetting', espIsResetting);
     espControllerInit();
-    getEspVersion();
+    
     
     if(devMode){
       $('body').append(devModeLabel);

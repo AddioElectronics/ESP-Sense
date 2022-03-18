@@ -21,6 +21,7 @@
 #include "../EspSenseValidation.h"
 #include "../HelperFunctions.h"
 #include "../JsonHelper.h"
+#include "../CrcStream.h"
 
 extern Config_t config;
 extern ConfigMonitor_t configMonitor;
@@ -28,6 +29,9 @@ extern GlobalStatus_t status;
 extern StatusRetained_t statusRetained;
 extern StatusRetainedMonitor_t statusRetainedMonitor;
 extern ConfigBitmap_bm configBitmap;
+
+extern HardwareSerial* serial;			//Message
+extern HardwareSerial* serialDebug;		//Debug
 
 CRC32 crc;
 
@@ -92,13 +96,13 @@ void Config::Defaults::RestoreDeviceDefaults(bool flagMonitor)
 {
 #warning Potentially remove configMonitor as CRC is now implemented.
 
-
-
 	if (flagMonitor)
 	{
 		configMonitor.device.useDefaults = config.device.useDefaults != false;
 		configMonitor.device.autoBackupMode = config.device.autoBackupMode != (ConfigAutobackupMode_t)AUTO_BACKUP_MODE;
-		//configMonitor.device.crcOnBackup = config.device.crcOnBackup != CRC_ON_BACKUP;
+		configMonitor.device.verifyBackups = config.device.verifyBackups != VERIFY_BACKUP;
+		configMonitor.device.maxFailedBackups = config.device.maxFailedBackups != MAX_FAILED_BACKUPS;
+
 
 		configMonitor.device.serial.useDefaults = config.device.serial.useDefaults != false;
 
@@ -127,7 +131,8 @@ void Config::Defaults::RestoreDeviceDefaults(bool flagMonitor)
 
 	config.device.useDefaults = false;
 	config.device.autoBackupMode = (ConfigAutobackupMode_t)AUTO_BACKUP_MODE;
-	//config.device.crcOnBackup =  CRC_ON_BACKUP;
+	config.device.verifyBackups = VERIFY_BACKUP;
+	config.device.maxFailedBackups = MAX_FAILED_BACKUPS;
 
 	config.device.serial.useDefaults = false;
 	config.device.serial.debugPort = SERIAL_DEBUG_PORT;
@@ -514,20 +519,42 @@ void Config::Documents::LoadBootSettings()
 	status.misc.developerMode = DEVELOPER_MODE;
 #endif
 
-	DEBUG_LOG_LN("Loading boot settings...");
-	StaticJsonDocument<256> doc;
+	DEBUG_LOG("Loading boot settings...");
+	StaticJsonDocument<512> doc;
 
-	//Check to see if boot.json has changed since last boot.
-	uint32_t crc32 = FileManager::GetFileCRC(FILE_BOOT_PATH);
-	statusRetainedMonitor.crcs.bootFile = crc32 != statusRetained.crcs.bootFile;
-	statusRetained.crcs.bootFile = crc32;
+	////Check to see if boot.json has changed since last boot.
+	//uint32_t crc32 = FileManager::GetFileCRC(FILE_BOOT_PATH);
+	//statusRetainedMonitor.crcs.bootFile = crc32 != statusRetained.crcs.bootFile;
+	//statusRetained.crcs.bootFile = crc32;
+
+#warning Not using CRC implementation, checking if one-time-command exists, and removing after.
+
+	bool changedValue = false;
 
 	if (FileManager::OpenAndParseFile(FILE_BOOT_PATH, doc) == 0)
 	{
 #if DEVELOPER_MODE
 		if (doc.containsKey("disableDevMode"))
+		{
+			
 			status.misc.developerMode = !doc["disableDevMode"];
+
+			if(!status.misc.developerMode)
+				DEBUG_LOG("Disable Dev Mode...");
+		}
 #endif
+
+		if (doc.containsKey("forceFreshBoot"))
+		{
+			bool force = doc["forceFreshBoot"];
+
+			if (force)
+			{
+				DEBUG_LOG("Force Fresh Boot...");
+				EspSense::FreshBoot();
+				doc["forceFreshBoot"] = false;
+			}
+		}
 
 		/*
 			You can select the boot source for the next boot.
@@ -544,9 +571,13 @@ void Config::Documents::LoadBootSettings()
 			Each time boot.json is loaded, a CRC is calculated to see if it has changed.
 			Only if the CRC is different will "nextBootSource" be used.
 		*/
-		if (doc.containsKey("nextBootSource") && statusRetainedMonitor.crcs.bootFile)
+		if (doc.containsKey("forceBootSource") /*&& statusRetainedMonitor.crcs.bootFile*/)
 		{
-			ConfigSource bootSource = doc["nextBootSource"].as<ConfigSource>();
+			ConfigSource bootSource = doc["forceBootSource"].as<ConfigSource>();
+			DEBUG_LOG_F("Force Boot Source(%s)...", config_source_strings[(int)bootSource]);
+
+			doc.remove("forceBootSource");
+			changedValue = true;
 
 			if (bootSource > ConfigSource::CFG_DEFAULT)
 			{
@@ -581,13 +612,17 @@ void Config::Documents::LoadBootSettings()
 
 				If nextBootSource is greater than 1 testPath will be ignored.
 			*/
-			if (doc.containsKey("testPath") && statusRetainedMonitor.crcs.bootFile)
+			if (doc.containsKey("testPath") /*&& statusRetainedMonitor.crcs.bootFile*/)
 			{
 				JsonVariant testpath = doc["testPath"];
+
+				doc.remove("testPath");
+				changedValue = true;
 
 				if (testpath.is<const char*>())
 				{
 					String path = testpath.as<String>();
+					DEBUG_LOG_F("Config Test Path(%s)...", path.c_str());
 					#warning add boot path to EEPROM. or in a file on the FS. Encrpyt with Xor so people dont edit it.
 #warning reminder to webpage, or button on Config webpage which overwrites config.
 #warning add configNum to status.
@@ -597,6 +632,10 @@ void Config::Documents::LoadBootSettings()
 						status.config.testingConfig = true;
 						SetConfigPathAndFileName(path.c_str());
 						goto ExitConfigPath;
+					}
+					else 
+					{
+						DEBUG_LOG("Does not exist...");
 					}
 				}
 			}
@@ -615,11 +654,16 @@ void Config::Documents::LoadBootSettings()
 				if (cpath.is<const char*>())
 				{
 					String path = cpath.as<String>();
+					DEBUG_LOG_F("Config Path(%s)...", path.c_str());
 
 					if (ESP_FS.exists(path) && path.length() <= CONFIG_PATH_MAX_LENGTH)
 					{
 						SetConfigPathAndFileName(path.c_str());
 						goto ExitConfigPath;
+					}
+					else
+					{
+						DEBUG_LOG("Does not exist...");
 					}
 				}
 			}
@@ -635,42 +679,74 @@ void Config::Documents::LoadBootSettings()
 			*/
 			if (doc.containsKey("configNum"))
 			{
+				DEBUG_LOG("Config Path from Number...");
 				int index = doc["configNum"];
 
 				char newPath[CONFIG_PATH_MAX_LENGTH];
 
 				sprintf(newPath, "/config%d.json", index);
 
+				DEBUG_LOG_F("Config Path(%s)...", newPath);
+
 				if (ESP_FS.exists(newPath))
 				{
 					SetConfigPathAndFileName(newPath);
+				}
+				else
+				{
+					DEBUG_LOG("Does not exist...");
 				}
 			}
 		}
 	ExitConfigPath:
 		delayMicroseconds(1);	//Need something for the ExitConfigPath label to bound to.
+
+		if (changedValue)
+		{
+			DEBUG_LOG("Boot file one-time-command changed. Values removed, and saving...");
+			File file;
+			FileManager::OpenFile(&file, FILE_BOOT_PATH, "w");
+
+			size_t size = serializeJson(doc, file);
+
+			doc.clear();
+			file.close();
+
+			if (size)
+			{
+				DEBUG_LOG_F("Success with size of %d bytes.\r\n", size);
+			}
+			else
+			{
+				DEBUG_LOG_LN("Failed.");
+			}
+		}
 	}
 	else
 	{
 		//No boot settings.
 	}
-
 }
 
 /// <summary>
 /// Checks to see if the config's CRC after configuration matches the previous boot.
 /// </summary>
 /// <returns>1 if the file has been updated or if it is a different file, 0 if there has been no changes, and -1 if the file does not exist.</returns>
-int Config::Documents::CheckConfigCrc(JsonDocument& configDoc)
+int Config::Documents::CheckConfigCrc()
 {
-	if (configDoc.size() == 0) return -1;
 
-	status.config.backup.configCRC = FileManager::GetSerializedCRC(configDoc);
+	if (status.config.backup.configPathCRC == 0)
+		CheckConfigPathCrc();
 
-	statusRetainedMonitor.crcs.configFile = statusRetained.crcs.configFile != status.config.backup.configCRC;
-	statusRetained.crcs.configFile = status.config.backup.configCRC;
+	status.config.backup.configFileCRC = FileManager::GetFileCRC(status.config.path);
 
-	Backup::SetBackupFlags(status.config.backup.configCRC);
+	if (status.config.backup.configPathCRC == statusRetained.crcs.configPath)
+	{
+		statusRetainedMonitor.crcs.configFile = statusRetained.crcs.configFile != status.config.backup.configFileCRC;
+		statusRetained.crcs.configFile = status.config.backup.configFileCRC;
+	}
+
+	Backup::SetBackupFlags(status.config.backup.configFileCRC);
 
 	return statusRetainedMonitor.crcs.configFile;
 }
@@ -681,6 +757,7 @@ int Config::Documents::CheckConfigCrc(JsonDocument& configDoc)
 /// <returns>1 if the path has changed since last boot, 0 if the path is the same, and -1 if configPath has not been set.</returns>
 int Config::Documents::CheckConfigPathCrc()
 {
+	DEBUG_LOG_LN("Checking Config Path CRC...");
 	uint8_t length = strlen(status.config.path);
 
 	//configPath has not been set.
@@ -696,7 +773,10 @@ int Config::Documents::CheckConfigPathCrc()
 
 	uint32_t result = crc.getCRC();
 
-	statusRetainedMonitor.crcs.configPath = result != statusRetained.crcs.configPath;
+	DEBUG_LOG_F("-Last CRC : 0x%0000000X\r\n-New CRC : 0x%0000000X\r\n", statusRetained.crcs.configPath, result);
+
+	statusRetainedMonitor.crcs.configPath = statusRetained.crcs.configPath != result;
+	statusRetained.crcs.configPath = result;
 
 	//Config path has changed.
 	if (statusRetainedMonitor.crcs.configPath)
@@ -1016,7 +1096,9 @@ bool Config::Documents::SetConfigFromDoc()
 
 	JsonVariantConst configVar = configDoc.as<JsonVariantConst>();
 	convertFromJson(configVar, config);
-	CheckConfigCrc(configDoc);
+
+	CheckConfigPathCrc();
+	CheckConfigCrc();
 
 	configDoc.clear();
 	status.config.configRead = false;
@@ -1088,6 +1170,7 @@ bool Config::Backup::SaveBackupConfig(bool fs, bool eeprom, bool saveRetained, s
 {
 #if COMPILE_BACKUP
 	DEBUG_NEWLINE();
+
 	DEBUG_LOG_LN("Saving backup config...");
 
 	if (status.config.backup.backupsDisabled)
@@ -1117,7 +1200,9 @@ bool Config::Backup::SaveBackupConfig(bool fs, bool eeprom, bool saveRetained, s
 
 	DEBUG_LOG_F("Most Recent Backup CRC : 0x%0000000x - Doc CRC : 0x%0000000x\r\n", statusRetained.crcs.recentBackup, docCRC);
 
-	if (docCRC == statusRetained.crcs.recentBackup)
+	
+
+	if (status.config.backup.configFileCRC == statusRetained.crcs.recentBackup)
 		goto Label_AlreadyBackedup;
 
 	//status.disableRetainCommits = true;
@@ -1125,25 +1210,25 @@ bool Config::Backup::SaveBackupConfig(bool fs, bool eeprom, bool saveRetained, s
 	size_t sizeFS = 0;
 	size_t sizeEeprom = 0;
 
-	if (fs)
+	if (fs && status.config.backup.configFileCRC != statusRetained.crcs.fileSystemBackupFile /*&& !status.config.backup.filesystemBackedUp*/)
 	{
 		DEBUG_LOG("...Saving to FileSystem...");
-		sizeFS = SaveBackupFilesystem(&serializeConfigDoc, docCRC);
+		sizeFS = SaveBackupFilesystem(&serializeConfigDoc, saveRetained, docCRC);
 
-		if (sizeFS > 1)
-			DEBUG_LOG_F("...Backed up to file system with size of %dbytes...", sizeFS);
+		//if (sizeFS > 1)
+		//	DEBUG_LOG_F("...Backed up to file system with size of %dbytes...", sizeFS);
 	}
 
 	if (out_sizeFileSystem != nullptr)
 		*out_sizeFileSystem = sizeFS;
 
-	if (eeprom && status.config.backup.ableToBackupEeprom)
+	if (eeprom && status.config.backup.ableToBackupEeprom && status.config.backup.configFileCRC != statusRetained.crcs.eepromBackupFile/* && !status.config.backup.eepromBackedUp*/)
 	{
 		DEBUG_LOG("...Saving to EEPROM...");
-		sizeEeprom = SaveBackupEeprom(&serializeConfigDoc, docCRC);
+		sizeEeprom = SaveBackupEeprom(&serializeConfigDoc, saveRetained, docCRC);
 
-		if (sizeEeprom > 1)
-			DEBUG_LOG_F("...Backed up to EEPROM with size of %dbytes...", sizeEeprom);
+		//if (sizeEeprom > 1)
+		//	DEBUG_LOG_F("...Backed up to EEPROM with size of %dbytes...", sizeEeprom);
 	}
 
 	if (out_sizeEeprom != nullptr)
@@ -1162,6 +1247,9 @@ bool Config::Backup::SaveBackupConfig(bool fs, bool eeprom, bool saveRetained, s
 		Status::SaveRetainedStatus();
 
 	DEBUG_NEWLINE();
+	DEBUG_NEWLINE();
+	DEBUG_NEWLINE();
+
 	return sizeEeprom || sizeFS;
 #endif
 }
@@ -1171,6 +1259,10 @@ bool Config::Backup::SaveBackupConfig(bool fs, bool eeprom, bool saveRetained, s
 bool Config::Backup::AutoSaveBackupConfig(bool saveRetained, size_t* out_sizeFileSystem, size_t* out_sizeEeprom)
 {
 #if COMPILE_BACKUP
+	DEBUG_NEWLINE();
+	DEBUG_NEWLINE();
+	DEBUG_NEWLINE();
+
 	if (config.device.autoBackupMode == (ConfigAutobackupMode_t)ConfigAutobackupMode::AUTOBACKUP_OFF) return 0;
 
 	DEBUG_LOG_LN("Auto-saving backup config...");
@@ -1184,13 +1276,15 @@ bool Config::Backup::AutoSaveBackupConfig(bool saveRetained, size_t* out_sizeFil
 	bool fs = config.device.autoBackupMode == (ConfigAutobackupMode_t)ConfigAutobackupMode::AUTOBACKUP_MODE_FS || config.device.autoBackupMode == (ConfigAutobackupMode_t)ConfigAutobackupMode::AUTOBACKUP_FS_AND_EEPROM;
 	bool eeprom = config.device.autoBackupMode == (ConfigAutobackupMode_t)ConfigAutobackupMode::AUTOBACKUP_MODE_EEPROM || config.device.autoBackupMode == (ConfigAutobackupMode_t)ConfigAutobackupMode::AUTOBACKUP_FS_AND_EEPROM;
 
-	return SaveBackupConfig(fs, eeprom, true, out_sizeEeprom, out_sizeFileSystem);
+	return SaveBackupConfig(fs, eeprom, saveRetained, out_sizeEeprom, out_sizeFileSystem);
 #endif
 }
 
 size_t Config::Backup::SaveBackupEeprom(bool saveRetained)
 {
 #if COMPILE_BACKUP
+	DEBUG_NEWLINE();
+
 	DEBUG_LOG_LN("Saving config backup to EEPROM...\r\n...Creating json document...");
 
 	if (status.config.backup.backupsDisabled)
@@ -1223,9 +1317,19 @@ size_t Config::Backup::SaveBackupEeprom(bool saveRetained)
 size_t Config::Backup::SaveBackupEeprom(JsonDocument* doc, bool saveRetained, const  uint32_t crc)
 {
 #if COMPILE_BACKUP
+
+	DEBUG_NEWLINE();
+	DEBUG_NEWLINE();
+
 	if (status.config.backup.backupsDisabled)
 	{
 		DEBUG_LOG_LN("Backups are disabled.\r\n");
+		return false;
+	}
+
+	if (statusRetained.eepromFailedBackups >= config.device.maxFailedBackups)
+	{
+		DEBUG_LOG_LN("Backup cannot be saved as there are too many failed attempts.\r\n");
 		return false;
 	}
 
@@ -1247,14 +1351,19 @@ size_t Config::Backup::SaveBackupEeprom(JsonDocument* doc, bool saveRetained, co
 		return 1;
 	}
 
-	size_t serializedSize = 0;
-
-	if(status.config.backup.filesystemBackedUp)
-
-
 
 	DEBUG_LOG("Serializing backup to EEPROM...");
-	EepromStream eepromStream(sizeof(StatusRetained_t), DOC_CONFIG_SERIALIZE_SIZE);
+
+	EepromStream stream(sizeof(StatusRetained_t), DOC_CONFIG_SERIALIZE_SIZE);
+
+	Crc32EepromStream eepromStream(&stream);
+
+#if DEVELOPER_MODE
+	if (status.misc.developerMode)
+	{
+		eepromStream = Crc32EepromStream(&stream, serialDebug != nullptr ? serialDebug : serial);
+	}
+#endif
 
 	uint32_t docCRC = crc > 0 ? crc : FileManager::GetSerializedCRC(*doc);
 
@@ -1266,57 +1375,80 @@ size_t Config::Backup::SaveBackupEeprom(JsonDocument* doc, bool saveRetained, co
 	}
 
 	size_t size = serializeJson(*doc, eepromStream);
+	
+
+#if DEVELOPER_MODE
+	DEBUG_NEWLINE();
+	//if (status.misc.developerMode)
+	//{
+	//	eepromStream = EepromStream(sizeof(StatusRetained_t), size);
+	//	FileManager::DisplayEepromContents(eepromStream);
+	//}
 
 	#warning testing : check if CRC is failing or the backup
 #pragma region Test
-		DEBUG_LOG_LN("FS Test start");
-		doc->clear();
-		DeserializeEepromBackupConfig(*doc);
+		//DEBUG_LOG_LN("FS Test start");
+		//doc->clear();
+		//DeserializeEepromBackupConfig(*doc);
 
-		String test;
-		serializeJson(*doc, test);
-		DEBUG_LOG_LN(test);
+		//String test;
+		//serializeJson(*doc, test);
+		//DEBUG_LOG_LN(test);
 
-		Config_t fsConfig;		
-		convertFromJson(*doc, fsConfig);
-		if (memcmp(&config, &fsConfig, sizeof(config)) == 0)
-		{
-			DEBUG_LOG_LN("Backup matches");
-		}
-		else
-		{
-			DEBUG_LOG_LN("Backup Doesn't match");
-		}
+		//Config_t fsConfig;		
+		//convertFromJson(*doc, fsConfig);
+		//if (memcmp(&config, &fsConfig, sizeof(config)) == 0)
+		//{
+		//	DEBUG_LOG_LN("Backup matches");
+		//}
+		//else
+		//{
+		//	DEBUG_LOG_LN("Backup Doesn't match");
+		//}
 
-		doc->clear();
-		if (!FileManager::OpenAndParseFile(status.config.path, *doc))
-		{
-			DEBUG_LOG_LN("Could not open backup file for writing!\r\n");
-			return 0;
-		}
+		//doc->clear();
+		//if (!FileManager::OpenAndParseFile(status.config.path, *doc))
+		//{
+		//	DEBUG_LOG_LN("Could not open backup file for writing!\r\n");
+		//	return 0;
+		//}
 #pragma endregion
+#endif
 
 	if (size)
 	{
-		//Get Saved CRC to validate (starts after StatusRetained)
-		eepromStream = EepromStream(sizeof(StatusRetained_t), size);
-		uint32_t crc = FileManager::GetEepromCRC(eepromStream, size);
+		//uint32_t newCRC = docCRC;
+		////Get Saved CRC to validate (starts after StatusRetained)
+		//eepromStream = EepromStream(sizeof(StatusRetained_t), size);
+		//uint32_t crc = FileManager::GetEepromCRC(eepromStream, size);
 
-		if (crc != docCRC)
-		{
-			DEBUG_LOG_F("Failed!\r\nSaved File Corrupted! CRC does not match Document CRC!\r\nFile : %0000000X\r\nDoc : %0000000X\r\n", crc, docCRC);
-			size = 0;
-			crc = 0;
-		}
+		//if (newCRC != docCRC)
+		//{
+		//	DEBUG_LOG_F("Failed!\r\nSaved File Corrupted! CRC does not match Document CRC!\r\nFile : %0000000X\r\nDoc : %0000000X\r\n", newCRC, docCRC);
+		//	size = 0;
+		//	newCRC = 0;
+		//	statusRetained.eepromFailedBackups++;
+		//}
+		//else
+		//{
+		//	statusRetained.eepromFailedBackups = 0;
+		//	saveRetained = true;
+		//}
 
-		DEBUG_LOG_F("...Backup saved to EEPROM. Size : %d bytes\r\n", size);
+		#warning test code
+		uint32_t eepromCrc = FileManager::GetEepromCRC(*eepromStream.eepromStream, size);
+		uint32_t oldCRC = statusRetained.crcs.eepromBackupFile;
+		uint32_t newCRC = eepromStream.crc.getCRC();
+
+		DEBUG_LOG_F("Backup saved to EEPROM.\r\n-Size : %d bytes\r\n-DOC CRC : %0000000X\r\n-Old CRC : %0000000X\r\n-New CRC : %0000000X\r\n-EEPROM CRC : %0000000X\r\n", size, docCRC, oldCRC, newCRC, eepromCrc);
+		//DEBUG_LOG_F("...Backup saved to EEPROM. Size : %d bytes\r\n", size);
 		status.config.backup.eepromBackedUp = true;
-		statusRetainedMonitor.crcs.recentBackup = statusRetained.crcs.recentBackup != crc;
-		statusRetainedMonitor.crcs.eepromBackupFile = statusRetained.crcs.eepromBackupFile != crc;
+		statusRetainedMonitor.crcs.recentBackup = statusRetained.crcs.recentBackup != newCRC;
+		statusRetainedMonitor.crcs.eepromBackupFile = statusRetained.crcs.eepromBackupFile != newCRC;
 		statusRetainedMonitor.fileSizes.recentBackup = statusRetained.fileSizes.recentBackup != size;
 		statusRetainedMonitor.fileSizes.eepromBackup = statusRetained.fileSizes.eepromBackup != size;
-		statusRetained.crcs.recentBackup = crc;
-		statusRetained.crcs.eepromBackupFile = crc;
+		statusRetained.crcs.recentBackup = newCRC;
+		statusRetained.crcs.eepromBackupFile = newCRC;
 		statusRetained.fileSizes.recentBackup = size;
 		statusRetained.fileSizes.eepromBackup = size;
 
@@ -1335,6 +1467,8 @@ size_t Config::Backup::SaveBackupEeprom(JsonDocument* doc, bool saveRetained, co
 size_t Config::Backup::SaveBackupFilesystem(bool saveRetained)
 {
 #if COMPILE_BACKUP
+	DEBUG_NEWLINE();
+
 	DEBUG_LOG_LN("Saving config backup to File System...");
 
 	if (status.config.backup.backupsDisabled)
@@ -1370,9 +1504,19 @@ size_t Config::Backup::SaveBackupFilesystem(bool saveRetained)
 size_t Config::Backup::SaveBackupFilesystem(JsonDocument* doc, bool saveRetained, const uint32_t crc)
 {
 #if COMPILE_BACKUP
+
+	DEBUG_NEWLINE();
+	DEBUG_NEWLINE();
+
 	if (status.config.backup.backupsDisabled)
 	{
 		DEBUG_LOG_LN("Backups are disabled.\r\n");
+		return false;
+	}
+
+	if (statusRetained.fsFailedBackups >= config.device.maxFailedBackups)
+	{
+		DEBUG_LOG_LN("Backup cannot be saved as there are too many failed attempts.\r\n");
 		return false;
 	}
 
@@ -1407,79 +1551,110 @@ size_t Config::Backup::SaveBackupFilesystem(JsonDocument* doc, bool saveRetained
 	}
 
 	File file;
-
-	/*File file;*/
 	String backupPath;
+
 	if (!Documents::GenerateBackupPath(status.config.path, &backupPath))
 	{
 		DEBUG_LOG_LN("Failed to generate backup path.\r\n");
 		return 0;
 	}
 
-	if (!FileManager::OpenFile(&file, backupPath.c_str(), "w+"))
+	if (!FileManager::OpenFile(&file, backupPath.c_str(), "w"/*+*/))
 	{
 		DEBUG_LOG_LN("Could not open backup file for writing!\r\n");
 		return 0;
 	}
 
-	size_t size = serializeJson(*doc, file);
-	//file.close();
+	Crc32FileStream fileStream(&file);
+
+#if DEVELOPER_MODE
+	if (status.misc.developerMode)
+	{
+		fileStream = Crc32FileStream(&file, serialDebug != nullptr ? serialDebug : serial);
+	}
+#endif
+
+	DEBUG_LOG_F("Doc Size : %dbytes\r\n", doc->size());
+
+	
+
+	size_t size = serializeJson(*doc, fileStream);
+	file.close();
+
+#if DEVELOPER_MODE
+	DEBUG_NEWLINE();
+	//if (status.misc.developerMode)
+	//{
+	//	JsonHelper::JsonSerialStream(*doc);
+	//}
+
 
 #warning testing : check if CRC is failing or the backup
 #pragma region Test
-DEBUG_LOG_LN("FS Test start");
-	doc->clear();
-	file.seek(0);
-
-
-
-	Config_t fsConfig;
-	FileManager::ParseFile(&file, *doc, status.config.path, true);
-	String test;
-	serializeJson(*doc, test);
-	DEBUG_LOG_LN(test);
-
-	convertFromJson(*doc, fsConfig);
-	if (memcmp(&config, &fsConfig, sizeof(config)) == 0)
-	{
-		DEBUG_LOG_LN("Backup matches");
-	}
-	else 
-	{
-		DEBUG_LOG_LN("Backup Doesn't match");
-	}
-
-	doc->clear();
-	if (!FileManager::OpenAndParseFile(status.config.path, *doc))
-	{
-		DEBUG_LOG_LN("Could not open backup file for writing!\r\n");
-		return 0;
-	}
+//DEBUG_LOG_LN("FS Test start");
+//	doc->clear();
+//	file.seek(0);
+//
+//
+//
+//	Config_t fsConfig;
+//	FileManager::ParseFile(&file, *doc, status.config.path, true);
+//	String test;
+//	serializeJson(*doc, test);
+//	DEBUG_LOG_LN(test);
+//
+//	convertFromJson(*doc, fsConfig);
+//	if (memcmp(&config, &fsConfig, sizeof(config)) == 0)
+//	{
+//		DEBUG_LOG_LN("Backup matches");
+//	}
+//	else 
+//	{
+//		DEBUG_LOG_LN("Backup Doesn't match");
+//	}
+//
+//	doc->clear();
+//	if (!FileManager::OpenAndParseFile(status.config.path, *doc))
+//	{
+//		DEBUG_LOG_LN("Could not open backup file for writing!\r\n");
+//		return 0;
+//	}
 #pragma endregion
-	
+#endif
 
 	DEBUG_LOG_F("...FS Backup serialized and saved...Size : %dbytes...Checking CRC...", size);
 
 	if (size)
 	{
-		//Get Saved CRC to validate
-		uint32_t crc = FileManager::GetFileCRC(backupPath.c_str());
+		uint32_t crc = docCRC;
+		////Get Saved CRC to validate
+		//uint32_t fileCRC = config.device.verifyBackups ? docCRC : FileManager::GetFileCRC(backupPath.c_str());
 
-		if (crc != docCRC)
-		{
-			DEBUG_LOG_F("Failed!\r\nSaved File Corrupted! CRC does not match Document CRC!\r\nFile : %0000000X\r\nDoc : %0000000X\r\n", crc, docCRC);
-			size = 0;
-			crc = 0;
-		}
+		//if (fileCRC != docCRC)
+		//{
+		//	DEBUG_LOG_F("Failed!\r\nSaved File Corrupted! CRC does not match Document CRC!\r\nFile : %0000000X\r\nDoc : %0000000X\r\n", fileCRC, docCRC);
+		//	size = 0;
+		//	//fileCRC = 0;
+		//	statusRetained.fsFailedBackups++;
+		//}
+		//else
+		//{
+		//	statusRetained.fsFailedBackups = 0;			
+		//	saveRetained = true;
+		//}
+#warning test code
+		uint32_t fileCRC = FileManager::GetFileCRC(backupPath.c_str());
+		uint32_t oldCRC = statusRetained.crcs.fileSystemBackupFile;
+		uint32_t newCRC = fileStream.crc.getCRC();
 
-		DEBUG_LOG_F("Backup saved to File System. Size : %d bytes\r\n", size);
+		DEBUG_LOG_F("Backup saved to File System.\r\n-Size : %d bytes\r\n-DOC CRC : %0000000X\r\n-Old CRC : %0000000X\r\n-New CRC : %0000000X\r\n-File CRC : %0000000X\r\n", size, docCRC, oldCRC, newCRC, fileCRC);
 		status.config.backup.filesystemBackedUp = true;
-		statusRetainedMonitor.crcs.recentBackup = statusRetained.crcs.recentBackup != crc;
-		statusRetainedMonitor.crcs.fileSystemBackupFile = statusRetained.crcs.fileSystemBackupFile != crc;
+		statusRetainedMonitor.crcs.recentBackup = statusRetained.crcs.recentBackup != newCRC;
+		statusRetainedMonitor.crcs.fileSystemBackupFile = statusRetained.crcs.fileSystemBackupFile != newCRC;
 		statusRetainedMonitor.fileSizes.recentBackup = statusRetained.fileSizes.recentBackup != size;
 		statusRetainedMonitor.fileSizes.fileSystemBackup = statusRetained.fileSizes.fileSystemBackup != size;
-		statusRetained.crcs.recentBackup = crc;
-		statusRetained.crcs.fileSystemBackupFile = crc;
+		statusRetained.crcs.recentBackup = newCRC;
+		statusRetained.crcs.fileSystemBackupFile = newCRC;
 		statusRetained.fileSizes.recentBackup = size;
 		statusRetained.fileSizes.fileSystemBackup = size;
 	}
@@ -1508,6 +1683,16 @@ bool Config::Backup::DeserializeEepromBackupConfig(JsonDocument& doc)
 	eepromStream.setTimeout(FILE_STREAM_TIMEOUT);
 
 	DeserializationError derror = deserializeJson(doc, eepromStream);
+
+
+#if DEVELOPER_MODE
+	if (status.misc.developerMode)
+	{
+		eepromStream = EepromStream(sizeof(StatusRetained_t), DOC_CONFIG_DESERIALIZE_SIZE);
+		FileManager::DisplayEepromContents(eepromStream);
+	}
+#endif
+	
 
 	if (derror)
 	{
@@ -1548,15 +1733,22 @@ void Config::Backup::EnableBackups()
 #if COMPILE_BACKUP
 	DEBUG_LOG_LN("Auto-backup enabled.");
 	status.config.backup.backupsDisabled = false;
+	SetConfigCRCs();
 #endif
 }
 
 void Config::Backup::SetBackupFlags(uint32_t crc)
 {
 #if COMPILE_BACKUP
-	status.config.backup.eepromBackedUp = crc == statusRetained.crcs.eepromBackupFile && statusRetained.fileSizes.eepromBackup > 0 && statusRetained.crcs.eepromBackupFile != statusRetained.crcs.recentBackup;
-	status.config.backup.filesystemBackedUp = crc == statusRetained.crcs.fileSystemBackupFile && statusRetained.fileSizes.fileSystemBackup > 0 && statusRetained.crcs.fileSystemBackupFile != statusRetained.crcs.recentBackup;
+	status.config.backup.eepromBackedUp = crc == statusRetained.crcs.eepromBackupFile && statusRetained.fileSizes.eepromBackup > 0 && statusRetained.crcs.eepromBackupFile != status.config.backup.configFileCRC /*statusRetained.crcs.recentBackup*/;
+	status.config.backup.filesystemBackedUp = crc == statusRetained.crcs.fileSystemBackupFile && statusRetained.fileSizes.fileSystemBackup > 0 && statusRetained.crcs.fileSystemBackupFile != status.config.backup.configFileCRC/*statusRetained.crcs.recentBackup*/;
 #endif
+}
+
+void Config::Backup::SetConfigCRCs()
+{
+	statusRetained.crcs.configFile = status.config.backup.configFileCRC;
+	statusRetained.crcs.configPath = status.config.backup.configPathCRC;
 }
 
 
@@ -1664,38 +1856,49 @@ int Config::Status::PackDeviceStatus(JsonObject& doc)
 }
 
 
-bool Config::Status::SaveRetainedStatus()
+bool Config::Status::SaveRetainedStatus(bool force)
 {
+	DEBUG_LOG("Saving Retained Status...");
 	if (!status.device.eepromMounted)
 	{
-		DEBUG_LOG_LN("Cannot Save Retained Status : EEPROM Not Mounted!");
+		DEBUG_LOG("Failed : ");
+		DEBUG_LOG_LN("EEPROM Not Mounted!");
 		return false;
 	}
 
 	//if (status.disableRetainCommits) return;
 
 	//Settings have not been changed
-	if (!statusRetainedMonitor.bitmap) return true;
+	if (!statusRetainedMonitor.bitmap)
+	{
+		DEBUG_LOG("Failed : ");
+		DEBUG_LOG_LN("No Changes Made.");
+		return true;
+	}
 
 	EEPROM.put(0, statusRetained);
+
 	if (!EEPROM.commit())
 	{
-		DEBUG_LOG_LN("Cannot Save Retained Status : EEPROM Commit Failed!");
+		DEBUG_LOG("Failed : ");
+		DEBUG_LOG_LN("EEPROM Commit Failed!");
 		return false;
 	}
 
+	DEBUG_LOG_LN("Success!");
+
 	status.config.saveRetainedLoop = true;
 
-	//Blink hotspot LED
-	if (config.wifi.accessPoint.ledGpio != -1)
-	{
-		//Make sure number is even so that previous state is recovered
-		for (uint8_t i = 0; i < 10; i++)
-		{
-			LedToggle(config.wifi.accessPoint.ledGpio);
-			EspSense::YieldWatchdog(250);
-		}
-	}
+
+	//if (config.wifi.accessPoint.ledGpio != -1)
+	//{
+	//	//Make sure number is even so that previous state is recovered
+	//	for (uint8_t i = 0; i < 10; i++)
+	//	{
+	//		LedToggle(config.wifi.accessPoint.ledGpio);
+	//		EspSense::YieldWatchdog(250);
+	//	}
+	//}
 
 	statusRetainedMonitor.bitmap = 0;
 	return true;

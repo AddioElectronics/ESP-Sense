@@ -43,7 +43,7 @@ namespace Config
 	{
 		void LoadBootSettings();
 
-		int CheckConfigCrc(JsonDocument& configDoc);
+		int CheckConfigCrc();
 		int CheckConfigPathCrc();
 
 		bool LoadConfiguration();
@@ -89,6 +89,7 @@ namespace Config
 		void DisableBackups();
 		void EnableBackups();
 		void SetBackupFlags(uint32_t crc);
+		void SetConfigCRCs();
 	}
 
 
@@ -110,7 +111,7 @@ namespace Config
 		//size_t SerializeDeviceStatus(String* serializeTo, DynamicJsonDocument** out_doc = nullptr);
 		//size_t SerializeDeviceStatus(DynamicJsonDocument** out_doc);
 
-		bool SaveRetainedStatus();
+		bool SaveRetainedStatus(bool force = false);
 
 		bool SetRetainedConfigPath(bool saveRetained = false);
 	}

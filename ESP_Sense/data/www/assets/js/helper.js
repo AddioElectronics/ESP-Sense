@@ -69,7 +69,6 @@ function enableObj(obj, ignoreAlready) {
     }   
 }
 
-
 function enableBlockingMsg(msg, blockNav, color, time, textElem) {
     disableBlockingMsg();
     

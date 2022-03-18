@@ -3,7 +3,12 @@ var globalStatusJOBJ;
 function globalStatusInit() {
     console.log("globalStatusInit()");
     navWebUpdate = $('#nav_webupdate');
-    requestJsonData("/status", receivedGlobalStatus, retryGetGlobalStatus);    
+    
+    if(devMode){
+        loadDummyGlobalStatus();
+    }else{
+        requestJsonData("/status", receivedGlobalStatus, retryGetGlobalStatus); 
+    }       
 }
 
 function receivedGlobalStatus(data){
@@ -50,8 +55,4 @@ function loadDummyGlobalStatus(){
 EventReady.add(function(){
     if ($('#global_status') == null) return;
     onEvent('auth', globalStatusInit);
-    
-    if(devMode){
-        loadDummyGlobalStatus();   
-     }
 });

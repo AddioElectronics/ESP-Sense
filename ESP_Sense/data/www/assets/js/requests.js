@@ -3,7 +3,7 @@
 //success(data)
 //error(xhr, status, error)
 function requestJsonData(url, success, error, complete) {
-    $.ajax({
+    return $.ajax({
         dataType: "json",
         type: 'GET',
         url: url,

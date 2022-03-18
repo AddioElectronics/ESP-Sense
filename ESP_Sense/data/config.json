@@ -16,12 +16,12 @@
 			"pass": "flashyourbits",
 			"hidden":false,
 			"maxConnections":2,
-			"buttonGpio":18,
+			"buttonGpio":23,
 			"buttonPullup":true,
 			"buttonPress":0,
 			"ledGpio": 33,
 			"ledOn":0,
-			"holdtime":5			
+			"holdTime":5			
 		},
 		"taskSettings":{
 			"useDefaults":false,
@@ -77,6 +77,7 @@
 	"device":{
 		"useDefaults":false,
 		"autoBackupMode": "all",
+		"maxFailedBackups":5,
 		"serial":{
 			"useDefaults":false,
 			"messagePort":1,

@@ -1072,9 +1072,9 @@ bool WifiManager::AccessPoint::CheckHotspotButton()
 	
 	if (ButtonGetState(config.wifi.accessPoint.buttonGpio, config.wifi.accessPoint.buttonPress))
 	{
-		DEBUG_LOG_LN("Hotspot Button Pressed...\r\n...Delaying for holdTime....");
-		Tasks::StartBlinkTask(status.wifi.station.blink, true, config.wifi.accessPoint.holdTime * 1000);
-		delay(config.wifi.accessPoint.holdTime * 1000);
+		DEBUG_LOG_F("Hotspot Button Pressed...\r\n...Delaying for holdTime(%dsec)....", config.wifi.accessPoint.holdTime / 1000);
+		Tasks::StartBlinkTask(status.wifi.station.blink, true, config.wifi.accessPoint.holdTime);
+		delay(config.wifi.accessPoint.holdTime);
 
 
 		//Held for n seconds. Enter accessPoint mode.

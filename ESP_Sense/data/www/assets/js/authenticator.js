@@ -22,7 +22,7 @@ class Authenticator{
             url: "/auth",
             data: null,
             success: Authenticator.Success,
-            error: Authenticator.Success
+            error: devMode ? Authenticator.Success : Authenticator.Failed
         });
     }
     
@@ -178,7 +178,7 @@ function encryptXOR(msg, key) {
 
 
 
-EventReady.add(function(){
+onEvent('version', function(){
     $('.main-container').hide();
     $('#auth_con').hide();
     //$('#user_input').change(validateAuthForm);

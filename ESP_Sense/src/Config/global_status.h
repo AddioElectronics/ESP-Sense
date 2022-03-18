@@ -40,7 +40,8 @@ typedef struct {
 #pragma region Config
 
 typedef struct {
-	uint32_t configCRC;						//Current CRC of the global config after configuration.
+	uint32_t configFileCRC;					//Current CRC of the global config file this boot.
+	uint32_t configPathCRC;					//Current CRC of the global config path this boot.
 	bool ableToBackupEeprom : 1;			//Is the config file small enough to fit on the EEPROM?
 	bool backupsDisabled : 1;
 	bool eepromBackedUp : 1;				//A backup has been saved to the EEPROM since the last time settings were changed.
@@ -209,7 +210,10 @@ typedef struct {
 }MqttRetainedStatus_t;
 
 typedef struct {
-	Boot_bm boot;
+	size_t statusRetainedSize;
+	uint8_t fsFailedBackups;
+	uint8_t eepromFailedBackups;
+	Boot_bm boot;	
 	//char lastConfigPath[CONFIG_PATH_MAX_LENGTH];
 	Crcs_t crcs;
 	FileSizes_t fileSizes;
@@ -219,7 +223,10 @@ typedef struct {
 
 typedef union {
 	struct {
-		BootMonitor_bm boot;
+		bool statusRetainedSize : 1;
+		bool fsFailedBackups : 1;
+		bool eepromFailedBackups : 1;
+		BootMonitor_bm boot;		
 		//bool eepromBackup : 1;
 		//bool filesystemBackup : 1;
 		//bool lastConfigPath : 1;

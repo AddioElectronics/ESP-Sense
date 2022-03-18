@@ -25,6 +25,9 @@ using namespace Network::Website::Strings;
 extern Config_t config;
 extern GlobalStatus_t status;
 
+extern HardwareSerial* serial;			//Message
+extern HardwareSerial* serialDebug;		//Debug
+
 #if COMPILE_SERVER
 extern AsyncWebServer server;
 #endif	/*COMPILE_SERVER*/
@@ -58,21 +61,38 @@ void Network::Server::SpecialRequests::Initialize()
 	/*server.on("/status", HTTP_GET, ResponseDeviceStatus);*/
 	server.on(Website::Strings::Urls::requestStatus, HTTP_GET, [](AsyncWebServerRequest* request) {
 		//ResponseSerializedData((PACK_JSON_DOC_FUNC)Config::Status::SerializeDeviceStatus, request);
-		ResponseSerializedData(3072, (JsonHelper::PACK_JSON_FUNC)Config::Status::PackDeviceStatus, request);
+		ResponseSerializedData(3072, (JsonHelper::PACK_JSON_FUNC)Config::Status::PackDeviceStatus, request, true);
 	});
 
 	//Serialize MQTT device info and send in response.
 	server.on(Website::Strings::Urls::requestMqttDeviceInfo, HTTP_GET, [](AsyncWebServerRequest* request) {
 		//ResponseSerializedData((PACK_JSON_DOC_FUNC)Mqtt::DeviceManager::GetJsonDeviceInfo, request);
-		ResponseSerializedData(2048, (JsonHelper::PACK_JSON_FUNC)Mqtt::DeviceManager::PackDeviceInfo, request);
+
+		if (!status.mqtt.devicesConfigured)
+		{
+			request->send(503, Website::Strings::Messages::serviceUnavailable);
+			return 0;
+		}
+
+		ResponseSerializedData(2048, (JsonHelper::PACK_JSON_FUNC)Mqtt::DeviceManager::PackDeviceInfo, request, true);
 	});
 
 	//Get ESP Sense Version
 	server.on(Website::Strings::Urls::requestVersion, HTTP_GET, [](AsyncWebServerRequest* request) {
 		ResponseSerializedData(2048, (JsonHelper::PACK_JSON_FUNC)[](JsonObject& doc) {
+
+			DEBUG_LOG_F("Set Version %d.%d.%d\r\n", status.misc.version);
+
 			doc["version"].set(status.misc.version);
+
+			Version_t version = doc["version"].as<Version_t>();
+
+			DEBUG_LOG_F("Doc Version %d.%d.%d\r\n", version);
+
+
+
 			return 0;
-		}, request);
+		}, request, false);
 	});
 
 	//Restart
@@ -103,20 +123,33 @@ void Network::Server::SpecialRequests::Initialize()
 /// <param name="request">Web request</param>
 /// <param name="respondOnError">If the JSON data was unable to be sent, do you want an error code to be sent?</param>
 /// <returns>Recommended HTTP error response code. If returns 200, a respone has already been sent.</returns>
-int Network::Server::SpecialRequests::ResponseSerializedData(size_t docSize, JsonHelper::PACK_JSON_FUNC packFunc, AsyncWebServerRequest* request, bool respondOnError, bool messagedResponse)
+int Network::Server::SpecialRequests::ResponseSerializedData(size_t docSize, JsonHelper::PACK_JSON_FUNC packFunc, AsyncWebServerRequest* request, bool requireAuth, bool respondOnError, bool messagedResponse)
 {
-	if (!Network::Server::Authentication::IsAuthenticated(request))
-	{
-		if (respondOnError)
-			Server::SendHttpResponseCode(511, request, messagedResponse);
+	DEBUG_LOG_LN("ResponseSerializedData");
+	if (requireAuth)
+		if (!Network::Server::Authentication::IsAuthenticated(request))
+		{
+			if (respondOnError)
+				Server::SendHttpResponseCode(511, request, messagedResponse);
 			//request->send(511, ContentType::textPlain, Messages::networkAuthenticationRequried);
-		return 511;
-	}
+			return 511;
+		}
 
 	DynamicJsonDocument* doc = JsonHelper::CreateAndPackDocument(docSize, packFunc);
 
+#if DEVELOPER_MODE
+
+	if (status.misc.developerMode)
+	{
+		JsonHelper::JsonSerialStream printStream(*doc, serialDebug != nullptr ? serialDebug : serial);
+		printStream.PrintContents();
+	}
+
+#endif
+
 	if (doc != nullptr) {
 
+		DEBUG_LOG_LN("request->beginResponseStream");
 		//Serialize document in response stream.
 		AsyncResponseStream* response = request->beginResponseStream(ContentType::appJSON);
 		serializeJson(*doc, *response);
