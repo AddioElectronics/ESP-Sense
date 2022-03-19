@@ -26,7 +26,7 @@ typedef struct {
 }GlobalStatusTasks_t;
 
 typedef struct {
-	bool freshBoot : 1;
+	bool freshBoot : 1;						//Is the current boot fresh?
 	bool retainedStatusLoaded : 1;			//Was the retained status succesfully loaded?
 	bool i2cInitialized : 1;
 	bool fsMounted : 1;						//Was the file system successfully mounted?
@@ -42,6 +42,7 @@ typedef struct {
 typedef struct {
 	uint32_t configFileCRC;					//Current CRC of the global config file this boot.
 	uint32_t configPathCRC;					//Current CRC of the global config path this boot.
+	uint32_t configDocCRC;					//Current CRC of the global config serialized document this boot.
 	bool ableToBackupEeprom : 1;			//Is the config file small enough to fit on the EEPROM?
 	bool backupsDisabled : 1;
 	bool eepromBackedUp : 1;				//A backup has been saved to the EEPROM since the last time settings were changed.
@@ -183,7 +184,8 @@ typedef struct {
 	uint32_t bootFile;
 	uint32_t configPath;
 	uint32_t configFile;
-	uint32_t recentBackup;
+	uint32_t configFileAtBackup;	//CRC of the config file when a backup was made.
+	uint32_t recentBackup;			//CRC of serialized document that was backed up.
 	uint32_t fileSystemBackupFile;
 	uint32_t eepromBackupFile;
 }Crcs_t;
@@ -234,6 +236,7 @@ typedef union {
 			bool bootFile : 1;
 			bool configPath : 1;
 			bool configFile : 1;
+			bool configFileAtBackup : 1;
 			bool recentBackup : 1;
 			bool fileSystemBackupFile : 1;
 			bool eepromBackupFile : 1;

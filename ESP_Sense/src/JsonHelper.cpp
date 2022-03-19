@@ -204,48 +204,6 @@ bool JsonHelper::UdfHelperConvertToJsonEnums(const EnumClass_t& src, JsonVariant
 }
 
 
-JsonHelper::JsonSerialStream::JsonSerialStream(JsonDocument& doc)
-{
-	_doc = &doc;
-	_serial = serial;
-}
-
-JsonHelper::JsonSerialStream::JsonSerialStream(JsonDocument& doc, HardwareSerial* serial) {
-	_doc = &doc;
-	_serial = serial;
-}
-
-
-size_t JsonHelper::JsonSerialStream::write(uint8_t c)
-{
-	return serial->write(c);
-}
-
-size_t JsonHelper::JsonSerialStream::write(const uint8_t* buffer, size_t length)
-{
-	return serial->write(buffer, length);
-}
-
-size_t JsonHelper::JsonSerialStream::PrintContents()
-{
-	_serial->println("Printing Json Doc...");
-	JsonSerialStream* stream = this;
-	size_t size = serializeJson(*_doc, *stream);
-	_serial->println("\r\n...Finished.");
-	return size;
-}
-
-
-size_t JsonHelper::JsonSerialStream::PrintContents(JsonDocument& doc)
-{
-	return PrintContents(doc, serial);
-}
-
-size_t JsonHelper::JsonSerialStream::PrintContents(JsonDocument& doc, HardwareSerial* serial)
-{
-	JsonSerialStream stream = JsonSerialStream(doc, serial);
-	return stream.PrintContents();
-}
 
 
 
@@ -364,7 +322,15 @@ bool convertToJson(const IPAddress& src, JsonVariant dst)
 {
 	//String required for website JS at this time.
 //#if SERIALIZE_ENUMS_TO_STRING
-	dst.set(src.toString().c_str());
+	dst.set(src.toString());
+
+
+#if DEVELOPER_MODE
+	IPAddress ip = dst.as<IPAddress>();
+	String ipString = ip.toString();
+	DEBUG_LOG_F("JsonVar as IP String : %s\r\n", ipString.c_str());
+#endif
+
 //#else
 //	bool set =
 //		dst.add(src[0]) &&

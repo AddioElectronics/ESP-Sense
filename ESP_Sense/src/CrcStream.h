@@ -64,5 +64,18 @@ struct Crc32EepromStream : Crc32Stream {
 	size_t write(const uint8_t* buffer, size_t length) override;
 };
 
+struct Crc32FileEepromStream : Crc32Stream {
+
+	File* file;
+	EepromStream* eepromStream;
+
+	Crc32FileEepromStream(File* _file, EepromStream* _eepromStream);
+	Crc32FileEepromStream(File* _file, EepromStream* _eepromStream, HardwareSerial* _ser);
+
+	size_t write(uint8_t c) override;
+	size_t write(const uint8_t* buffer, size_t length) override;
+};
+
+
 #endif
 

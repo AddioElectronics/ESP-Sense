@@ -47,7 +47,7 @@ namespace FileManager {
 	uint32_t GetFileCRC(const char* path);
 	uint32_t GetFileCRC(File* file, bool close = true);
 
-	uint32_t GetSerializedCRC(JsonDocument& doc);
+	uint32_t GetSerializedCRC(JsonDocument& doc, size_t* out_size = nullptr);
 
 	uint32_t GetEepromCRC(EepromStream& eestream, size_t length);
 }

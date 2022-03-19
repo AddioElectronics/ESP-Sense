@@ -44,6 +44,7 @@ bool convertToJson(const BackupStatus_t& src, JsonVariant dst)
 {
 	dst["configFileCRC"] = src.configFileCRC;
 	dst["configPathCRC"] = src.configPathCRC;
+	dst["configDocCRC"] = src.configDocCRC;
 	dst["ableToBackupEeprom"] = src.ableToBackupEeprom;
 	dst["backupsDisabled"] = src.backupsDisabled;
 	dst["eepromBackedUp"] = src.eepromBackedUp;
@@ -166,6 +167,66 @@ bool convertToJson(const GlobalStatus_t& src, JsonVariant dst)
 	dst["misc"].set(src.misc);
 }
 
+//bool canConvertFromJson(JsonVariantConst src, const Crcs_t&)
+//{
+//}
+
+void convertFromJson(JsonVariantConst src, Crcs_t& dst)
+{
+	dst.bootFile = src["bootFile"];
+	dst.configPath = src["configPath"];
+	dst.configFile = src["configFile"];
+	dst.configFileAtBackup = src["configFileAtBackup"];
+	dst.recentBackup = src["recentBackup"];
+	dst.fileSystemBackupFile = src["fileSystemBackupFile"];
+	dst.eepromBackupFile = src["eepromBackupFile"];
+}
+
+bool convertToJson(const Crcs_t& src, JsonVariant dst)
+{
+	dst["bootFile"] = src.bootFile;
+	dst["configPath"] = src.configPath;
+	dst["configFile"] = src.configFile;
+	dst["configFileAtBackup"] = src.configFileAtBackup;
+	dst["recentBackup"] = src.recentBackup;
+	dst["fileSystemBackupFile"] = src.fileSystemBackupFile;
+	dst["eepromBackupFile"] = src.eepromBackupFile;
+}
+
+//bool canConvertFromJson(JsonVariantConst src, const FileSizes_t&)
+//{
+//}
+
+void convertFromJson(JsonVariantConst src, FileSizes_t& dst)
+{
+	dst.eepromBackup = src["eepromBackup"];
+	dst.fileSystemBackup = src["fileSystemBackup"];
+	dst.recentBackup = src["recentBackup"];
+}
+
+bool convertToJson(const FileSizes_t& src, JsonVariant dst)
+{
+	dst["recentBackup"] = src.recentBackup;
+	dst["fileSystemBackup"] = src.fileSystemBackup;
+	dst["eepromBackup"] = src.eepromBackup;
+}
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttRetainedStatus_t&)
+//{
+//}
+
+void convertFromJson(JsonVariantConst src, MqttRetainedStatus_t& dst)
+{
+	dst.ip = src["ip"].as<IPAddress>();
+}
+
+bool convertToJson(const MqttRetainedStatus_t& src, JsonVariant dst)
+{
+	dst["ip"].set(src.ip);
+}
+
+
+
 
 //bool canConvertFromJson(JsonVariantConst src, const StatusRetained_t&)
 //{
@@ -174,31 +235,20 @@ bool convertToJson(const GlobalStatus_t& src, JsonVariant dst)
 
 void convertFromJson(JsonVariantConst src, StatusRetained_t& dst)
 {
-	//if(src.containsKey("boot"))
-	JsonVariantConst boot = src["boot"];
-	dst.boot.freshBoot = boot["freshBoot"];
-	dst.boot.bootSource = boot["bootSource"].as<ConfigSource>();
-	dst.boot.wifiMode = (wifi_mode_t)((WifiMode)boot["wifiMode"].as<WifiMode>());
-
+	if(src.containsKey("boot"))
+		convertFromJson(src["boot"], dst.boot);
 
 	dst.fsFailedBackups = src["fsFailedBackups"];
 	dst.eepromFailedBackups = src["eepromFailedBackups"];
 
-	JsonVariantConst crcs = src["crcs"];
-	dst.crcs.bootFile = crcs["bootFile"];
-	dst.crcs.configFile = crcs["configFile"];
-	dst.crcs.configPath = crcs["configPath"];
-	dst.crcs.eepromBackupFile = crcs["eepromBackupFile"];
-	dst.crcs.fileSystemBackupFile = crcs["fileSystemBackupFile"];
-	dst.crcs.recentBackup = crcs["recentBackup"];
+	if (src.containsKey("crcs"))
+		convertFromJson(src["crcs"], dst.crcs);
 
-	JsonVariantConst fileSizes = src["fileSizes"];
-	dst.fileSizes.eepromBackup = fileSizes["eepromBackup"];
-	dst.fileSizes.fileSystemBackup = fileSizes["fileSystemBackup"];
-	dst.fileSizes.recentBackup = fileSizes["recentBackup"];
+	if (src.containsKey("fileSizes"))
+		convertFromJson(src["fileSizes"], dst.fileSizes);
 
-	JsonVariantConst mqtt = src["mqtt"];
-	dst.mqtt.ip = mqtt["ip"].as<IPAddress>();
+	if (src.containsKey("mqtt"))
+		convertFromJson(src["mqtt"], dst.mqtt);
 }
 
 bool convertToJson(const StatusRetained_t& src, JsonVariant dst)
@@ -227,6 +277,10 @@ bool convertToJson(const StatusRetained_t& src, JsonVariant dst)
 	JsonObject retainedStatus_mqtt = dst.createNestedObject("mqtt");
 	retainedStatus_mqtt["ip"].set(src.mqtt.ip);
 }
+
+
+
+
 
 //bool canConvertFromJson(JsonVariantConst src, const Boot_bm&)
 //{
@@ -703,9 +757,6 @@ void convertFromJson(JsonVariantConst src, ConfigDevice_t& dst)
 	if (src.containsKey("autoBackupMode"))
 		dst.autoBackupMode = (ConfigAutobackupMode_t)(src["autoBackupMode"].as< ConfigAutobackupMode>());
 
-	if (src.containsKey("verifyBackups"))
-		dst.verifyBackups = src["verifyBackups"];
-
 	if (src.containsKey("maxFailedBackups"))
 		dst.maxFailedBackups = src["maxFailedBackups"];
 
@@ -721,7 +772,6 @@ bool convertToJson(const ConfigDevice_t& src, JsonVariant dst)
 {
 	dst["useDefaults"] = src.useDefaults;
 	dst["autoBackupMode"].set<ConfigAutobackupMode>((ConfigAutobackupMode)src.autoBackupMode);
-	dst["verifyBackups"] = src.verifyBackups;
 	dst["maxFailedBackups"] = src.maxFailedBackups;
 
 	dst["serial"].set(src.serial);
@@ -867,8 +917,8 @@ bool convertToJson(const MqttBrokerConfig_t& src, JsonVariant dst)
 {
 	dst["autoDetectIp"] = src.autoDetectIp;
 	dst["wifiMode"].set<WifiMode>((WifiMode)src.wifiMode);
-	dst["ip"].set(src.ip);
-	dst["ipAP"].set(src.ipAP);
+	dst["ip"].set<IPAddress>(src.ip);
+	dst["ipAP"].set<IPAddress>(src.ipAP);
 	dst["port"] = src.port;
 	dst["user"].set(src.user);
 	dst["pass"].set(src.pass);

@@ -3,7 +3,10 @@
 	Lots of functions are uncommented, and unorganized, they will be fixed in the future.
 */
 
-#define ESP_SENSE_VERSION	0,1,2
+#define VERSION_MAJOR		0
+#define VERSION_MINOR		1
+#define VERSION_REVISION	5
+
 
 
 
@@ -198,7 +201,9 @@ void setup()
 	EspSense::BlankStructures();
 
 	//Set the Version
-	status.misc.version = {ESP_SENSE_VERSION};
+	status.misc.version.major = VERSION_MAJOR;
+	status.misc.version.minor = VERSION_MINOR;
+	status.misc.version.revision = VERSION_REVISION;
 
 	DEBUG_LOG_F("Version %d.%d.%d\r\n", status.misc.version);
 

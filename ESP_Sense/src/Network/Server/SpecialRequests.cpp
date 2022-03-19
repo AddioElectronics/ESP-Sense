@@ -19,6 +19,7 @@
 #include "../Website/WebpageServer.h"
 #include "Authentication.h"
 #include "../../MQTT/Devices/MqttDeviceManager.h"
+#include "../../CrcStream.h"
 
 using namespace Network::Website::Strings;
 
@@ -141,8 +142,8 @@ int Network::Server::SpecialRequests::ResponseSerializedData(size_t docSize, Jso
 
 	if (status.misc.developerMode)
 	{
-		JsonHelper::JsonSerialStream printStream(*doc, serialDebug != nullptr ? serialDebug : serial);
-		printStream.PrintContents();
+		Crc32Stream printStream(serialDebug != nullptr ? serialDebug : serial);
+		serializeJson(*doc, printStream);
 	}
 
 #endif

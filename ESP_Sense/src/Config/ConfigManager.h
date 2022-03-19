@@ -43,8 +43,10 @@ namespace Config
 	{
 		void LoadBootSettings();
 
-		int CheckConfigCrc();
-		int CheckConfigPathCrc();
+		int CheckConfigCrc(bool saveRetained = false);
+		int CheckConfigPathCrc(bool saveRetained = false);
+
+
 
 		bool LoadConfiguration();
 		void Reconfigure();
@@ -80,15 +82,13 @@ namespace Config
 		//#warning if config path has changed, should handle saving backups differently.
 		bool SaveBackupConfig(bool fs = true, bool eeprom = true, bool saveRetained = false, size_t* out_sizeFileSystem = nullptr, size_t* out_sizeEeprom = nullptr);
 		bool AutoSaveBackupConfig(bool saveRetained = false, size_t* out_sizeFileSystem = nullptr, size_t* out_sizeEeprom = nullptr);
-		size_t SaveBackupEeprom(bool saveRetained = false);
-		size_t SaveBackupEeprom(JsonDocument* doc, bool saveRetained = false, const uint32_t crc = 0);
-		size_t SaveBackupFilesystem(bool saveRetained);
-		size_t SaveBackupFilesystem(JsonDocument* doc, bool saveRetained = false, const uint32_t crc = 0);
+		bool SaveBackupEeprom(JsonDocument* doc, bool saveRetained = false, const uint32_t crc = 0, size_t* out_size = nullptr, bool isFullBackup = false);
+		bool SaveBackupFilesystem(JsonDocument* doc, bool saveRetained = false, const uint32_t crc = 0, size_t* out_size = nullptr, bool isFullBackup = false);
 		bool DeserializeEepromBackupConfig(JsonDocument& doc);
 
 		void DisableBackups();
 		void EnableBackups();
-		void SetBackupFlags(uint32_t crc);
+		void SetBackupFlags();
 		void SetConfigCRCs();
 	}
 

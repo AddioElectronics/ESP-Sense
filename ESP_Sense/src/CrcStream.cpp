@@ -5,15 +5,18 @@
 
 extern GlobalStatus_t status;
 
+
 size_t Crc32Stream::write(uint8_t c)
 {
 	crc.add(c);
+	writeSerial(c);
 	return 1;
 }
 
 size_t Crc32Stream::write(const uint8_t* buffer, size_t length)
 {
 	crc.add(buffer, length);
+	writeSerial(buffer, length);
 	return length;
 }
 
@@ -94,4 +97,44 @@ size_t Crc32EepromStream::write(const uint8_t* buffer, size_t length)
 	crc.add(buffer, length);
 	writeSerial(buffer, length);
 	return eepromStream->write(buffer, length);
+}
+
+Crc32FileEepromStream::Crc32FileEepromStream(File* _file, EepromStream* _eepromStream)
+{
+	crc.reset();
+	file = _file;
+	eepromStream = _eepromStream;
+	_serial = nullptr;
+}
+
+Crc32FileEepromStream::Crc32FileEepromStream(File* _file, EepromStream* _eepromStream, HardwareSerial* _ser)
+{
+	crc.reset();
+	file = _file;
+	eepromStream = _eepromStream;
+	_serial = _ser;
+}
+
+size_t Crc32FileEepromStream::write(uint8_t c)
+{
+	crc.add(c);
+	writeSerial(c);
+
+	//if (status.device.eepromMounted)
+	eepromStream->write(c);
+
+	//if(status.device.fsMounted)
+	return file->write(c);
+}
+
+size_t Crc32FileEepromStream::write(const uint8_t* buffer, size_t length)
+{
+	crc.add(buffer, length);
+	writeSerial(buffer, length);
+
+	//if (status.device.eepromMounted)
+	eepromStream->write(buffer, length);
+
+	//if (status.device.fsMounted)
+	return file->write(buffer, length);
 }

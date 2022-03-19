@@ -210,8 +210,8 @@ enum ESP_MEMSIZE
 #define BOOT_DELAY						10
 #define DEVICE_BOOT_ORDER				{ConfigSource::CFG_FILESYSTEM, ConfigSource::CFG_EEPROM, ConfigSource::CFG_BACKUP_FILESYSTEM, ConfigSource::CFG_BACKUP_FILESYSTEM}
 #define AUTO_BACKUP_MODE				ConfigAutobackupMode::AUTOBACKUP_OFF
-#define VERIFY_BACKUP					true					//Verify backup after saving. *Was working before, now CRC is different.
 #define MAX_FAILED_BACKUPS				5						//How many times will a backup attempt fail before being disabled?
+//#define VERIFY_BACKUP					true					//Verify backup after saving. *Was working before, now CRC is different.
 
 #pragma region I2C
 
@@ -530,7 +530,6 @@ typedef struct {
 typedef struct {
 	bool useDefaults : 1;
 	ConfigAutobackupMode_t autoBackupMode : 2;
-	bool verifyBackups : 1;
 	uint8_t reserved : 5;
 	uint8_t maxFailedBackups;
 	SerialConfig_t serial;
@@ -667,7 +666,6 @@ typedef union {
 	struct {
 		bool useDefaults : 1;
 		bool autoBackupMode : 1;
-		bool verifyBackups : 1;
 		bool maxFailedBackups : 1;
 		SerialConfigMonitor_t serial;
 		struct {

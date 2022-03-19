@@ -39,6 +39,18 @@ bool convertToJson(const GlobalStatus_t& src, JsonVariant dst);
 
 
 
+//bool canConvertFromJson(JsonVariantConst src, const Crcs_t&);
+void convertFromJson(JsonVariantConst src, Crcs_t& dst);
+bool convertToJson(const Crcs_t& src, JsonVariant dst);
+
+//bool canConvertFromJson(JsonVariantConst src, const FileSizes_t&);
+void convertFromJson(JsonVariantConst src, FileSizes_t& dst);
+bool convertToJson(const FileSizes_t& src, JsonVariant dst);
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttRetainedStatus_t&);
+void convertFromJson(JsonVariantConst src, MqttRetainedStatus_t& dst);
+bool convertToJson(const MqttRetainedStatus_t& src, JsonVariant dst);
+
 //bool canConvertFromJson(JsonVariantConst src, const Boot_bm&);
 void convertFromJson(JsonVariantConst src, Boot_bm& dst);
 bool convertToJson(const Boot_bm& src, JsonVariant dst);

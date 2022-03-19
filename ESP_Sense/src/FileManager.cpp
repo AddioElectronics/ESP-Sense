@@ -326,13 +326,17 @@ uint32_t FileManager::GetFileCRC(File* file, bool close)
 /// and returns the result.
 /// </summary>
 /// <returns>CRC32 of the serialized document.</returns>
-uint32_t FileManager::GetSerializedCRC(JsonDocument& doc)
+uint32_t FileManager::GetSerializedCRC(JsonDocument& doc, size_t* out_size)
 {	
 	DEBUG_LOG_LN("Calculating JsonDocument CRC...");
 	Crc32Stream crcStream;
-	serializeJson(doc, crcStream);
+	size_t size = serializeJson(doc, crcStream);
 	uint32_t crc = crcStream.crc.getCRC();
 	DEBUG_LOG_F("CRC : 0x%0000000X\r\n", crc);
+
+	if (out_size != nullptr)
+		*out_size = size;
+
 	return crc;
 }
 

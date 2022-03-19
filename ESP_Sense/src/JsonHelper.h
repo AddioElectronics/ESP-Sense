@@ -2,6 +2,7 @@
 #define _JSONHELPER_h
 
 #include <arduino.h>
+#include <CRC32.h>
 
 #include <functional>
 
@@ -58,26 +59,7 @@ namespace JsonHelper
 	void UdfHelperConvertFromJsonEnums(JsonVariantConst src, EnumClass_t& dst, uint8_t length, const char* name = nullptr, const char** strings = nullptr, int* values = nullptr);
 	bool UdfHelperConvertToJsonEnums(const EnumClass_t& src, JsonVariant dst, uint8_t length, const char* name = nullptr, const char** strings = nullptr, int* values = nullptr);
 
-	struct JsonSerialStream {
 
-		JsonDocument* _doc;
-
-		HardwareSerial* _serial;
-
-		JsonSerialStream(JsonDocument& doc);
-
-		JsonSerialStream(JsonDocument& doc, HardwareSerial* serial);
-
-		size_t write(uint8_t c);
-
-		size_t write(const uint8_t* buffer, size_t length);
-
-
-		size_t PrintContents();
-
-		static size_t PrintContents(JsonDocument& doc);
-		static size_t PrintContents(JsonDocument& doc, HardwareSerial* serial);
-	};
 }
 
 #pragma region User Defined Functions
