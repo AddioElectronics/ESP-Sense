@@ -151,9 +151,9 @@ bool Sht4xSensor::Unsubscribe()
 //}
 
 
-void Sht4xSensor::AddStatePayload(JsonObject& addTo)
+void Sht4xSensor::AddStatePayload(JsonVariant& addTo)
 {
-	JsonObject obj = addTo;
+	JsonVariant obj = addTo;
 	if (addTo.size() == 0)
 		obj = addTo.createNestedObject("statePayload");
 
@@ -178,13 +178,13 @@ void Sht4xSensor::AddStatePayload(JsonObject& addTo)
 	}
 }
 
-//void Sht4xSensor::AddStatusData(JsonObject& addTo)
+//void Sht4xSensor::AddStatusData(JsonVariant& addTo)
 //{
 //	MqttSensor::AddStatusData(addTo);
 //	addTo["uniqueStatus"].set<SHT4xStatus_t>(uniqueStatus);
 //}
 
-void Sht4xSensor::AddConfigData(JsonObject& addTo)
+void Sht4xSensor::AddConfigData(JsonVariant& addTo)
 {
 	MqttDevice::AddConfigData(addTo);
 	addTo["uniqueConfig"].set<Sht4xConfig_t>(uniqueConfig);

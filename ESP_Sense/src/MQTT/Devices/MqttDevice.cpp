@@ -235,7 +235,7 @@ String MqttDevice::GenerateJsonData(ADD_PAYLOAD_FUNC addPayload, const char* dat
 String MqttDevice::GenerateJsonStatePayload()
 {
 
-	return GenerateJsonData([this](JsonObject&) 
+	return GenerateJsonData([this](JsonVariant&)
 	{
 		return this->AddStatePayload(this->documentRoot);
 	}, "State Payload");
@@ -243,7 +243,7 @@ String MqttDevice::GenerateJsonStatePayload()
 
 String MqttDevice::GenerateJsonStatus()
 {
-	return GenerateJsonData([this](JsonObject&)
+	return GenerateJsonData([this](JsonVariant&)
 	{
 		return this->AddStatusData(this->documentRoot);
 	}, "Status");
@@ -251,7 +251,7 @@ String MqttDevice::GenerateJsonStatus()
 
 String MqttDevice::GenerateJsonConfig()
 {
-	return GenerateJsonData([this](JsonObject&)
+	return GenerateJsonData([this](JsonVariant&)
 	{
 		return this->AddConfigData(this->documentRoot);
 	}, "Config");
@@ -259,7 +259,7 @@ String MqttDevice::GenerateJsonConfig()
 
 String MqttDevice::GenerateJsonAll()
 {
-	return GenerateJsonData([this](JsonObject&)
+	return GenerateJsonData([this](JsonVariant&)
 	{
 		return this->AddStatusData(this->documentRoot);
 		return this->AddConfigData(this->documentRoot);
@@ -336,7 +336,7 @@ size_t MqttDevice::StreamDocument(AsyncWebServerRequest* request)
 	return size;
 }
 
-void MqttDevice::AddStatusData(JsonObject& addTo)
+void MqttDevice::AddStatusData(JsonVariant& addTo)
 {
 	addTo["deviceStatus"].set<MqttDeviceStatus_t>(deviceStatus);
 
@@ -344,7 +344,7 @@ void MqttDevice::AddStatusData(JsonObject& addTo)
 		this->website->AddStatusData(this->documentRoot);
 }
 
-void MqttDevice::AddConfigData(JsonObject& addTo)
+void MqttDevice::AddConfigData(JsonVariant& addTo)
 {
 	addTo["deviceConfig"].set<MqttDeviceConfig_t>(deviceConfig);
 	addTo["deviceMqttSettings"].set<MqttDeviceMqttSettings_t>(deviceMqttSettings);

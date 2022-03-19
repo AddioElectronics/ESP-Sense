@@ -98,7 +98,7 @@ namespace Config
 		/// <summary>
 		/// Adds status(GlobalStatus_t) and statusRetained (RetainedStatus_t) into a JSON document.
 		/// </summary>
-		int PackDeviceStatus(JsonObject& obj);
+		int PackDeviceStatus(JsonVariant& obj);
 
 		///// <summary>
 		///// Serializes the device status structure to a String.

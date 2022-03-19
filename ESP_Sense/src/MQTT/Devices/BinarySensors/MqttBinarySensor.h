@@ -36,7 +36,7 @@ public:
 		return MqttDeviceType::MQTT_BINARY_SENSOR;
 	}
 
-	virtual void AddStatusData(JsonObject& addTo) override;		//device, binary/sensor/ect.., and unique status
+	virtual void AddStatusData(JsonVariant& addTo) override;		//device, binary/sensor/ect.., and unique status
 
 	virtual bool Read()
 	{

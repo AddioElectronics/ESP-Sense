@@ -31,9 +31,14 @@ bool convertToJson(const Version_t& src, JsonVariant dst)
 	DEBUG_LOG_LN("Convert Version to JSON");
 	DEBUG_LOG_F("Doc Version %d.%d.%d\r\n", src.major, src.minor, src.revision);
 	JsonArray jarray = dst.as<JsonArray>();
+
+	DEBUG_LOG_F("JARRAY NULL? %d\r\nis array? %d\r\n", jarray.isNull(), dst.is<JsonArray>());
+
 	jarray.add(src.major);
 	jarray.add(src.minor);
 	jarray.add(src.revision);
+
+	DEBUG_LOG_F("Array Version %d.%d.%d\r\n", (const char*)jarray[0], (const char*)jarray[1], (const char*)jarray[2]);
 
 	return true;
 }

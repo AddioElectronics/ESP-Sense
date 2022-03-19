@@ -57,7 +57,7 @@ public:
 	virtual String GetUrl();
 	virtual String GetUrl(const char* subFolder);
 
-	virtual void AddStatusData(JsonObject& rootObj);
+	virtual void AddStatusData(JsonVariant& rootObj);
 
 protected:
 	virtual void InitializePage();

@@ -32,7 +32,7 @@ typedef int8_t ecode_t;
 
 //typedef bool(MqttDevice::* ADD_PAYLOAD_FUNC)(void);
 
-typedef std::function<void(JsonObject&)> ADD_PAYLOAD_FUNC;
+typedef std::function<void(JsonVariant&)> ADD_PAYLOAD_FUNC;
 
 enum class MqttDeviceType
 {
@@ -182,7 +182,7 @@ public:
 
 protected:
 	JsonDocument* document;
-	JsonObject documentRoot;
+	JsonVariant documentRoot;
 public:
 
 	virtual const char* GetConfigFilePath() = 0;
@@ -250,9 +250,9 @@ public:
 	size_t SerializeDocument(String* out_string, bool freeDoc = true);
 	size_t StreamDocument(AsyncWebServerRequest* request);
 
-	virtual void AddStatePayload(JsonObject& addTo) = 0;		//Payload for MQTT state topic
-	virtual void AddStatusData(JsonObject& addTo);				//device, binary/sensor/ect.., and unique status
-	virtual void AddConfigData(JsonObject& addTo);				//device, binary/sensor/ect.., and unique config
+	virtual void AddStatePayload(JsonVariant& addTo) = 0;		//Payload for MQTT state topic
+	virtual void AddStatusData(JsonVariant& addTo);				//device, binary/sensor/ect.., and unique status
+	virtual void AddConfigData(JsonVariant& addTo);				//device, binary/sensor/ect.., and unique config
 
 //protected:
 	//virtual bool GenerateStatusJsonPayload(JsonDocument& doc);	//Adds deviceStatus to a json string (each overloading function should call its parent) 

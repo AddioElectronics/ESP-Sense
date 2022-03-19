@@ -97,7 +97,7 @@ bool MqttSensor::Publish()
 }
 
 
-void MqttSensor::AddStatusData(JsonObject& addTo)
+void MqttSensor::AddStatusData(JsonVariant& addTo)
 {
 	MqttDevice::AddStatusData(addTo);
 	addTo["sensorStatus"].set<MqttSensorStatus_t>(sensorStatus);

@@ -62,7 +62,7 @@ void Network::Server::SpecialRequests::Initialize()
 	/*server.on("/status", HTTP_GET, ResponseDeviceStatus);*/
 	server.on(Website::Strings::Urls::requestStatus, HTTP_GET, [](AsyncWebServerRequest* request) {
 		//ResponseSerializedData((PACK_JSON_DOC_FUNC)Config::Status::SerializeDeviceStatus, request);
-		ResponseSerializedData(3072, (JsonHelper::PACK_JSON_FUNC)Config::Status::PackDeviceStatus, request, true);
+		ResponseSerializedData("status", 3072, (JsonHelper::PACK_JSON_FUNC)Config::Status::PackDeviceStatus, request);
 	});
 
 	//Serialize MQTT device info and send in response.
@@ -75,12 +75,12 @@ void Network::Server::SpecialRequests::Initialize()
 			return 0;
 		}
 
-		ResponseSerializedData(2048, (JsonHelper::PACK_JSON_FUNC)Mqtt::DeviceManager::PackDeviceInfo, request, true);
+		ResponseSerializedData("mqttDeviceInfo", 2048, (JsonHelper::PACK_JSON_FUNC)Mqtt::DeviceManager::PackDeviceInfo, request);
 	});
 
 	//Get ESP Sense Version
 	server.on(Website::Strings::Urls::requestVersion, HTTP_GET, [](AsyncWebServerRequest* request) {
-		ResponseSerializedData(2048, (JsonHelper::PACK_JSON_FUNC)[](JsonObject& doc) {
+		ResponseSerializedData("version", 2048, (JsonHelper::PACK_JSON_FUNC)[](JsonVariant& doc) {
 
 			DEBUG_LOG_F("Set Version %d.%d.%d\r\n", status.misc.version.major, status.misc.version.minor, status.misc.version.revision);
 
@@ -93,7 +93,7 @@ void Network::Server::SpecialRequests::Initialize()
 			DEBUG_LOG_F("Doc Version %d.%d.%d\r\n", version.major, version.minor, version.revision);
 
 			return 0;
-		}, request, false);
+		}, request, true, false);
 	});
 
 	//Restart
@@ -124,7 +124,7 @@ void Network::Server::SpecialRequests::Initialize()
 /// <param name="request">Web request</param>
 /// <param name="respondOnError">If the JSON data was unable to be sent, do you want an error code to be sent?</param>
 /// <returns>Recommended HTTP error response code. If returns 200, a respone has already been sent.</returns>
-int Network::Server::SpecialRequests::ResponseSerializedData(size_t docSize, JsonHelper::PACK_JSON_FUNC packFunc, AsyncWebServerRequest* request, bool requireAuth, bool respondOnError, bool messagedResponse)
+int Network::Server::SpecialRequests::ResponseSerializedData(const char* rootName, size_t docSize, JsonHelper::PACK_JSON_FUNC packFunc, AsyncWebServerRequest* request, bool packArray, bool requireAuth, bool respondOnError, bool messagedResponse)
 {
 	DEBUG_LOG_LN("ResponseSerializedData");
 	if (requireAuth)
@@ -136,7 +136,7 @@ int Network::Server::SpecialRequests::ResponseSerializedData(size_t docSize, Jso
 			return 511;
 		}
 
-	DynamicJsonDocument* doc = JsonHelper::CreateAndPackDocument(docSize, packFunc);
+	DynamicJsonDocument* doc = JsonHelper::CreateAndPackDocument(rootName, docSize, packFunc, packArray);
 
 #if DEVELOPER_MODE
 

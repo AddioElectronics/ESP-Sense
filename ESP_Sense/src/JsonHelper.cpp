@@ -24,11 +24,11 @@ DynamicJsonDocument* JsonHelper::CreateDocument(size_t size)
 
 
 
-size_t JsonHelper::CreatePackAndSerialize(size_t docSize, String& serializeTo, DynamicJsonDocument** out_doc, PACK_JSON_FUNC packFunction)
+size_t JsonHelper::CreatePackAndSerialize(const char* rootName, size_t docSize, String& serializeTo, DynamicJsonDocument** out_doc, PACK_JSON_FUNC packFunction)
 {
 	if (serializeTo == nullptr && out_doc == nullptr) return 0;
 
-	DynamicJsonDocument* doc = JsonHelper::CreateAndPackDocument(docSize, packFunction);
+	DynamicJsonDocument* doc = JsonHelper::CreateAndPackDocument(rootName, docSize, packFunction);
 
 	if (doc == nullptr) return 0;
 
@@ -38,16 +38,11 @@ size_t JsonHelper::CreatePackAndSerialize(size_t docSize, String& serializeTo, D
 	{
 		*out_doc == doc;
 	}
-	else
-	{
-		doc->clear();
-		free(doc);
-	}
 
 	return size;
 }
 
-DynamicJsonDocument* JsonHelper::CreateAndPackDocument(size_t docSize, PACK_JSON_FUNC packFunction)
+DynamicJsonDocument* JsonHelper::CreateAndPackDocument(const char* rootName, size_t docSize, PACK_JSON_FUNC packFunction, bool isArray)
 {
 	DEBUG_LOG_LN("CreateAndPackDocument");
 	DynamicJsonDocument* doc = JsonHelper::CreateDocument(docSize);
@@ -55,13 +50,19 @@ DynamicJsonDocument* JsonHelper::CreateAndPackDocument(size_t docSize, PACK_JSON
 	if (doc == nullptr) 
 		return nullptr;
 
-	JsonObject docObj = doc->as<JsonObject>();
+	if (isArray)
+		doc->createNestedArray(rootName);
+	else
+		doc->createNestedObject(rootName);
+
+	JsonVariant docObj = doc->as<JsonVariant>();
 
 	DEBUG_LOG_F("docObj null? %d\r\n", docObj.isNull());
 
 	packFunction(docObj);
 	return doc;
 }
+
 
 int JsonHelper::JsonParseEnum(JsonVariantConst& jvar, const uint8_t len, const char** strings, int* values, bool* success)
 {

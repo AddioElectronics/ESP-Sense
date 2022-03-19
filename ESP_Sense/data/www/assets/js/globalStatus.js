@@ -7,7 +7,7 @@ function globalStatusInit() {
     if(devMode){
         loadDummyGlobalStatus();
     }else{
-        requestJsonData("/status", receivedGlobalStatus, retryGetGlobalStatus); 
+        requestJsonData("/status", receivedGlobalStatus, retryGetGlobalStatus, null, 5000); 
     }       
 }
 
@@ -15,7 +15,6 @@ function receivedGlobalStatus(data){
     console.log("Received Global Status :");
     console.log(data);
     globalStatusJOBJ = data;
-                        
     
     populateGlobalStatus(data);
     invokeEvent('globalStatus');

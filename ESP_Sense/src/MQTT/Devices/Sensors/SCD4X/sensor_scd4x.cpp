@@ -298,7 +298,7 @@ bool Scd4xSensor::Publish()
 //	return mqttClient.publish(topics.availability.c_str(), Mqtt::Helper::GetAvailabilityString(sensorStatus.connected).c_str());
 //}
 
-void Scd4xSensor::AddStatePayload(JsonObject& addTo)
+void Scd4xSensor::AddStatePayload(JsonVariant& addTo)
 {
 	JsonObject obj = addTo;
 	if (addTo.size() == 0)
@@ -335,13 +335,13 @@ void Scd4xSensor::AddStatePayload(JsonObject& addTo)
 	}
 }
 
-void Scd4xSensor::AddStatusData(JsonObject& addTo)
+void Scd4xSensor::AddStatusData(JsonVariant& addTo)
 {
 	MqttSensor::AddStatusData(addTo);
 	addTo["uniqueStatus"].set<SCD4xStatus_t>(uniqueStatus);
 }
 
-void Scd4xSensor::AddConfigData(JsonObject& addTo)
+void Scd4xSensor::AddConfigData(JsonVariant& addTo)
 {
 	MqttDevice::AddConfigData(addTo);
 	addTo["uniqueConfig"].set<Scd4xConfig_t>(uniqueConfig);
