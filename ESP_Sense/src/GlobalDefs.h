@@ -20,6 +20,13 @@ enum class UpdateMode {
 	ESP_UPDATE_OTA	
 };
 
+/*Unsupported ATM*/
+enum class OtaRollbackMode {
+	ROLLBACK_NONE,			//No option to rollback, if firmware fails, device will need to be flashed via USB.
+	ROLLBACK_AUTO,			//Firmware will cancel rollback after running for n seconds after setup complete. *(If MQTT does not connect, manual option will be necessary)
+	ROLLBACK_MANUAL			//User will have to use browser to accept new firmware as valid.
+};
+
 typedef struct {
 	bool useDefaults : 1;
 	uint8_t core : 2;
@@ -139,6 +146,7 @@ typedef void (*MQTT_CB)(char* topic, byte* payload, unsigned int length);
 extern const char* config_source_strings[5];
 extern const char* wifi_power_strings[12];
 extern const char* esp_updater_strings[4];
+extern const char* ota_rollbackMode_strings[3];
 extern const char* esp_autobackup_strings[4];
 extern const char* wifi_mode_strings[4];
 extern const char* uart_parity_strings[3];
@@ -149,12 +157,3 @@ extern UART_DATABITS uart_databits_values[4];
 extern UART_PARITY uart_parity_values[3];
 extern UART_STOPBITS uart_stopbits_values[2];
 
-
-
-#pragma region JSON UDFs
-
-bool canConvertFromJson(JsonVariantConst src, const Version_t&);
-void convertFromJson(JsonVariantConst src, Version_t& dst);
-bool convertToJson(const Version_t& src, JsonVariant dst);
-
-#pragma endregion

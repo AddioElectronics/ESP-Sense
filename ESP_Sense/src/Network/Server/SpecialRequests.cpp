@@ -82,15 +82,15 @@ void Network::Server::SpecialRequests::Initialize()
 	server.on(Website::Strings::Urls::requestVersion, HTTP_GET, [](AsyncWebServerRequest* request) {
 		ResponseSerializedData(2048, (JsonHelper::PACK_JSON_FUNC)[](JsonObject& doc) {
 
-			DEBUG_LOG_F("Set Version %d.%d.%d\r\n", status.misc.version);
+			DEBUG_LOG_F("Set Version %d.%d.%d\r\n", status.misc.version.major, status.misc.version.minor, status.misc.version.revision);
 
 			doc["version"].set(status.misc.version);
 
 			Version_t version = doc["version"].as<Version_t>();
 
-			DEBUG_LOG_F("Doc Version %d.%d.%d\r\n", version);
+			DEBUG_LOG_F("Doc contains version : %d\r\n", doc.containsKey("version"));
 
-
+			DEBUG_LOG_F("Doc Version %d.%d.%d\r\n", version.major, version.minor, version.revision);
 
 			return 0;
 		}, request, false);

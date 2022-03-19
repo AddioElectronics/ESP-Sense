@@ -141,7 +141,6 @@
 			"user":"anonymous",
 			"pass":"password",
 			"timeout":0,
-			"iterations":5,
 			"taskSettings":{
 				"useDefaults":false,
 				"core":1,
@@ -153,7 +152,8 @@
 		"ota":{
 			"useDefaults":false,
 			"enabled": true,
-			"iterations": 5,
+			"rollbackMode":2,
+			"rollbackTimer":10,
 			"taskSettings":{
 				"useDefaults":false,
 				"core":1,

@@ -438,9 +438,9 @@ void Config::Defaults::RestoreServerDefaults(bool flagMonitor)
 		configMonitor.server.browser.enabled = config.server.browser.enabled != BROWSER_ENABLED;
 		configMonitor.server.browser.config = config.server.browser.config != BROWSER_CONFIG_ENABLED;
 		configMonitor.server.browser.console = config.server.browser.console != BROWSER_CONSOLE_ENABLED;
-		configMonitor.server.browser.updater = config.server.browser.updater != BROWSER_UPDATER_ENABLED;
 		configMonitor.server.browser.mqttDevices = config.server.browser.mqttDevices != BROWSER_CONFIG_MQTT_ENABLED;
 		configMonitor.server.browser.ssl = config.server.browser.ssl != BROSWER_SSL;
+		configMonitor.server.browser.updater = config.server.browser.updater != BROWSER_UPDATER_ENABLED;
 
 #if COMPILE_BROWSER_TOOLS
 		configMonitor.server.browser.tools.fileEditor = config.server.browser.tools.fileEditor != BROWSER_TOOLS_FILE_EDITOR;
@@ -450,6 +450,8 @@ void Config::Defaults::RestoreServerDefaults(bool flagMonitor)
 #if COMPILE_OTA
 		configMonitor.server.ota.useDefaults = config.server.ota.useDefaults != false;
 		configMonitor.server.ota.enabled = config.server.ota.enabled != OTA_ENABLED;
+		configMonitor.server.ota.rollbackMode = config.server.ota.rollbackMode != OTA_ROLLBACK_MODE;
+		configMonitor.server.ota.rollbackTimer = config.server.ota.rollbackTimer != OTA_ROLLBACK_TIMER;
 #if DEVELOPER_MODE
 		configMonitor.server.ota.taskSettings.useDefaults = config.server.ota.taskSettings.useDefaults != false;
 		configMonitor.server.ota.taskSettings.core = config.server.ota.taskSettings.core != OTA_TASK_CORE;
@@ -472,7 +474,7 @@ void Config::Defaults::RestoreServerDefaults(bool flagMonitor)
 	config.server.browser.enabled = BROWSER_ENABLED;
 	config.server.browser.config = BROWSER_CONFIG_ENABLED;
 	config.server.browser.console = BROWSER_CONSOLE_ENABLED;
-	config.server.browser.updater = BROWSER_UPDATER_ENABLED;
+	config.server.browser.updater != BROWSER_UPDATER_ENABLED;
 	config.server.browser.mqttDevices = BROWSER_CONFIG_MQTT_ENABLED;
 	config.server.browser.ssl = BROSWER_SSL;
 
@@ -484,6 +486,8 @@ void Config::Defaults::RestoreServerDefaults(bool flagMonitor)
 #if COMPILE_OTA
 	config.server.ota.useDefaults != false;
 	config.server.ota.enabled != OTA_ENABLED;
+	config.server.ota.rollbackMode != OTA_ROLLBACK_MODE;
+	config.server.ota.rollbackTimer != OTA_ROLLBACK_TIMER;
 #if DEVELOPER_MODE
 	config.server.ota.taskSettings.useDefaults = false;
 	config.server.ota.taskSettings.core = OTA_TASK_CORE;

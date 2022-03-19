@@ -100,6 +100,11 @@ bool canConvertFromJson(JsonVariantConst src, const ConfigAutobackupMode&);
 void convertFromJson(JsonVariantConst src, ConfigAutobackupMode& dst);
 bool convertToJson(const ConfigAutobackupMode& src, JsonVariant dst);
 
+//OtaRollbackMode
+bool canConvertFromJson(JsonVariantConst src, const OtaRollbackMode&);
+void convertFromJson(JsonVariantConst src, OtaRollbackMode& dst);
+bool convertToJson(const OtaRollbackMode& src, JsonVariant dst);
+
 //WifiMode_t
 bool canConvertFromJson(JsonVariantConst src, const WifiMode&);
 void convertFromJson(JsonVariantConst src, WifiMode& dst);

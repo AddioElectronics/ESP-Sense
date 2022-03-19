@@ -1,6 +1,7 @@
 #include "config_udfs.h"
 
 #include "../JsonHelper.h"
+#include "../Macros.h"
 
 extern Config_t config;
 extern ConfigMonitor_t configMonitor;
@@ -8,6 +9,34 @@ extern GlobalStatus_t status;
 extern ConfigBitmap_bm configBitmap;
 extern StatusRetained_t statusRetained;
 extern StatusRetainedMonitor_t statusRetainedMonitor;
+
+bool canConvertFromJson(JsonVariantConst src, const Version_t&)
+{
+	return src.is<JsonArrayConst>() && src.as<JsonArrayConst>().size() == 3;
+}
+
+void convertFromJson(JsonVariantConst src, Version_t& dst)
+{
+	JsonArrayConst jarray = src.as<JsonArrayConst>();
+	DEBUG_LOG_F("Convert JSON to Version : size %d\r\n", jarray.size());
+	dst.major = src[0];
+	dst.minor = src[1];
+	dst.revision = src[2];
+
+	DEBUG_LOG_F("Doc Version %d.%d.%d\r\n", dst.major, dst.minor, dst.revision);
+}
+
+bool convertToJson(const Version_t& src, JsonVariant dst)
+{
+	DEBUG_LOG_LN("Convert Version to JSON");
+	DEBUG_LOG_F("Doc Version %d.%d.%d\r\n", src.major, src.minor, src.revision);
+	JsonArray jarray = dst.as<JsonArray>();
+	jarray.add(src.major);
+	jarray.add(src.minor);
+	jarray.add(src.revision);
+
+	return true;
+}
 
 bool convertToJson(const GenericModuleStatus_t& src, JsonVariant dst)
 {
@@ -548,6 +577,7 @@ bool convertToJson(const BrowserConfig_t& src, JsonVariant dst)
 }
 
 
+
 //bool canConvertFromJson(JsonVariantConst src, const OtaConfig_t&)
 //{
 //
@@ -558,8 +588,14 @@ void convertFromJson(JsonVariantConst src, OtaConfig_t& dst)
 	if (src.containsKey("useDefaults"))
 		dst.useDefaults = src["useDefaults"];
 
-	if (src.containsKey("useDefaults"))
-		dst.useDefaults = src["useDefaults"];
+	if (src.containsKey("enabled"))
+		dst.enabled = src["enabled"];
+
+	if (src.containsKey("rollbackMode"))
+		dst.rollbackMode = src["rollbackMode"].as<OtaRollbackMode>();
+
+	if (src.containsKey("rollbackTimer"))
+		dst.rollbackTimer = src["rollbackTimer"];
 
 	if (src.containsKey("taskSettings"))
 		convertFromJson(src["taskSettings"], dst.taskSettings);
@@ -570,6 +606,8 @@ bool convertToJson(const OtaConfig_t& src, JsonVariant dst)
 {
 	dst["useDefaults"] = src.useDefaults;
 	dst["enabled"] = src.enabled;
+	dst["rollbackMode"].set(src.rollbackMode);
+	dst["rollbackTimer"] = src.rollbackTimer;
 
 	dst["taskSettings"].set(src.taskSettings);
 }

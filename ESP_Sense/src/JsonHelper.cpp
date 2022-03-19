@@ -56,6 +56,9 @@ DynamicJsonDocument* JsonHelper::CreateAndPackDocument(size_t docSize, PACK_JSON
 		return nullptr;
 
 	JsonObject docObj = doc->as<JsonObject>();
+
+	DEBUG_LOG_F("docObj null? %d\r\n", docObj.isNull());
+
 	packFunction(docObj);
 	return doc;
 }
@@ -441,6 +444,23 @@ void convertFromJson(JsonVariantConst src, ConfigAutobackupMode& dst)
 bool convertToJson(const ConfigAutobackupMode& src, JsonVariant dst)
 {
 	JsonHelper::UdfHelperConvertToJsonEnums((EnumClass_t&)src, dst, 4, "ConfigAutobackupMode", esp_autobackup_strings, nullptr);
+}
+
+
+
+bool canConvertFromJson(JsonVariantConst src, const OtaRollbackMode&)
+{
+	return JsonHelper::JsonParseEnum(src, 3, ota_rollbackMode_strings, nullptr) != -1;
+}
+
+void convertFromJson(JsonVariantConst src, OtaRollbackMode& dst)
+{
+	JsonHelper::UdfHelperConvertFromJsonEnums(src, (EnumClass_t&)dst, 3, "OtaRollbackMode", ota_rollbackMode_strings, nullptr);
+}
+
+bool convertToJson(const OtaRollbackMode& src, JsonVariant dst)
+{
+	JsonHelper::UdfHelperConvertToJsonEnums((EnumClass_t&)src, dst, 3, "OtaRollbackMode", ota_rollbackMode_strings, nullptr);
 }
 
 //void convertFromJson(JsonVariantConst src, ConfigAutobackupMode& dst)

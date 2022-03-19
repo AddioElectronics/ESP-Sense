@@ -13,6 +13,10 @@
 
 #pragma region Status
 
+bool canConvertFromJson(JsonVariantConst src, const Version_t&);
+void convertFromJson(JsonVariantConst src, Version_t& dst);
+bool convertToJson(const Version_t& src, JsonVariant dst);
+
 bool convertToJson(const GenericModuleStatus_t& src, JsonVariant dst);
 
 

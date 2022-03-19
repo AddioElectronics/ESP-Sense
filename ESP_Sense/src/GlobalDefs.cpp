@@ -1,8 +1,10 @@
 #include "GlobalDefs.h"
 
+
 const char* config_source_strings[5]		= { "default", "fs", "eeprom", "backupfs", "firmware" };
 const char* wifi_power_strings[12]			= {"19.5dBm", "19dBm", "18.5dBm", "17dBm", "15dBm", "13dBm", "11dBm", "8.5dBm", "7dBm", "5dBm", "2dBm", "-1dBm"};
 const char* esp_updater_strings[4]			= { "usb", "http", "com", "all" };
+const char* ota_rollbackMode_strings[3]		= { "off", "auto", "manual" };
 const char* esp_autobackup_strings[4]		= { "no", "fs", "eeprom", "all" };
 const char* wifi_mode_strings[4]			= { "def", "sta", "ap", "apsta"};
 const char* uart_parity_strings[3]			= { "none", "even", "odd" };
@@ -13,29 +15,3 @@ UART_DATABITS uart_databits_values[4]		= { UART_DATABITS::DATABITS_5, UART_DATAB
 UART_PARITY uart_parity_values[3]			= { UART_PARITY::PARITY_NONE, UART_PARITY::PARITY_EVEN, UART_PARITY::PARITY_ODD};
 UART_STOPBITS uart_stopbits_values[2]		= { UART_STOPBITS::STOPBITS_1, UART_STOPBITS::STOPBITS_2};
 
-#pragma region JSON UDFs
-
-bool canConvertFromJson(JsonVariantConst src, const Version_t&)
-{
-	return src.is<JsonArrayConst>() && src.as<JsonArrayConst>().size() == 3;
-}
-
-void convertFromJson(JsonVariantConst src, Version_t& dst)
-{
-	JsonArrayConst jarray = src.as<JsonArrayConst>();
-	dst.major = src[0];
-	dst.minor = src[1];
-	dst.revision = src[2];
-}
-
-bool convertToJson(const Version_t& src, JsonVariant dst)
-{
-	JsonArray jarray = dst.as<JsonArray>();
-	jarray.add(src.major);
-	jarray.add(src.minor);
-	jarray.add(src.revision);
-
-	return true;
-}
-
-#pragma endregion

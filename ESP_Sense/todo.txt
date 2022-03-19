@@ -1,4 +1,5 @@
-Todo  
+Todo 
+OTA Rollback
 Organize everything, move functions into different files. move files into directories. main namespace, cleanup includes, comments
 After config create file, or show in browser all the topics available.
 Browser - Edit config. Parse json? Config helper: json document sizer. Debug console

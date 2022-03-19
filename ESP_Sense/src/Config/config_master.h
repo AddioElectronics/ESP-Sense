@@ -373,11 +373,13 @@ enum ESP_MEMSIZE
 #define BROWSER_CONFIG_ENABLED			true					//Host a webpage for configuring the device?
 #define BROWSER_CONFIG_MQTT_ENABLED		true					//Host a webpage for configuring the connected MQTT devices?
 #define BROWSER_CONSOLE_ENABLED			true					//Host a webpage which emulates the Serial port.
-#define BROWSER_UPDATER_ENABLED			true					//Host a webpage for updating firmware?
 #define BROWSER_TOOLS_FILE_EDITOR		true					//Host a webpage for editing files?
 #define BROWSER_TOOLS_JSON_VERIFY		true					//Host a webpage for verifying JSON files?
+#define BROWSER_UPDATER_ENABLED			true					//Host a webpage for updating firmware?
 
 #define OTA_ENABLED						true
+#define OTA_ROLLBACK_MODE				OtaRollbackMode::ROLLBACK_AUTO
+#define OTA_ROLLBACK_TIMER				10						//How many seconds after setup will the firmware be accepted as valid.
 #define OTA_TASK_CORE					1
 #define OTA_TASK_PRIORITY				1
 #define OTA_TASK_RECURRATE				1000
@@ -473,6 +475,8 @@ typedef struct {
 typedef struct {
 	bool useDefaults : 1;
 	bool enabled : 1;
+	OtaRollbackMode rollbackMode : 3;	//Also used by browser updater
+	uint8_t rollbackTimer;
 	TaskConfig_t taskSettings;
 }OtaConfig_t;
 
@@ -631,6 +635,8 @@ typedef union {
 		struct {
 			bool useDefaults : 1;
 			bool enabled : 1;
+			bool rollbackMode : 1;
+			bool rollbackTimer : 1;
 			TaskConfigMonitor_t taskSettings;
 		}ota;
 	};
