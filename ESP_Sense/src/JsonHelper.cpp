@@ -55,11 +55,7 @@ DynamicJsonDocument* JsonHelper::CreateAndPackDocument(size_t docSize, PACK_JSON
 	if (doc == nullptr) 
 		return nullptr;
 
-	JsonObject docObj = doc->as<JsonObject>();
-
-	DEBUG_LOG_F("docObj null? %d\r\n", docObj.isNull());
-
-	packFunction(docObj);
+	packFunction(*doc, nullptr);
 	return doc;
 }
 

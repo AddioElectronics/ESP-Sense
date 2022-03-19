@@ -250,9 +250,9 @@ public:
 	size_t SerializeDocument(String* out_string, bool freeDoc = true);
 	size_t StreamDocument(AsyncWebServerRequest* request);
 
-	virtual void AddStatePayload(JsonObject& addTo) = 0;		//Payload for MQTT state topic
-	virtual void AddStatusData(JsonObject& addTo);				//device, binary/sensor/ect.., and unique status
-	virtual void AddConfigData(JsonObject& addTo);				//device, binary/sensor/ect.., and unique config
+	virtual void AddStatePayload(JsonDocument& document, JsonObject* optObject) = 0;		//Payload for MQTT state topic
+	virtual void AddStatusData(JsonDocument& document, JsonObject* optObject);				//device, binary/sensor/ect.., and unique status
+	virtual void AddConfigData(JsonDocument& document, JsonObject* optObject);				//device, binary/sensor/ect.., and unique config
 
 //protected:
 	//virtual bool GenerateStatusJsonPayload(JsonDocument& doc);	//Adds deviceStatus to a json string (each overloading function should call its parent) 

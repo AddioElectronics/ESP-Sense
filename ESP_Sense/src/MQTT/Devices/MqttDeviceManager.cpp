@@ -777,9 +777,9 @@ void AddDevicesInfo(JsonArray& jarray, MqttDevice* device)
 	jarray.add(obj);
 }
 
-int Mqtt::DeviceManager::PackDeviceInfo(JsonObject& doc)
+int Mqtt::DeviceManager::PackDeviceInfo(JsonDocument& doc, JsonObject* optObj)
 {
-	JsonObject parent = doc.createNestedObject("mqttDeviceInfo");
+	JsonObject parent = optObj == nullptr ? doc.createNestedObject("mqttDeviceInfo") : optObj->createNestedObject("mqttDeviceInfo");
 
 	if (status.mqtt.devices.sensorCount)
 	{

@@ -61,7 +61,7 @@ namespace Mqtt
 		/// <summary>
 		/// Packs all MQTT device's names and deviceNames into a JSON document.
 		/// </summary>
-		static int PackDeviceInfo(JsonObject& doc);
+		static int PackDeviceInfo(JsonDocument& doc, JsonObject* optObj);
 
 		///// <summary>
 		///// Packs all MQTT device's names and deviceNames into a JSON document,

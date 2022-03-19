@@ -336,7 +336,7 @@ size_t MqttDevice::StreamDocument(AsyncWebServerRequest* request)
 	return size;
 }
 
-void MqttDevice::AddStatusData(JsonObject& addTo)
+void MqttDevice::AddStatusData(JsonDocument& document, JsonObject* optObject)
 {
 	addTo["deviceStatus"].set<MqttDeviceStatus_t>(deviceStatus);
 
@@ -344,8 +344,9 @@ void MqttDevice::AddStatusData(JsonObject& addTo)
 		this->website->AddStatusData(this->documentRoot);
 }
 
-void MqttDevice::AddConfigData(JsonObject& addTo)
+void MqttDevice::AddConfigData(JsonDocument& document, JsonObject* optObject)
 {
+	JsonObject
 	addTo["deviceConfig"].set<MqttDeviceConfig_t>(deviceConfig);
 	addTo["deviceMqttSettings"].set<MqttDeviceMqttSettings_t>(deviceMqttSettings);
 }

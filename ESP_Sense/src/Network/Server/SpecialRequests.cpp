@@ -80,7 +80,7 @@ void Network::Server::SpecialRequests::Initialize()
 
 	//Get ESP Sense Version
 	server.on(Website::Strings::Urls::requestVersion, HTTP_GET, [](AsyncWebServerRequest* request) {
-		ResponseSerializedData(2048, (JsonHelper::PACK_JSON_FUNC)[](JsonObject& doc) {
+		ResponseSerializedData(2048, (JsonHelper::PACK_JSON_FUNC)[](JsonDocument& doc, JsonObject* optObj) {
 
 			DEBUG_LOG_F("Set Version %d.%d.%d\r\n", status.misc.version.major, status.misc.version.minor, status.misc.version.revision);
 
