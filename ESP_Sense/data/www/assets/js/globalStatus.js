@@ -7,7 +7,11 @@ function globalStatusInit() {
     if(devMode){
         loadDummyGlobalStatus();
     }else{
-        requestJsonData("/status", receivedGlobalStatus, retryGetGlobalStatus); 
+        requestJsonData("/status", 
+                        receivedGlobalStatus, 
+                        retryGetGlobalStatus, 
+                        null, 
+                        5000); 
     }       
 }
 
@@ -15,18 +19,31 @@ function receivedGlobalStatus(data){
     console.log("Received Global Status :");
     console.log(data);
     globalStatusJOBJ = data;
-                        
+    
+    //configMode = data['status']['status']['device']['configMode'];
+    configMode = data['status']['status']['wifi']['configMode'];    
     
     populateGlobalStatus(data);
     invokeEvent('globalStatus');
+    
+    if(configMode)
+        invokeEvent('configMode');
 }
 
 function populateGlobalStatus(data){
-    if ($('[status-content=global]').length == 0) return;
-    let statusObj = data['status'];
-    let retainedObj = data['retainedStatus'];
-    let gsobj = $('[status-content=global]');        
-    objectToTables(gsobj, data, false)
+    
+    let statusObj = data['status']['status'];
+    let retainedObj = data['status']['retainedStatus'];
+    if ($('[status-content=global]').length > 0){
+        let gsobj = $('[status-content=global]'); 
+        //objectToTables(gsobj, statusObj, true);
+        objectToTables(gsobj, data, false);
+    }
+       
+    //if ($('[status-content=retain]').length > 0){
+        //let rsobj = $('[status-content=retain]'); 
+        //objectToTables(rsobj, retainedObj, true);
+    //}  
 }
 
 function retryGetGlobalStatus(request, status, error) {
@@ -41,11 +58,12 @@ function retryGetGlobalStatus(request, status, error) {
 
 function loadDummyGlobalStatus(){
     loadData('/assets/js/dummyStatus.json', function(data){
-        let statusObj = data['status'];
-        let retainedObj = data['retainedStatus'];
-        let gsobj = $('[status-content=global]');
+        receivedGlobalStatus(data);
+        //let statusObj = data['status'];
+        //let retainedObj = data['retainedStatus'];
+        //let gsobj = $('[status-content=global]');
         
-        objectToTables(gsobj, data, false, [{key:'action', value:'hide-content'}, {key:'actionid', value:'status'}])
+        //objectToTables(gsobj, data, false, [{key:'action', value:'hide-content'}, {key:'actionid', value:'status'}])
         //objectToTables(gsobj, statusObj)
         //objectToTables(gsobj, retainedObj)
 

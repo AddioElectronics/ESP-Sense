@@ -4,6 +4,12 @@ namespace Network {
 	namespace Website {
 		namespace Strings {
 
+			namespace Headers {
+
+				const char* defaultHeaderName = "Server";
+				const char* defaultHeaderValue = "ESP Sense";
+			}
+
 			namespace Messages {
 
 				const char* unauthorized = "401 : Unauthorized";
@@ -85,6 +91,7 @@ namespace Network {
 				const char* requestStatus = "/status"; 
 				const char* requestMqttDeviceInfo = "/mqtt/devices/info";
 				const char* requestCookie = "/mqtt/devices/info";
+				const char* requestControl = "/control";
 
 				const char* error401 = Paths::error401 + 4;
 				const char* error404 = Paths::error404 + 4;

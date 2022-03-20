@@ -151,15 +151,13 @@ bool Sht4xSensor::Unsubscribe()
 //}
 
 
-void Sht4xSensor::AddStatePayload(JsonObject& addTo)
+void Sht4xSensor::AddStatePayload(JsonVariant& addTo)
 {
-	JsonObject obj = addTo;
-	if (addTo.size() == 0)
-		obj = addTo.createNestedObject("statePayload");
+	JsonVariant obj = addTo.getOrAddMember("statePayload");
 
 	if (uniqueConfig.mqtt.publishTemperature)
 	{
-		JsonVariant temp = obj.createNestedObject("temp");
+		JsonVariant temp = obj.getOrAddMember("temp");
 
 		if (sensorStatus.connected)
 			temp.set(measurementData.temperature.temperature);
@@ -169,7 +167,7 @@ void Sht4xSensor::AddStatePayload(JsonObject& addTo)
 
 	if (uniqueConfig.mqtt.publishHumdiity)
 	{
-		JsonVariant humidity = obj.createNestedObject("humidity");
+		JsonVariant humidity = obj.getOrAddMember("humidity");
 
 		if (sensorStatus.connected)
 			humidity.set(measurementData.humidity.relative_humidity);
@@ -178,13 +176,13 @@ void Sht4xSensor::AddStatePayload(JsonObject& addTo)
 	}
 }
 
-//void Sht4xSensor::AddStatusData(JsonObject& addTo)
+//void Sht4xSensor::AddStatusData(JsonVariant& addTo)
 //{
 //	MqttSensor::AddStatusData(addTo);
 //	addTo["uniqueStatus"].set<SHT4xStatus_t>(uniqueStatus);
 //}
 
-void Sht4xSensor::AddConfigData(JsonObject& addTo)
+void Sht4xSensor::AddConfigData(JsonVariant& addTo)
 {
 	MqttDevice::AddConfigData(addTo);
 	addTo["uniqueConfig"].set<Sht4xConfig_t>(uniqueConfig);

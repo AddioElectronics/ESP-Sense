@@ -97,15 +97,23 @@ class MqttDevice {
         console.log('MqttDevice.RetryGetAllInfo()');
         var msg = 'Failed to get MQTT Devices Info.';
         let msg2 = ' Trying again...';
-        console.log(msg + msg2);
-        $('[mqtt=devicelist] .grid.list').text(msg + msg2);
-        espAlive(function(){
+       
+        if(configMode){
+            msg = 'Config Mode Enabled : No MQTT devices are initialized.'
+            msg2 = '';
+        }else{
+            espAlive(function(){
             setTimeout(MqttDevice.GetAllInfo, 5000)
-        },
-        function(xhr, status, error){
-            console.log(msg);
-            $('[mqtt=devicelist] .grid.list').text(msg);
-        });
+            },
+            function(xhr, status, error){
+                console.log(msg);
+                $('[mqtt=devicelist] .grid.list').text(msg);
+            });
+        }
+        
+        console.log(msg + msg2);        
+        $('[mqtt=devicelist] .grid.list').text(msg + msg2);
+        
     }
     
     static LoadDummyDeviceInfo(){

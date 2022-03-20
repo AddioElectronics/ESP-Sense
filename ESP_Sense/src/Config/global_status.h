@@ -27,6 +27,7 @@ typedef struct {
 
 typedef struct {
 	bool freshBoot : 1;						//Is the current boot fresh?
+	bool configMode : 1;					//Is the device currently in config mode?
 	bool retainedStatusLoaded : 1;			//Was the retained status succesfully loaded?
 	bool i2cInitialized : 1;
 	bool fsMounted : 1;						//Was the file system successfully mounted?
@@ -96,7 +97,6 @@ typedef struct {
 	wifi_mode_t mode : 3;
 	//WifiMode_t mode : 2;				//Soon to be deprecated.
 	bool eventsRegistered : 1;			//Soon to be deprecated, station and access point have their own flag.
-	bool configMode : 1;				//Is the device currently in config mode?
 	wifi_power_t powerLevel;
 	uint32_t connectAttempts;
 	unsigned long nextDisplayMessage;

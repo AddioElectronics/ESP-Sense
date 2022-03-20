@@ -2,7 +2,7 @@
 
 String MqttBinarySensor::mqttBinarySensorBaseTopic;
 
-void MqttBinarySensor::AddStatusData(JsonObject& addTo)
+void MqttBinarySensor::AddStatusData(JsonVariant& addTo)
 {
 	MqttDevice::AddStatusData(addTo);
 	addTo["binarySensorStatus"].set<MqttBinarySensorStatus_t>(binarySensorStatus);

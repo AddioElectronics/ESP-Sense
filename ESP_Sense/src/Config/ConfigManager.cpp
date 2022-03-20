@@ -1740,9 +1740,9 @@ void Config::ChangeBootSource(enum ConfigSource source, bool saveRetained)
 
 #pragma region Status
 
-int Config::Status::PackDeviceStatus(JsonObject& doc)
+int Config::Status::PackDeviceStatus(JsonVariant& doc)
 {
-	JsonObject statusObj = doc.createNestedObject("status");
+	JsonObject statusObj = doc.getOrAddMember("status");
 
 	statusObj["status"].set(status);
 	statusObj["statusRetained"].set(statusRetained);

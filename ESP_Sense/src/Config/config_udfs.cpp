@@ -31,9 +31,14 @@ bool convertToJson(const Version_t& src, JsonVariant dst)
 	DEBUG_LOG_LN("Convert Version to JSON");
 	DEBUG_LOG_F("Doc Version %d.%d.%d\r\n", src.major, src.minor, src.revision);
 	JsonArray jarray = dst.as<JsonArray>();
+
+	DEBUG_LOG_F("JARRAY NULL? %d\r\nis array? %d\r\n", jarray.isNull(), dst.is<JsonArray>());
+
 	jarray.add(src.major);
 	jarray.add(src.minor);
 	jarray.add(src.revision);
+
+	DEBUG_LOG_F("Array Version %d.%d.%d\r\n", (const char*)jarray[0], (const char*)jarray[1], (const char*)jarray[2]);
 
 	return true;
 }
@@ -60,6 +65,7 @@ bool convertToJson(const GlobalStatusTasks_t& src, JsonVariant dst)
 bool convertToJson(const GlobalStatusDevice_t& src, JsonVariant dst)
 {
 	dst["freshBoot"] = src.freshBoot;
+	dst["configMode"] = src.configMode;
 	dst["retainedStatusLoaded"] = src.retainedStatusLoaded;
 	dst["i2cInitialized"] = src.i2cInitialized;
 	dst["fsMounted"] = src.fsMounted;
@@ -124,7 +130,6 @@ bool convertToJson(const WifiStatus_t& src, JsonVariant dst)
 	dst["connected"] = src.connected;
 	dst["mode"].set<WifiMode>((WifiMode)src.mode);
 	dst["eventsRegistered"] = src.eventsRegistered;
-	dst["configMode"] = src.configMode;
 	dst["powerLevel"].set<WifiPower>((WifiPower)src.powerLevel);
 	dst["connectAttempts"] = src.connectAttempts;
 	dst["nextDisplayMessage"] = src.nextDisplayMessage;
@@ -181,6 +186,7 @@ bool convertToJson(const ServerStatus_t& src, JsonVariant dst)
 
 bool convertToJson(const GlobalMiscStatus_t& src, JsonVariant dst)
 {
+	dst.createNestedArray("version");
 	dst["version"].set(src.version);
 	dst["developerMode"] = src.developerMode;
 }

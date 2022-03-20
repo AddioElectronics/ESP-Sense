@@ -32,7 +32,7 @@ typedef int8_t ecode_t;
 
 //typedef bool(MqttDevice::* ADD_PAYLOAD_FUNC)(void);
 
-typedef std::function<void(JsonObject&)> ADD_PAYLOAD_FUNC;
+typedef std::function<void(JsonVariant&)> ADD_PAYLOAD_FUNC;
 
 enum class MqttDeviceType
 {
@@ -181,8 +181,8 @@ public:
 	MqttDeviceWeb* website;
 
 protected:
-	JsonDocument* document;
-	JsonObject documentRoot;
+	JsonDocument* document;	//Change to non pointer? Document contains pointer to data, may be no benefits to using pointer.
+	JsonVariant documentRoot;
 public:
 
 	virtual const char* GetConfigFilePath() = 0;
@@ -200,6 +200,7 @@ public:
 		index = _index;
 		deviceName = _device;
 		subTypeIndex = _subIndex;
+		document = nullptr;
 		website = nullptr;
 		ResetStatus();
 	}
@@ -250,9 +251,9 @@ public:
 	size_t SerializeDocument(String* out_string, bool freeDoc = true);
 	size_t StreamDocument(AsyncWebServerRequest* request);
 
-	virtual void AddStatePayload(JsonDocument& document, JsonObject* optObject) = 0;		//Payload for MQTT state topic
-	virtual void AddStatusData(JsonDocument& document, JsonObject* optObject);				//device, binary/sensor/ect.., and unique status
-	virtual void AddConfigData(JsonDocument& document, JsonObject* optObject);				//device, binary/sensor/ect.., and unique config
+	virtual void AddStatePayload(JsonVariant& addTo) = 0;		//Payload for MQTT state topic
+	virtual void AddStatusData(JsonVariant& addTo);				//device, binary/sensor/ect.., and unique status
+	virtual void AddConfigData(JsonVariant& addTo);				//device, binary/sensor/ect.., and unique config
 
 //protected:
 	//virtual bool GenerateStatusJsonPayload(JsonDocument& doc);	//Adds deviceStatus to a json string (each overloading function should call its parent) 

@@ -7,6 +7,14 @@ var rstHtml = `<button id="esp_reset_button" class="btn btn-primary" type="butto
 
 var rstBut;
 
+createEvent('version');
+createEvent('auth');
+createEvent('reset');
+createEvent('resetting');
+createEvent('status');
+createEvent('globalStatus');
+createEvent('configMode');
+
 if(!keepTest)
 $('.test').remove();
 
@@ -60,13 +68,18 @@ function espIsResetting(){
     refreshOnResponse();
 }
 
-async function getEspVersion() {
+function getEspVersion() {
     console.log("getEspVersion()");
     navWebUpdate = $('#nav_webupdate');
-    await requestJsonData("/version", receivedVersion, function(){
+    requestJsonData("/version", 
+                          receivedVersion, 
+                          function(){
         console.log('GET version failed.');
         invokeEvent('version');
-    });    
+    },
+                         null,
+                         5000,      //Tout
+                         false);    //Async 
 }
 
 function receivedVersion(data){
@@ -80,10 +93,26 @@ function receivedVersion(data){
     }
     
     var verobj = $('.version');
-    verobj.text(verobj.text().replace('x.x.x', espVersion.toString()));
+    verobj.text(verobj.text().replace('x.x.x', espVersion.toString().replace(',', '.')));
     
     invokeEvent('version');
 }
+
+function addAlwaysLoadPage() {
+    window.addEventListener("pageshow", function(event) {
+        var historyTraversal = event.persisted ||
+            (typeof window.performance != "undefined" &&
+                window.performance.navigation.type === 2);
+        if (historyTraversal) {
+            // Handle page restore.
+            window.location.reload();
+        }
+    });
+}
+
+if(alwaysLoadPage)
+    addAlwaysLoadPage();
+
 
 EventReady.add(async function(){
     await espAlive(function(){devMode = false;});
@@ -100,20 +129,6 @@ EventReady.add(async function(){
 }
 });
 
-function addAlwaysLoadPage() {
-    window.addEventListener("pageshow", function(event) {
-        var historyTraversal = event.persisted ||
-            (typeof window.performance != "undefined" &&
-                window.performance.navigation.type === 2);
-        if (historyTraversal) {
-            // Handle page restore.
-            window.location.reload();
-        }
-    });
-}
-
-if(alwaysLoadPage)
-    addAlwaysLoadPage();
 
 
 

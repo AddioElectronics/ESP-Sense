@@ -95,7 +95,7 @@ namespace Network {
 		OTA::Initialize();
 #endif
 
-		if (config.server.ftp.enabled || status.wifi.configMode)
+		if (config.server.ftp.enabled || status.device.configMode)
 		{
 			Network::FTP::Construct();
 			Network::FTP::SetTimeout(config.server.ftp.timeout);
@@ -178,6 +178,7 @@ namespace Network {
 		Network::FTP::Loop();
 		Network::OTA::Loop();
 
+		if(status.server.authenticated)
 		if (status.server.sessionEnd != 0)
 			if (millis() > status.server.sessionEnd)
 				Authentication::Logout();

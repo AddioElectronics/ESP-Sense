@@ -116,9 +116,9 @@ public:
 	//bool Publish() override;
 	//bool PublishAvailability() override;
 
-	void AddStatePayload(JsonObject& addTo) override;				//Payload for MQTT state topic
-	//void AddStatusData(JsonObject& addTo) override;					//device, binary/sensor/ect.., and unique status
-	void AddConfigData(JsonObject& addTo) override;					//device, binary/sensor/ect.., and unique config
+	void AddStatePayload(JsonVariant& addTo) override;				//Payload for MQTT state topic
+	//void AddStatusData(JsonVariant& addTo) override;					//device, binary/sensor/ect.., and unique status
+	void AddConfigData(JsonVariant& addTo) override;					//device, binary/sensor/ect.., and unique config
 
 	int ReceiveCommand(char* topic, byte* payload, size_t length) override;
 

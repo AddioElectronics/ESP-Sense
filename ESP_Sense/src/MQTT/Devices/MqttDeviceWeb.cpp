@@ -92,9 +92,14 @@ String MqttDeviceWeb::GetUrl(const char* subFolder)
 	return sub;
 }
 
-void MqttDeviceWeb::AddStatusData(JsonObject& rootObj)
+void MqttDeviceWeb::AddStatusData(JsonVariant& rootObj)
 {
-	JsonObject obj = rootObj.containsKey("websiteStatus") ? rootObj : rootObj.createNestedObject("websiteStatus");
+	JsonObject obj; 
+
+	if (rootObj.containsKey("websiteStatus"))
+		obj = rootObj["websiteStatus"].as<JsonObject>();
+	else
+		obj = rootObj.createNestedObject("websiteStatus");
 
 	obj["enabled"] = webStatus.enabled;
 	obj["hostingWebpage"] = webStatus.hostingWebpage;
@@ -187,7 +192,7 @@ void MqttDeviceWeb::InitializeRequests()
 
 void MqttDeviceWeb::GetStateResponse(MqttDevice* device, AsyncWebServerRequest* request)
 {
-	Network::Server::SpecialRequests::ResponseSerializedData(128, (JsonHelper::PACK_JSON_FUNC)[device](JsonObject& doc) {
+	Network::Server::SpecialRequests::ResponseSerializedData("state", 128, (JsonHelper::PACK_JSON_FUNC)[device](JsonVariant& doc) {
 		doc["state"].set((DeviceState)device->deviceStatus.state);
 		return 0;
 	}, request);

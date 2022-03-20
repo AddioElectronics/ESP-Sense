@@ -180,7 +180,7 @@ void WifiManager::Initialize()
 		else if (status.wifi.station.missingRequiredInfo || (!config.wifi.station.enabled && config.wifi.accessPoint.enabled))
 		{
 			status.wifi.mode = WIFI_MODE_AP;
-			status.wifi.configMode = config.wifi.accessPoint.configOnly;
+			status.device.configMode = config.wifi.accessPoint.configOnly;
 		}
 		else
 		{
@@ -191,7 +191,7 @@ void WifiManager::Initialize()
 
 	if (statusRetained.boot.configMode != false || (status.wifi.station.missingRequiredInfo && !config.wifi.accessPoint.enabled) || status.mqtt.missingRequiredInfo)
 	{
-		status.wifi.configMode = statusRetained.boot.configMode;
+		status.device.configMode = statusRetained.boot.configMode;
 		statusRetainedMonitor.boot.configMode = statusRetained.boot.configMode != false;
 		statusRetained.boot.configMode = false;
 	}
@@ -875,14 +875,14 @@ bool WifiManager::AccessPoint::StartAdvertising(bool waitForConnection)
 	if (canDisplayMessages)
 	{
 		DEBUG_LOG_LN("Advertising Access Point...");
-		DEBUG_LOG_F("SSID : %s\r\nPASS : %s\r\n", status.wifi.configMode ? WIFI_ACCESSPOINT_SSID : config.wifi.accessPoint.ssid.c_str(), status.wifi.configMode ? WIFI_ACCESSPOINT_PASS : config.wifi.accessPoint.pass.c_str());
+		DEBUG_LOG_F("SSID : %s\r\nPASS : %s\r\n", status.device.configMode ? WIFI_ACCESSPOINT_SSID : config.wifi.accessPoint.ssid.c_str(), status.device.configMode ? WIFI_ACCESSPOINT_PASS : config.wifi.accessPoint.pass.c_str());
 	}
 
 	delay(1000);
 
 	status.wifi.accessPoint.enabled = true;
 
-	if (status.wifi.configMode)
+	if (status.device.configMode)
 		status.wifi.accessPoint.connected = WiFi.softAP(WIFI_ACCESSPOINT_SSID, WIFI_ACCESSPOINT_PASS);
 	else
 		status.wifi.accessPoint.connected = WiFi.softAP(config.wifi.accessPoint.ssid.c_str(), config.wifi.accessPoint.pass.c_str(), config.wifi.channel, config.wifi.accessPoint.hidden, config.wifi.accessPoint.maxConnections);
@@ -991,7 +991,7 @@ void RuntimeChangeMode()
 	//{
 	//	DEBUG_LOG_LN("...Enabling Config Only Mode.");
 	//	DEBUG_NEWLINE();
-	//	status.wifi.configMode = true;
+	//	status.device.configMode = true;
 	//	return false;
 	//}
 	//else if (status.wifi.mode == WIFI_MODE_STA)
@@ -1018,7 +1018,7 @@ void RuntimeChangeMode()
 	//	status.wifi.mode = WIFI_MODE_AP;
 	//	status.wifi.station.enabled = false;
 	//	status.wifi.accessPoint.enabled = false;
-	//	status.wifi.configMode = true;
+	//	status.device.configMode = true;
 	//	//StartAdvertising();
 	//}
 	//else if (status.wifi.mode == WIFI_MODE_AP)
@@ -1053,7 +1053,7 @@ void SetupChangeMode()
 	DEBUG_LOG_LN("...Enabling Config Only Mode.");
 	DEBUG_NEWLINE();
 
-	status.wifi.configMode = true;
+	status.device.configMode = true;
 }
 
 bool WifiManager::AccessPoint::CheckHotspotButton()

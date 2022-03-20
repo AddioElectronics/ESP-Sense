@@ -54,23 +54,21 @@ bool Llc200d3sh_Sensor::Read()
 }
 
 
-void Llc200d3sh_Sensor::AddStatePayload(JsonObject& addTo)
+void Llc200d3sh_Sensor::AddStatePayload(JsonVariant& addTo)
 {
-	JsonObject obj = addTo;
-	if (addTo.size() == 0)
-		obj = addTo.createNestedObject("statePayload");
+	JsonVariant obj = addTo.getOrAddMember("statePayload");
 
-	JsonVariant waterlevel = obj.createNestedObject("waterlevel");
+	JsonVariant waterlevel = obj.getOrAddMember("waterlevel");
 	waterlevel.set(measurement ? MQTT_BINARY_SENSOR_ON : MQTT_BINARY_SENSOR_OFF);
 }
 
-void Llc200d3sh_Sensor::AddStatusData(JsonObject& addTo)
+void Llc200d3sh_Sensor::AddStatusData(JsonVariant& addTo)
 {
 	MqttBinarySensor::AddStatusData(addTo);
 	addTo["uniqueStatus"].set<Llc200d3sh_Status_t>(uniqueStatus);
 }
 
-void Llc200d3sh_Sensor::AddConfigData(JsonObject& addTo)
+void Llc200d3sh_Sensor::AddConfigData(JsonVariant& addTo)
 {
 	MqttDevice::AddConfigData(addTo);
 	addTo["uniqueConfig"].set<Llc200d3sh_Config_t>(uniqueConfig);
