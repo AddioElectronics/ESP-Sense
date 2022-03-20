@@ -255,7 +255,7 @@ void setup()
 	status.device.tasks.enabled = true;
 	WifiManager::Tasks::StartWifiLoopTask();
 
-	if (status.wifi.configMode)
+	if (status.device.configMode)
 	{
 		//goto Label_SkipMqtt;
 
@@ -325,7 +325,7 @@ Label_SkipBackup:
 	//TaskManager::StopLoopTask();
 
 	//Start MQTT tasks
-	if (!status.wifi.configMode)
+	if (!status.device.configMode)
 	{
 		//Subscribe to ESP-Sense topics
 		Mqtt::Subscribe();
@@ -368,7 +368,7 @@ void loop()
 		WifiManager::Loop();
 	}
 
-	if (!status.wifi.configMode)
+	if (!status.device.configMode)
 		Mqtt::Loop();
 
 	//if(status.device.tasks.wifiTaskRunning /*&& config.device.taskSettings.enabled*/)
@@ -376,7 +376,7 @@ void loop()
 	//else
 	//	WifiManager::Loop();
 
-	bool longYield = status.device.tasks.wifiTaskRunning && (status.mqtt.connected || status.wifi.configMode);
+	bool longYield = status.device.tasks.wifiTaskRunning && (status.mqtt.connected || status.device.configMode);
 
 	EspSense::YieldWatchdog(longYield ? 5000 : 1);
 

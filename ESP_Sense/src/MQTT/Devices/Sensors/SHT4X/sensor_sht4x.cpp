@@ -153,13 +153,11 @@ bool Sht4xSensor::Unsubscribe()
 
 void Sht4xSensor::AddStatePayload(JsonVariant& addTo)
 {
-	JsonVariant obj = addTo;
-	if (addTo.size() == 0)
-		obj = addTo.createNestedObject("statePayload");
+	JsonVariant obj = addTo.getOrAddMember("statePayload");
 
 	if (uniqueConfig.mqtt.publishTemperature)
 	{
-		JsonVariant temp = obj.createNestedObject("temp");
+		JsonVariant temp = obj.getOrAddMember("temp");
 
 		if (sensorStatus.connected)
 			temp.set(measurementData.temperature.temperature);
@@ -169,7 +167,7 @@ void Sht4xSensor::AddStatePayload(JsonVariant& addTo)
 
 	if (uniqueConfig.mqtt.publishHumdiity)
 	{
-		JsonVariant humidity = obj.createNestedObject("humidity");
+		JsonVariant humidity = obj.getOrAddMember("humidity");
 
 		if (sensorStatus.connected)
 			humidity.set(measurementData.humidity.relative_humidity);

@@ -2,11 +2,13 @@
   width: 250px;
   height: 350px;
   display: block;
-  margin: auto;
-  margin-top: 50px;
-  background-color: rgb(31,36,48);
-  border: 2px solid black;
-  border-radius: 10px;
+  background: linear-gradient(45deg, rgba(30,39,62,1) 0%, rgb(31,43,48) 100%);
+  /*border: 2px solid #0e0e0e;*/
+  border-radius: 20px;
+  position: fixed;
+  left: calc(100vw / 2 - 125px);
+  top: calc(100vh / 2 - 275px);
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
 }
 
 .login-box h3, .login-box h4 {
@@ -19,9 +21,9 @@
   display: block !important;
   width: 180px;
   margin: 30px auto 20px auto;
-  background-color: black;
+  background-color: #141414;
   color: white;
-  border-color: gray;
+  border-color: #303030;
 }
 
 #login_btn {

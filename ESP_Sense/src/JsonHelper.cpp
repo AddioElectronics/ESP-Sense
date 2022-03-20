@@ -326,14 +326,8 @@ bool convertToJson(const IPAddress& src, JsonVariant dst)
 {
 	//String required for website JS at this time.
 //#if SERIALIZE_ENUMS_TO_STRING
-	dst.set(src.toString());
+	return dst.set(src.toString());
 
-
-#if DEVELOPER_MODE
-	IPAddress ip = dst.as<IPAddress>();
-	String ipString = ip.toString();
-	DEBUG_LOG_F("JsonVar as IP String : %s\r\n", ipString.c_str());
-#endif
 
 //#else
 //	bool set =

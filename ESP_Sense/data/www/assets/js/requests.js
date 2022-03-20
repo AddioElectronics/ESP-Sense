@@ -2,8 +2,9 @@
 
 //success(data)
 //error(xhr, status, error)
-function requestJsonData(url, success, error, complete, timeout) {
+function requestJsonData(url, success, error, complete, timeout, async) {
     return $.ajax({
+        async: async == null ? true : async,
         dataType: "json",
         type: 'GET',
         url: url,
@@ -11,6 +12,6 @@ function requestJsonData(url, success, error, complete, timeout) {
         success: success,
         error: error,
         complete: complete,
-        timeout: timeout == undefined ? 3000 : timeout
+        timeout: timeout == null ? 3000 : timeout
     });
 }

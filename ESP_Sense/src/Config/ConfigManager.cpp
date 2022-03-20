@@ -1742,7 +1742,7 @@ void Config::ChangeBootSource(enum ConfigSource source, bool saveRetained)
 
 int Config::Status::PackDeviceStatus(JsonVariant& doc)
 {
-	JsonObject statusObj = doc.containsKey("status") ? doc["status"] : doc.createNestedObject("status");
+	JsonObject statusObj = doc.getOrAddMember("status");
 
 	statusObj["status"].set(status);
 	statusObj["statusRetained"].set(statusRetained);

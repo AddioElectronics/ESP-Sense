@@ -300,13 +300,11 @@ bool Scd4xSensor::Publish()
 
 void Scd4xSensor::AddStatePayload(JsonVariant& addTo)
 {
-	JsonObject obj = addTo;
-	if (addTo.size() == 0)
-		obj = addTo.createNestedObject("statePayload");
+	JsonObject obj = addTo.getOrAddMember("statePayload");
 
 	if (uniqueConfig.mqtt.publishCo2)
 	{
-		JsonVariant co2 = obj.createNestedObject("co2");
+		JsonVariant co2 = obj.getOrAddMember("co2");
 
 		if (sensorStatus.connected)
 			co2.set(measurementData.co2);
@@ -316,7 +314,7 @@ void Scd4xSensor::AddStatePayload(JsonVariant& addTo)
 
 	if (uniqueConfig.mqtt.publishTemperature)
 	{
-		JsonVariant temp = obj.createNestedObject("temp");
+		JsonVariant temp = obj.getOrAddMember("temp");
 
 		if (sensorStatus.connected)
 			temp.set(measurementData.temperature);
@@ -326,7 +324,7 @@ void Scd4xSensor::AddStatePayload(JsonVariant& addTo)
 
 	if (uniqueConfig.mqtt.publishHumdiity)
 	{
-		JsonVariant humidity = obj.createNestedObject("humidity");
+		JsonVariant humidity = obj.getOrAddMember("humidity");
 
 		if (sensorStatus.connected)
 			humidity.set(measurementData.humidity);

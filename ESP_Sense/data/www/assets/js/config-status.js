@@ -1,10 +1,26 @@
 //Contains functions for creating tables for displaying status data
 
-function createStatusTable(name, caption, capTop){
+function objectToTables(parent, obj, caption, capSubTables){
+    console.log('objectToTables');
+    console.log(obj);
+    for(let key in obj){
+        let elem = createStatusTable(key, caption ? key : null, true);
+        $(elem.find('table')[0]).addClass('table-tree');
+        try{
+            populateStatusTable(elem.find('tbody'), obj[key], capSubTables ? caption : false);
+        }
+        catch{
+            console.log('Failed to Populate table ' + key);
+        }
+        $(parent).append(elem);
+    }
+}
 
+function createStatusTable(name, caption, capTop){
+    console.log('createStatusTable : ' + name);
     let cap = null;
     if(caption != null){
-        cap = new Element('caption');
+        cap = new ElementBuilder('caption');
         cap.Text(caption);
         if(capTop != null)
             cap.Classes('caption-top');
@@ -35,7 +51,7 @@ function createStatusTable(name, caption, capTop){
 }
 
 function populateStatusTable(elem, jdata, caption){
-    console.log('createDeviceStatus');
+    console.log('populateStatusTable');
     console.log(jdata);
     elem.find('tr').remove();
     
@@ -54,7 +70,7 @@ function populateStatusTable(elem, jdata, caption){
             populateStatusTable(subtable.find('tbody'), jdata[key], caption);
         }else{
             getValueTypeClass(value)
-            val = createElement('td', null, type, null, value instanceof String ? value : value.toString());   
+            val = createElement('td', null, type, null, value instanceof String ? value : value != null ? value.toString() : null);   
             
         }
         
@@ -64,11 +80,3 @@ function populateStatusTable(elem, jdata, caption){
     }
 }
 
-function objectToTables(parent, obj, caption){
-    for(let key in obj){
-        let elem = createStatusTable(key, caption ? key : null, true);
-        $(elem.find('table')[0]).addClass('table-tree');
-        populateStatusTable(elem.find('tbody'), obj[key], caption);
-        $(parent).append(elem);
-    }
-}

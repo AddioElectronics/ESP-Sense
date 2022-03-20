@@ -168,6 +168,24 @@ bool MqttDevice::Publish()
 	DEBUG_LOG_F("-Topic : %s\r\n", topic);
 
 	bool success = mqttClient.publish(topic, (uint8_t*)jdata.c_str(), jdata.length(), deviceMqttSettings.retain);
+	
+	
+	//bool success = false;
+	//size_t docSize = document->capacity();
+
+	//if (success = mqttClient.beginPublish(topic, docSize, deviceMqttSettings.retain))
+	//{
+	//	size_t size = serializeJson(document, mqttClient);
+
+	//	while (docSize > size)
+	//	{
+	//		mqttClient.write((uint8_t)" ");
+	//		size++;
+	//	}
+
+	//	success = mqttClient.endPublish();
+	//}
+
 
 	if (success)
 	{
@@ -204,8 +222,9 @@ bool MqttDevice::PublishDisabled(const char* topic)
 
 
 /// <summary>
-/// Quickly creates a fresh document for the device, calls 1 specific AddxxxxData function, 
-/// serializes the document before freeing, and finally returns the serialized data as a string.
+/// Generates a fresh JsonDocument for the current device,
+/// adds data via the addPayload function pointer,
+/// and serializes the data into a string.
 /// </summary>
 /// <param name=""></param>
 /// <param name="dataType"></param>
@@ -222,6 +241,8 @@ String MqttDevice::GenerateJsonData(ADD_PAYLOAD_FUNC addPayload, const char* dat
 		return jdata;
 	}
 
+	DEBUG_LOG_F("%s Add data to document\r\n", name.c_str());
+
 	//Add data to document
 	addPayload(documentRoot);
 
@@ -234,7 +255,7 @@ String MqttDevice::GenerateJsonData(ADD_PAYLOAD_FUNC addPayload, const char* dat
 
 String MqttDevice::GenerateJsonStatePayload()
 {
-
+	DEBUG_LOG_F("%s GenerateJsonStatePayload()\r\n", name.c_str());
 	return GenerateJsonData([this](JsonVariant&)
 	{
 		return this->AddStatePayload(this->documentRoot);
@@ -243,6 +264,7 @@ String MqttDevice::GenerateJsonStatePayload()
 
 String MqttDevice::GenerateJsonStatus()
 {
+	DEBUG_LOG_F("%s GenerateJsonStatus()\r\n", name.c_str());
 	return GenerateJsonData([this](JsonVariant&)
 	{
 		return this->AddStatusData(this->documentRoot);
@@ -251,6 +273,7 @@ String MqttDevice::GenerateJsonStatus()
 
 String MqttDevice::GenerateJsonConfig()
 {
+	DEBUG_LOG_F("%s GenerateJsonConfig()\r\n", name.c_str());
 	return GenerateJsonData([this](JsonVariant&)
 	{
 		return this->AddConfigData(this->documentRoot);
@@ -259,6 +282,7 @@ String MqttDevice::GenerateJsonConfig()
 
 String MqttDevice::GenerateJsonAll()
 {
+	DEBUG_LOG_F("%s GenerateJsonAll()\r\n", name.c_str());
 	return GenerateJsonData([this](JsonVariant&)
 	{
 		return this->AddStatusData(this->documentRoot);
@@ -271,6 +295,8 @@ bool MqttDevice::CreateJsonDocument()
 {	
 	if (document != nullptr) return false;
 
+	DEBUG_LOG_F("%s CreateJsonDocument()\r\n", name.c_str());
+
 	#warning change size for each device
 	document = JsonHelper::CreateDocument(2048);
 	documentRoot = document->createNestedObject(name.c_str());
@@ -282,6 +308,7 @@ bool MqttDevice::CreateJsonDocument()
 bool MqttDevice::FreshJsonDocument()
 {
 	if (document == nullptr) return false;
+	DEBUG_LOG_F("%s FreshJsonDocument()\r\n", name.c_str());
 
 	FreeJsonDocument();
 	return CreateJsonDocument();
@@ -289,6 +316,7 @@ bool MqttDevice::FreshJsonDocument()
 
 void MqttDevice::FreeJsonDocument()
 {
+	DEBUG_LOG_F("%s FreeJsonDocument()\r\n", name.c_str());
 	if (document != nullptr)
 	{
 		document->clear();

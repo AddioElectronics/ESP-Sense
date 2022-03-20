@@ -4,6 +4,14 @@ namespace Network {
 		namespace Website {
 	
 			namespace Strings {
+
+
+				namespace Headers {
+
+					extern const char* defaultHeaderName;
+					extern const char* defaultHeaderValue;
+
+				}
 	
 
 				namespace Messages {
@@ -89,6 +97,8 @@ namespace Network {
 					extern const char* requestAlive;
 					extern const char* requestStatus;
 					extern const char* requestMqttDeviceInfo;
+					//extern const char* requestCookie;
+					extern const char* requestControl;
 	
 					extern const char* error401;
 					extern const char* error404;

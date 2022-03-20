@@ -181,7 +181,7 @@ public:
 	MqttDeviceWeb* website;
 
 protected:
-	JsonDocument* document;
+	JsonDocument* document;	//Change to non pointer? Document contains pointer to data, may be no benefits to using pointer.
 	JsonVariant documentRoot;
 public:
 
@@ -200,6 +200,7 @@ public:
 		index = _index;
 		deviceName = _device;
 		subTypeIndex = _subIndex;
+		document = nullptr;
 		website = nullptr;
 		ResetStatus();
 	}

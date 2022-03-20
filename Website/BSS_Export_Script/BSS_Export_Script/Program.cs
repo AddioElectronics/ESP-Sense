@@ -1,6 +1,4 @@
-﻿//#define DEBUGGING
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -44,7 +42,7 @@ namespace BSS_Export_Script
 
         static void Main(string[] args)
         {
-#if DEBUGGING
+#if DEBUG
             wwwDir = new DirectoryInfo(@"");
 #else
 
@@ -367,7 +365,8 @@ namespace BSS_Export_Script
 
                 RemoveElement(filepath, navStart, navEnd, "Nav");
                 RemoveElement(filepath, footerStart, footerEnd, "Footer");
-                HideElementsWithClass(filepath, "main-container");
+                //HideElementsWithClass(filepath, "main-container");
+                HideElements(filepath, "main");
 
                 //If page contains partial attribute within the html tag,
                 //extract the form 
@@ -392,7 +391,7 @@ namespace BSS_Export_Script
 
             string addClass = "d-none";
 
-            while ((index = file.IndexOf(cssClass, ++index)) != -1)
+            while (index < file.Length &&  (index = file.IndexOf(cssClass, ++index)) != -1)
             {
                 Console.WriteLine("Found class at index " + index);
                 if (index < lastIndex)
@@ -401,6 +400,61 @@ namespace BSS_Export_Script
                 times++;
                 file = file.Insert(index, addClass + " ");
                 index += addClass.Length + 2;
+                lastIndex = index;
+            }
+
+            Console.WriteLine("Done file " + path + "added " + times + "things");
+            if (lastIndex > 0)
+                File.WriteAllText(path.FullName, file);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="elemType"></param>
+        static void HideElements(FileInfo path, string elemType)
+        {
+            if (!path.Name.EndsWith(".html")) return;
+
+            string file = File.ReadAllText(path.FullName);
+
+            int index = -1;
+            int lastIndex = 0;
+            int times = 0;
+
+            string addClass = "d-none";
+
+            while (index < file.Length && (index = file.IndexOf("<" + elemType, ++index)) != -1)
+            {
+                Console.WriteLine("Found elem at index " + index);
+                if (index < lastIndex)
+                    break;
+
+                const string classString = "class=\"";
+
+                int endElem = file.IndexOf(">", index);
+                int classIndex = file.IndexOf(classString, index);
+                
+
+                if(endElem < classIndex)
+                {
+                    file = file.Insert(endElem, " " + classString + addClass + "\"");
+                }
+                else
+                {
+                    int endClass = file.IndexOf("\"", classIndex + classString.Length);
+                    int insertAt = classIndex + classString.Length;
+
+                    //Already hidden
+                    if (file.Substring(insertAt, endClass - insertAt).Contains(addClass))
+                        continue;
+                    
+                    file = file.Insert(insertAt, " " + addClass + " ");
+                }
+
+                times++;                
+                index += endElem;
                 lastIndex = index;
             }
 

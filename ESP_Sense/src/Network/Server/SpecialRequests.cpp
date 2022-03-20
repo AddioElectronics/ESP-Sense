@@ -72,7 +72,7 @@ void Network::Server::SpecialRequests::Initialize()
 		if (!status.mqtt.devicesConfigured)
 		{
 			request->send(503, Website::Strings::Messages::serviceUnavailable);
-			return 0;
+			return;
 		}
 
 		ResponseSerializedData("mqttDeviceInfo", 2048, (JsonHelper::PACK_JSON_FUNC)Mqtt::DeviceManager::PackDeviceInfo, request);
@@ -81,17 +81,8 @@ void Network::Server::SpecialRequests::Initialize()
 	//Get ESP Sense Version
 	server.on(Website::Strings::Urls::requestVersion, HTTP_GET, [](AsyncWebServerRequest* request) {
 		ResponseSerializedData("version", 2048, (JsonHelper::PACK_JSON_FUNC)[](JsonVariant& doc) {
-
-			DEBUG_LOG_F("Set Version %d.%d.%d\r\n", status.misc.version.major, status.misc.version.minor, status.misc.version.revision);
-
 			doc["version"].set(status.misc.version);
-
-			Version_t version = doc["version"].as<Version_t>();
-
-			DEBUG_LOG_F("Doc contains version : %d\r\n", doc.containsKey("version"));
-
-			DEBUG_LOG_F("Doc Version %d.%d.%d\r\n", version.major, version.minor, version.revision);
-
+			doc["configMode"].set(status.device.configMode);
 			return 0;
 		}, request, true, false);
 	});
@@ -103,6 +94,30 @@ void Network::Server::SpecialRequests::Initialize()
 			request->send(401);
 			return;
 		}
+
+		request->send(200);
+		WifiManager::Disconnect();
+		delay(1000);
+		EspSense::RestartDevice();
+	});
+
+	//Control
+	server.on(Website::Strings::Urls::requestControl, HTTP_POST, [](AsyncWebServerRequest* request) {
+		request->send(503, Website::Strings::Messages::serviceUnavailable);
+		return;
+		
+		if (!Server::Authentication::IsAuthenticated(request))
+		{
+			request->send(401);
+			return;
+		}
+
+		/*Commands*/
+		//Enable backups
+		//Set test config to default path
+		//Cancel firmware rollback?
+		//Restart?
+
 
 		request->send(200);
 		WifiManager::Disconnect();
@@ -138,24 +153,15 @@ int Network::Server::SpecialRequests::ResponseSerializedData(const char* rootNam
 
 	DynamicJsonDocument* doc = JsonHelper::CreateAndPackDocument(rootName, docSize, packFunc, packArray);
 
-#if DEVELOPER_MODE
-
-	if (status.misc.developerMode)
-	{
-		Crc32Stream printStream(serialDebug != nullptr ? serialDebug : serial);
-		serializeJson(*doc, printStream);
-	}
-
-#endif
-
 	if (doc != nullptr) {
 
 		DEBUG_LOG_LN("request->beginResponseStream");
 		//Serialize document in response stream.
 		AsyncResponseStream* response = request->beginResponseStream(ContentType::appJSON);
+		response->addHeader(Headers::defaultHeaderName, Headers::defaultHeaderValue);
+		response->setCode(200);
 		serializeJson(*doc, *response);
 		request->send(response);
-
 		doc->clear();
 		free(doc);
 		return 200;

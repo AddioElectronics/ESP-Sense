@@ -56,12 +56,9 @@ bool Llc200d3sh_Sensor::Read()
 
 void Llc200d3sh_Sensor::AddStatePayload(JsonVariant& addTo)
 {
-#error check for nested before adding
-	JsonObject obj = addTo;
-	if (addTo.size() == 0)
-		obj = addTo.createNestedObject("statePayload");
+	JsonVariant obj = addTo.getOrAddMember("statePayload");
 
-	JsonVariant waterlevel = obj.createNestedObject("waterlevel");
+	JsonVariant waterlevel = obj.getOrAddMember("waterlevel");
 	waterlevel.set(measurement ? MQTT_BINARY_SENSOR_ON : MQTT_BINARY_SENSOR_OFF);
 }
 
