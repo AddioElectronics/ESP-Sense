@@ -115,6 +115,9 @@ void HandleUpdate(AsyncWebServerRequest* request, String filename, size_t index,
 		else
 		{
 			Update.printError(*serialDebug);
+			DEBUG_LOG_F("Update Failed - Restarting device...");
+			status.server.updating = UpdateMode::ESP_UPDATE_NULL;
+			EspSense::RestartDevice();
 		}
 		serialDebug->setDebugOutput(false);
 	}

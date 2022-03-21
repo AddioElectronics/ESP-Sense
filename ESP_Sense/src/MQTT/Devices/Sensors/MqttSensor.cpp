@@ -2,16 +2,12 @@
 
 String MqttSensor::mqttSensorBaseTopic;
 
+const char* MqttSensor::deviceTypeName = "Sensor";
+const char* MqttSensor::deviceTypeKey = "sensors";
+
 bool MqttSensor::Init()
 {
 	DEBUG_LOG_F("Initializing Sensor %s(SCD4x)\r\n", name.c_str());
-	//if (!status.mqtt.devicesConfigured)
-	//{
-	//	memset(&deviceStatus, 0, sizeof(MqttDeviceStatus_t));
-	//	memset(&sensorStatus, 0, sizeof(MqttSensorStatus_t));
-	//}
-
-	//deviceStatus.enabled = true;
 
 	Connect();
 
@@ -26,6 +22,8 @@ bool MqttSensor::Init()
 
 void MqttSensor::Loop()
 {
+	MqttDevice::Loop();
+
 	if (!deviceStatus.enabled) return;
 
 	if (!sensorStatus.connected)
@@ -33,11 +31,11 @@ void MqttSensor::Loop()
 		if (Connect())
 		{
 			MarkReconnected();
+
 			if (deviceStatus.configured)
 				DEBUG_LOG_F(MQTT_DMSG_RECONNECTED, name.c_str());
 		}
 
-#warning mark on website that the device was unable to configure and set controls to try and retry
 		//if (!deviceStatus.configured)
 		//	Configure();
 
@@ -52,16 +50,32 @@ void MqttSensor::ResetStatus()
 	MqttDevice::ResetStatus();
 }
 
-bool MqttSensor::Connect()
+void MqttSensor::SetDeviceState()
 {
-	sensorStatus.connected = deviceStatus.enabled;
-	return true;
+	if (deviceStatus.configured)
+	{
+		if (deviceStatus.enabled && sensorStatus.connected)
+			deviceStatus.state = (DeviceState_t)DeviceState::DEVICE_OK;
+		else
+			deviceStatus.state = (DeviceState_t)DeviceState::DEVICE_DISABLED;
+	}
+	else
+	{
+		deviceStatus.state = (DeviceState_t)DeviceState::DEVICE_ERROR;
+	}
 }
 
-bool MqttSensor::IsConnected()
-{
-	return sensorStatus.connected;
-}
+//bool MqttSensor::Connect()
+//{
+//	sensorStatus.connected = deviceStatus.enabled;
+//	SetDeviceState();
+//	return true;
+//}
+//
+//bool MqttSensor::IsConnected()
+//{
+//	return sensorStatus.connected;
+//}
 
 
 int MqttSensor::ReadAndPublish()

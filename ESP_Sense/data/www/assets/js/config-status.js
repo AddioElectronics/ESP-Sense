@@ -3,6 +3,7 @@
 function objectToTables(parent, obj, caption, capSubTables){
     console.log('objectToTables');
     console.log(obj);
+    $(parent).empty();
     for(let key in obj){
         let elem = createStatusTable(key, caption ? key : null, true);
         $(elem.find('table')[0]).addClass('table-tree');

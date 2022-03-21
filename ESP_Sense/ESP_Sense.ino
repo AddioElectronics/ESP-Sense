@@ -149,8 +149,6 @@ void* stackStart;
 //#endif
 
 
-
-
 //////////////////////////////////////////////////////
 //					Functions
 //////////////////////////////////////////////////////
@@ -368,8 +366,7 @@ void loop()
 		WifiManager::Loop();
 	}
 
-	if (!status.device.configMode)
-		Mqtt::Loop();
+	Mqtt::Loop();
 
 	//if(status.device.tasks.wifiTaskRunning /*&& config.device.taskSettings.enabled*/)
 	//	Mqtt::Loop();
@@ -682,6 +679,12 @@ void EspSense::EnterUpdateMode(UpdateMode mode)
 		break;
 	}
 
+	Mqtt::Disconnect();
+	Mqtt::Tasks::StopLoopTask();
+	Mqtt::Tasks::StopBlinkTask();
+	Mqtt::Tasks::StopDeviceManagerLoopTask();
+	Mqtt::Tasks::StopPublishAvailabilityTask();
+	//Mqtt::DeviceManager::DisableAll();
 }
 
 void EspSense::StopAllTasks()

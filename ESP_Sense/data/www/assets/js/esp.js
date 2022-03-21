@@ -1,6 +1,10 @@
-var devMode = true;
+var devMode = false;
 var keepTest = devMode && false;
 var alwaysLoadPage = false;
+
+var mqttDevices = {sensors:[], binarySensors:[], lights:[], buttons:[], switches:[]};
+var configMode = false;
+var espVersion = [0,0,0];
 
 var devModeLabel = '<span class="dev-mode">Developer Mode</span>';
 var rstHtml = `<button id="esp_reset_button" class="btn btn-primary" type="button" disabled>Reset ESP</button>`;
@@ -87,13 +91,14 @@ function receivedVersion(data){
     console.log("Received Version :");
     console.log(data);
     espVersion = data['version'];
-                        
+    configMode = data['configMode'];
+    
     if ($('#global_status').length > 0) {
         $('#global_status').append(syntaxHighlight(JSON.stringify(deviceStatusJOBJ, null, 4)));
     }
     
     var verobj = $('.version');
-    verobj.text(verobj.text().replace('x.x.x', espVersion.toString().replace(',', '.')));
+    verobj.text(verobj.text().replace('x.x.x', String.format("{0}.{1}.{2}", espVersion[0], espVersion[1], espVersion[2])));
     
     invokeEvent('version');
 }

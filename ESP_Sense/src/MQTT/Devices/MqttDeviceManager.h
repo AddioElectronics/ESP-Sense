@@ -52,7 +52,7 @@ namespace Mqtt
 		static void EnableAll(bool initial = false);
 		static void DisableAll();
 		static int SubscribeAll();
-		static int UnsubscribeAll();
+		static int UnsubscribeAll(bool disabledOnly = true);
 		static void PublishAvailability();
 		static void ReadAll();
 		static void PublishAll();

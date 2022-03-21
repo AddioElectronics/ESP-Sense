@@ -153,10 +153,17 @@ public:
 	/// </summary>
 	String name;
 	
-	/// <summary>
-	/// Name of the IC or feature.
-	/// </summary>
-	String deviceName;
+	///// <summary>
+	///// Name of the IC or feature.
+	///// *Make pointer, and store string in device type's global config.
+	///// </summary>
+	//String deviceName;
+
+	virtual const char* DeviceName() = 0;
+	virtual const char* DeviceKey() = 0;
+	virtual const char* DeviceTypeName() = 0;
+	virtual const char* DeviceTypeKey() = 0;
+	//virtual device_count_t* GetDeviceTypeCount() = 0;
 
 	/// <summary>
 	/// MQTT Device Configuration
@@ -178,10 +185,10 @@ public:
 	MqttDeviceStatus_t deviceStatus;
 	
 
-	MqttDeviceWeb* website;
+	MqttDeviceWeb* website = nullptr;
 
 protected:
-	JsonDocument* document;	//Change to non pointer? Document contains pointer to data, may be no benefits to using pointer.
+	DynamicJsonDocument* document = nullptr;	//Change to non pointer? Document contains pointer to data, may be no benefits to using pointer.
 	JsonVariant documentRoot;
 public:
 
@@ -193,12 +200,11 @@ public:
 	virtual String* GetParentBaseTopic() = 0;
 
 
-	MqttDevice(const char* _name, const char* _device, int _index, int _subIndex)
+	MqttDevice(const char* _name, int _index, int _subIndex)
 	{
 		//strlcpy(name, _name, NAME_MAX_LENGTH);
 		name = _name;
 		index = _index;
-		deviceName = _device;
 		subTypeIndex = _subIndex;
 		document = nullptr;
 		website = nullptr;
@@ -210,7 +216,7 @@ public:
 
 	virtual void ResetStatus();
 
-	virtual void Loop() {return;}
+	virtual void Loop();
 	virtual bool Configure() { return true; }			//Requires no configuration
 	virtual bool Reconfigure() { return Configure(); }
 	virtual void Denit() { /*website->Deinitialize();*/  return; }

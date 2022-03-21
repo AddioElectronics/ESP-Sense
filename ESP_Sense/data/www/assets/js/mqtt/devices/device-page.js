@@ -8,14 +8,17 @@ function setDeviceInfoElement(parent, type, text, pre, ignoreAttr, ignoreText){
     elems.attr(type, text);
 }
 
-function setMqttDeviceStatus(device, data){
+function setMqttDeviceStatus(data, device){
 
     if($('section.device-status').length == 0) return;
     
     //Dummy data
-    if(data == undefined){
-        data = device;
+    if(device == undefined){
         device = MqttDevice.activeDevice;
+    }
+    
+    if(data == null){
+        data = device.status;
     }
 
     let key = Object.keys(data)[0];

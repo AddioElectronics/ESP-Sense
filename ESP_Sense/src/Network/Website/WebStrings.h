@@ -16,6 +16,7 @@ namespace Network {
 
 				namespace Messages {
 
+					extern const char* badRequest;
 					extern const char* unauthorized;
 					extern const char* internalServerError;
 					extern const char* serviceUnavailable;

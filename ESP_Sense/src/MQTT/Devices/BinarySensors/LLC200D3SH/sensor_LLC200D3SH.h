@@ -24,6 +24,18 @@ class Llc200d3sh_Sensor : public MqttBinarySensor
 {
 public:
 
+	static const char* deviceName;		//Used for print statements
+	static const char* deviceKey;		//Used for keys, and filtering
+
+	const char* DeviceName() override
+	{
+		return deviceName;
+	}
+	const char* DeviceKey() override
+	{
+		return deviceKey;
+	}
+
 #pragma region Global Variables 
 
 	/// <summary>
@@ -76,7 +88,7 @@ public:
 		return &mqttBinarySensorBaseTopic;
 	}
 
-	Llc200d3sh_Sensor(const char* _name, const char* _device, int _index, int _subIndex) : MqttBinarySensor(_name, _device, _index, _subIndex) {}
+	Llc200d3sh_Sensor(const char* _name, int _index, int _subIndex) : MqttBinarySensor(_name, _index, _subIndex) {}
 
 #pragma region MqttDevice Functions
 

@@ -17,6 +17,8 @@ namespace JsonHelper
 
 	DynamicJsonDocument* CreateDocument(size_t size);
 
+	void DeallocateDocument(DynamicJsonDocument** doc);
+
 	typedef std::function<int(JsonVariant& document)> PACK_JSON_FUNC;
 	//typedef int (*PACK_JSON_FUNC)(JsonObject& document);
 	size_t CreatePackAndSerialize(const char* rootName, size_t docSize, String& serializeTo, DynamicJsonDocument** out_doc, PACK_JSON_FUNC packFunction);

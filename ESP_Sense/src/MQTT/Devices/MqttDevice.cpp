@@ -19,11 +19,11 @@ bool MqttDevice::Init()
 	//deviceStatus.enabled = true;
 	Configure();
 
-	if (!deviceStatus.configured)
+	//if (!deviceStatus.configured)
 		MarkDisconnected();
 
 	InitWebpage();
-	SetDeviceState();
+	//SetDeviceState();
 
 	return deviceStatus.configured;
 }
@@ -33,17 +33,40 @@ void MqttDevice::ResetStatus()
 	memset(&deviceStatus, 0, sizeof(MqttDeviceStatus_t));
 }
 
+void MqttDevice::Loop()
+{
+	if (!status.mqtt.connected) return;
+
+	if (deviceStatus.enabled)
+	{
+		if (!deviceStatus.configured)
+			if (!Configure()) return;
+
+		if (!deviceStatus.subscribed)
+			Subscribe();
+	}
+	else
+	{
+		if (deviceStatus.subscribed)
+			Unsubscribe();
+	}
+
+}
+
 void MqttDevice::MarkDisconnected()
 {
+	//SetDeviceState();
 	if (deviceStatus.markedDisconnected) return;
 
-	uint64_t mask = 1 << (index < 64 ? index : index % 64);
-	uint8_t bmIndex = index < 64 ? 0 : (index / 64);
+	uint64_t mask = 1 << (index < 64 ? index : index % 64);		//Create mask for bit
+	uint8_t bmIndex = index < 64 ? 0 : (index / 64);			//Get QWORD where device's bit resides
 
-	*((&status.mqtt.devices.functioningDevices.bitmap0) + bmIndex) |= mask;
+	//Set bit to indicate an error
+	*((&status.mqtt.devices.errorBitmap.bitmap0) + bmIndex) |= mask;
 
+	//If device is important, set bit. This will cause MQTT led to blink, and alerts in browser.
 	if (deviceConfig.important)
-		*((&status.mqtt.devices.functioningDevicesImportant.bitmap0) + bmIndex) |= mask;
+		*((&status.mqtt.devices.errorBitmapImportant.bitmap0) + bmIndex) |= mask;
 
 	DEBUG_LOG_F("Mark Disconnected\r\n-Device Index : %d\r\n-Important : %d\r\n", index, deviceConfig.important);
 
@@ -57,15 +80,18 @@ void MqttDevice::MarkDisconnected()
 
 void MqttDevice::MarkReconnected()
 {
+	//SetDeviceState();
 	if (!deviceStatus.markedDisconnected) return;
 
-	uint64_t mask = 1 << (index < 64 ? index : index % 64);
-	uint8_t bmIndex = index < 64 ? 0 : (index / 64);
+	uint64_t mask = 1 << (index < 64 ? index : index % 64);		//Create mask for bit in qword
+	uint8_t bmIndex = index < 64 ? 0 : (index / 64);			//Get QWORD where device's bit resides
 
-	*((&status.mqtt.devices.functioningDevices.bitmap0) + bmIndex) &= ~mask;
+	//Clear bit to indicate device is functional
+	*((&status.mqtt.devices.errorBitmap.bitmap0) + bmIndex) &= ~mask;
 
+	//If device is important, clear.
 	if (deviceConfig.important)
-		*((&status.mqtt.devices.functioningDevicesImportant.bitmap0) + bmIndex) &= ~mask;
+		*((&status.mqtt.devices.errorBitmapImportant.bitmap0) + bmIndex) &= ~mask;
 
 	DEBUG_LOG_F("Mark Reconnected\r\n-Device Index : %d\r\n-Important : %d\r\n", index, deviceConfig.important);
 
@@ -84,6 +110,7 @@ bool MqttDevice::Enable()
 	deviceStatus.enabled = true;
 	status.mqtt.devices.enabledCount++;
 	Subscribe();
+	//SetDeviceState();
 
 	return true;
 }
@@ -92,9 +119,11 @@ bool MqttDevice::Disable()
 {
 	if (!deviceStatus.enabled) return true;
 
-	Unsubscribe();
 	deviceStatus.enabled = false;
 	status.mqtt.devices.enabledCount--;
+	Unsubscribe();
+	//SetDeviceState();
+
 	return true;
 }
 
@@ -142,6 +171,7 @@ bool MqttDevice::Unsubscribe()
 	if (!deviceStatus.subscribed)
 		return true;
 
+
 	if (mqttClient.unsubscribe(topics.jsonCommand.c_str()))
 	{
 		deviceStatus.subscribed = false;
@@ -160,6 +190,8 @@ bool MqttDevice::Publish()
 	DEBUG_LOG_F("Publishing %s Data...\r\n", name.c_str());
 
 	String jdata = GenerateJsonStatePayload();
+
+	DEBUG_LOG_F("-Data : %s\r\n", jdata.c_str());
 
 	if (jdata.isEmpty()) return false;
 
@@ -231,7 +263,7 @@ bool MqttDevice::PublishDisabled(const char* topic)
 /// <returns></returns>
 String MqttDevice::GenerateJsonData(ADD_PAYLOAD_FUNC addPayload, const char* dataType)
 {
-	DEBUG_LOG_F("Generating %s(%s) JSON %s Data :\r\n", name.c_str(), deviceName, dataType);
+	DEBUG_LOG_F("Generating %s(%s) JSON %s Data :\r\n", name.c_str(), DeviceName(), dataType);
 
 	String jdata = "";
 
@@ -255,7 +287,7 @@ String MqttDevice::GenerateJsonData(ADD_PAYLOAD_FUNC addPayload, const char* dat
 
 String MqttDevice::GenerateJsonStatePayload()
 {
-	DEBUG_LOG_F("%s GenerateJsonStatePayload()\r\n", name.c_str());
+	//DEBUG_LOG_F("%s GenerateJsonStatePayload()\r\n", name.c_str());
 	return GenerateJsonData([this](JsonVariant&)
 	{
 		return this->AddStatePayload(this->documentRoot);
@@ -264,7 +296,7 @@ String MqttDevice::GenerateJsonStatePayload()
 
 String MqttDevice::GenerateJsonStatus()
 {
-	DEBUG_LOG_F("%s GenerateJsonStatus()\r\n", name.c_str());
+	//DEBUG_LOG_F("%s GenerateJsonStatus()\r\n", name.c_str());
 	return GenerateJsonData([this](JsonVariant&)
 	{
 		return this->AddStatusData(this->documentRoot);
@@ -273,7 +305,7 @@ String MqttDevice::GenerateJsonStatus()
 
 String MqttDevice::GenerateJsonConfig()
 {
-	DEBUG_LOG_F("%s GenerateJsonConfig()\r\n", name.c_str());
+	//DEBUG_LOG_F("%s GenerateJsonConfig()\r\n", name.c_str());
 	return GenerateJsonData([this](JsonVariant&)
 	{
 		return this->AddConfigData(this->documentRoot);
@@ -282,7 +314,7 @@ String MqttDevice::GenerateJsonConfig()
 
 String MqttDevice::GenerateJsonAll()
 {
-	DEBUG_LOG_F("%s GenerateJsonAll()\r\n", name.c_str());
+	//DEBUG_LOG_F("%s GenerateJsonAll()\r\n", name.c_str());
 	return GenerateJsonData([this](JsonVariant&)
 	{
 		return this->AddStatusData(this->documentRoot);
@@ -295,7 +327,7 @@ bool MqttDevice::CreateJsonDocument()
 {	
 	if (document != nullptr) return false;
 
-	DEBUG_LOG_F("%s CreateJsonDocument()\r\n", name.c_str());
+	//DEBUG_LOG_F("%s CreateJsonDocument()\r\n", name.c_str());
 
 	#warning change size for each device
 	document = JsonHelper::CreateDocument(2048);
@@ -307,8 +339,7 @@ bool MqttDevice::CreateJsonDocument()
 
 bool MqttDevice::FreshJsonDocument()
 {
-	if (document == nullptr) return false;
-	DEBUG_LOG_F("%s FreshJsonDocument()\r\n", name.c_str());
+	//DEBUG_LOG_F("%s FreshJsonDocument()\r\n", name.c_str());
 
 	FreeJsonDocument();
 	return CreateJsonDocument();
@@ -316,11 +347,10 @@ bool MqttDevice::FreshJsonDocument()
 
 void MqttDevice::FreeJsonDocument()
 {
-	DEBUG_LOG_F("%s FreeJsonDocument()\r\n", name.c_str());
+	//DEBUG_LOG_F("%s FreeJsonDocument()\r\n", name.c_str());
 	if (document != nullptr)
 	{
-		document->clear();
-		free(document);
+		delete document;
 		document = nullptr;
 	}
 }

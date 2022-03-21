@@ -27,6 +27,18 @@ class Scd4xSensor : public MqttSensor
 {
 public:
 
+	static const char* deviceName;		//Used for print statements
+	static const char* deviceKey;		//Used for keys, and filtering
+
+	const char* DeviceName() override
+	{
+		return deviceName;
+	}
+	const char* DeviceKey() override
+	{
+		return deviceKey;
+	}
+
 	/// <summary>
 	/// Sensor object which controls the actual sensor.
 	/// </summary>
@@ -59,6 +71,8 @@ public:
 	//static SCD4xSpecialBaseTopics_t globalUniqueBaseTopics;
 
 	static char errorMessage[256];
+
+	//static const char* deviceName;
 
 #pragma endregion
 
@@ -106,7 +120,7 @@ public:
 		return &mqttSensorBaseTopic;
 	}
 
-	Scd4xSensor(const char* _name, const char* _device, int _index, int _subIndex) : MqttSensor(_name, _device, _index, _subIndex) {}
+	Scd4xSensor(const char* _name, int _index, int _subIndex) : MqttSensor(_name,  _index, _subIndex) { }
 
 #pragma region MqttDevice Functions
 

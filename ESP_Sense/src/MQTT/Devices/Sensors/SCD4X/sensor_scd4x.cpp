@@ -14,6 +14,9 @@ extern TwoWire Wire;
 
 #pragma region Global Variables
 
+const char* Scd4xSensor::deviceName = "SCD4x";
+const char* Scd4xSensor::deviceKey = "scd4x";
+
 MqttDeviceConfig_t Scd4xSensor::globalDeviceConfig;
 MqttDeviceConfigMonitor_t Scd4xSensor::globalDeviceConfigMonitor;
 
@@ -30,6 +33,7 @@ MqttDeviceGlobalStatus_t Scd4xSensor::globalDeviceStatus;
 const char* busyMessage = "%s cannot %s. Another action is being performed.";
 
 char Scd4xSensor::errorMessage[];
+//const char* Scd4xSensor::deviceName = "scd4x";
 
 #pragma endregion
 
@@ -67,23 +71,9 @@ bool Scd4xSensor::Init()
 
 void Scd4xSensor::Loop()
 {
+	MqttSensor::Loop();
+
 	if (!deviceStatus.enabled) return;
-
-	if (!sensorStatus.connected)
-	{
-		if(Connect())	
-		{		
-			MarkReconnected();	
-
-			if (deviceStatus.configured)			
-				DEBUG_LOG_F(MQTT_DMSG_RECONNECTED, name.c_str());
-		}
-
-		//if (!deviceStatus.configured)
-		//	Configure();
-
-		return;
-	}
 
 	if (uniqueStatus.performingFactoryReset)
 	{
@@ -199,12 +189,11 @@ bool Scd4xSensor::Enable()
 
 	DEBUG_LOG_F("Enabling %s (SCD4x)\r\n", name.c_str());
 
+	MqttDevice::Enable();
 
 	if (!sensorStatus.connected)
 		if (!Connect())
 			return false;
-
-	MqttDevice::Enable();
 
 	if (!Wake()) 
 		return false;
@@ -759,14 +748,17 @@ bool Scd4xSensor::IsConnected()
 	if (sensorStatus.connected)
 		DEBUG_LOG_LN("Connected");
 
-	if ((currentStatus || !status.mqtt.devicesConfigured) && !sensorStatus.connected)
+	if (!sensorStatus.connected)
 	{
 		MarkDisconnected();
 
-		if (deviceStatus.configured)
-			DEBUG_LOG_F(MQTT_DMSG_DISCONNECTED, name.c_str());
+		if (currentStatus || !status.mqtt.devicesConfigured)
+		{
+			if (deviceStatus.configured)
+				DEBUG_LOG_F(MQTT_DMSG_DISCONNECTED, name.c_str());
 
-		ResetStatusPartial(false, false);
+			//ResetStatusPartial(false, false);
+		}
 	}
 
 	return sensorStatus.connected;

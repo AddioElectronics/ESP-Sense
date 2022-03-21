@@ -16,14 +16,32 @@ class MqttBinarySensor : public MqttDevice
 {
 public:
 
+	static const char* deviceTypeName;		//Used for print statements
+	static const char* deviceTypeKey;		//Used for keys, and filtering
+
+	const char* DeviceTypeName() override
+	{
+		return deviceTypeName;
+	}
+	const char* DeviceTypeKey() override
+	{
+		return deviceTypeKey;
+	}
+
+	//device_count_t* GetDeviceTypeCount() override
+	//{
+	//	return &status.mqtt.devices.binarySensorCount;
+	//}
+
 	static String mqttBinarySensorBaseTopic;
+
 
 	static MqttTopics_t globalTopics;
 	static MqttDeviceMqttSettings_t globalMqttSettings;
 
 	MqttBinarySensorStatus_t binarySensorStatus;
 
-	MqttBinarySensor(const char* _name, const char* _device, int _index, int _subIndex) : MqttDevice(_name, _device, _index, _subIndex) {}
+	MqttBinarySensor(const char* _name, int _index, int _subIndex) : MqttDevice(_name,  _index, _subIndex) {}
 
 	virtual void ResetStatus() override
 	{

@@ -32,14 +32,32 @@ class MqttSensor : public MqttDevice
 {
 public:
 
+	static const char* deviceTypeName;		//Used for print statements
+	static const char* deviceTypeKey;	//Used for keys, and filtering
+
+	const char* DeviceTypeName() override
+	{
+		return deviceTypeName;
+	}
+	const char* DeviceTypeKey() override
+	{
+		return deviceTypeKey;
+	}
+
+	//device_count_t* GetDeviceTypeCount() override
+	//{
+	//	return &status.mqtt.devices.sensorCount;
+	//}
+
 	static String mqttSensorBaseTopic;
+
 
 	/// <summary>
 	/// MQTT Sensor Status 
 	/// </summary>
 	MqttSensorStatus_t sensorStatus;
 
-	MqttSensor(const char* _name, const char* _device, int _index, int _subIndex) : MqttDevice(_name, _device, _index, _subIndex) {}
+	MqttSensor(const char* _name, int _index, int _subIndex) : MqttDevice(_name, _index, _subIndex) {}
 
 	virtual bool Init() override;
 
@@ -47,9 +65,11 @@ public:
 
 	virtual void ResetStatus() override;
 
-	virtual bool Connect();
+	virtual void SetDeviceState() override;
 
-	virtual bool IsConnected();
+	virtual bool Connect() = 0;
+
+	virtual bool IsConnected() = 0;
 
 	virtual bool Read() = 0;
 

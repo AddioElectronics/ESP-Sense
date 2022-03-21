@@ -41,6 +41,8 @@ namespace Config
 
 	namespace Documents
 	{
+		bool AllocateDocument();
+		bool DeallocateDocument();
 		void LoadBootSettings();
 
 		int CheckConfigCrc(bool saveRetained = false);

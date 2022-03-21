@@ -365,7 +365,7 @@ enum ESP_MEMSIZE
 #define SERVER_USER						"admin"
 #define SERVER_PASS						"admin"
 #define SERVER_UPDATER_ENABLED			false					//Enable WebUpdater during regular operation (non accessPoint mode) (Not currently supported)
-#define SERVER_SESSION_TIMEOUT			10						//How many minutes before authentication is lost?
+#define SERVER_SESSION_TIMEOUT			30						//How many minutes before authentication is lost?
 
 
 #define BROWSER_ENABLED					true					//Enable configuration browser during regular operation. (non accessPoint mode) (Not currently supported)

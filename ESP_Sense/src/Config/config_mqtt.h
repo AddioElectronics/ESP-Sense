@@ -3,6 +3,9 @@
 #include <WiFi.h>
 #include "../GlobalDefs.h"
 
+
+#define TOTAL_MQTT_DEVICE_TYPES	2 //Sensors and BinarySensors are only types currently supported.
+
 //////////////////////////////////////////////////////
 //					Broker Settings
 //////////////////////////////////////////////////////
@@ -145,19 +148,30 @@ typedef struct {
 	uint64_t bitmap3;
 }DevicesFunctioning_t;
 
+//typedef struct {
+//	const char* name;
+//	const char* key;
+//	device_count_t count;
+//}MqttDeviceTypeInfo_t;
 
 typedef struct {
 	uint32_t subscribedCount;
 	uint32_t enabledCount;
 	uint32_t deviceCount;
+	//MqttDeviceTypeInfo_t sensors;
+	//MqttDeviceTypeInfo_t binarySensors;
+	//MqttDeviceTypeInfo_t buttons;
+	//MqttDeviceTypeInfo_t switches;
+	//MqttDeviceTypeInfo_t lights;
 	device_count_t buttonCount;
 	device_count_t switchCount;
 	device_count_t lightCount;
 	device_count_t sensorCount;
 	device_count_t binarySensorCount;
-	DevicesFunctioning_t functioningDevices;
-	DevicesFunctioning_t functioningDevicesImportant;
+	DevicesFunctioning_t errorBitmap;
+	DevicesFunctioning_t errorBitmapImportant;
 }MqttDevicesStatus_t;
+
 
 
 #pragma region Config Structures

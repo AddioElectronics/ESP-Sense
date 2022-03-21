@@ -41,7 +41,7 @@ CRC32 crc;
 /// *API recommends to not use a global document, 
 /// but it must be better to create one than to create and free many, right?
 /// </summary>
-DynamicJsonDocument configDoc(DOC_CONFIG_DESERIALIZE_SIZE);
+DynamicJsonDocument* configDoc = nullptr;
 
 
 
@@ -514,6 +514,29 @@ void missing_key(const char* key)
 	DEBUG_LOG_F("Config Missing key : %s\r\n", key);
 }
 
+bool Config::Documents::AllocateDocument()
+{
+	//Already allocated.
+	if (configDoc != nullptr)
+	{
+		if (configDoc->isNull() == false)
+			configDoc->clear();
+
+		return true;
+	}
+
+	configDoc = JsonHelper::CreateDocument(DOC_CONFIG_DESERIALIZE_SIZE);
+	return configDoc != nullptr;
+}
+
+bool Config::Documents::DeallocateDocument()
+{
+	DEBUG_LOG_LN("Deallocating Config document...");
+	status.config.configRead = false;
+
+	JsonHelper::DeallocateDocument(&configDoc);
+}
+
 void Config::Documents::LoadBootSettings()
 {
 
@@ -828,6 +851,8 @@ bool Config::Documents::LoadConfiguration()
 {
 	DEBUG_LOG_LN("Configuring Device...");
 
+	AllocateDocument();
+
 #warning function is gross, fix it.
 
 	//if (statusRetainedMonitor.boot.bootSource)
@@ -913,7 +938,7 @@ ReselectBootSource:
 				if (status.config.backup.eepromBackedUp) {
 					DEBUG_LOG_LN("...Getting config from EEPROM...");
 					status.config.configSource = ConfigSource::CFG_EEPROM;
-					if (!Backup::DeserializeEepromBackupConfig(configDoc))
+					if (!Backup::DeserializeEepromBackupConfig(*configDoc))
 					{
 						goto Firmware_Config;
 					}
@@ -1090,10 +1115,11 @@ bool Config::Documents::DeserializeConfig()
 	//DeserializationError derror = deserializeJson(configDoc, file);
 	//file.close();
 
-	if (!FileManager::ParseFile(&file, configDoc, filename))
+	if (!FileManager::ParseFile(&file, *configDoc, filename))
 	{
 		DEBUG_LOG_LN("Failed to parse config!");
-		configDoc.clear();
+		//DeallocateDocument();
+		configDoc->clear();
 		return false;
 	}
 	else
@@ -1108,7 +1134,7 @@ bool Config::Documents::DeserializeConfig()
 
 bool Config::Documents::SetConfigFromDoc()
 {
-	DEBUG_LOG_LN("Setting config to values from JSON document...");
+	DEBUG_LOG_LN("Setting config from JSON document...");
 
 	if (!status.config.configRead)
 	{
@@ -1116,13 +1142,14 @@ bool Config::Documents::SetConfigFromDoc()
 		return false;
 	}
 
-	JsonVariantConst configVar = configDoc.as<JsonVariantConst>();
+	JsonVariantConst configVar = configDoc->as<JsonVariantConst>();
 	convertFromJson(configVar, config);
 
 	//CheckConfigPathCrc();
 	//CheckConfigCrc();
 
-	configDoc.clear();
+	DeallocateDocument();
+
 	status.config.configRead = false;
 
 	DEBUG_LOG_F("SSID : %s\r\nPASS : %s\r\nMQTT IP : %s\r\nPort : %d\r\nUser : %s\r\nPass : %s\r\n", config.wifi.station.ssid.c_str(), config.wifi.station.pass.c_str(), config.mqtt.broker.ip.toString().c_str(), config.mqtt.broker.port, config.mqtt.broker.user.c_str(), config.mqtt.broker.pass.c_str());
@@ -1588,7 +1615,7 @@ bool Config::Backup::DeserializeEepromBackupConfig(JsonDocument& doc)
 	{
 		DEBUG_LOG("Error parsing backup config : ");
 		DEBUG_LOG_LN(derror.c_str());
-		configDoc.clear();
+		configDoc->clear();
 		return false;
 	}
 	else

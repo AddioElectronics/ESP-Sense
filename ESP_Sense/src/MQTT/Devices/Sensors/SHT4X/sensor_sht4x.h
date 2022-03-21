@@ -34,6 +34,19 @@ class Sht4xSensor : public MqttSensor
 {
 public:
 
+	static const char* deviceName;		//Used for print statements
+	static const char* deviceKey;		//Used for keys, and filtering
+
+
+	const char* DeviceName() override
+	{
+		return deviceName;
+	}
+	const char* DeviceKey() override
+	{
+		return deviceKey;
+	}
+
 	Adafruit_SHT4x sensor = Adafruit_SHT4x();
 
 #pragma region Global Variables
@@ -57,6 +70,7 @@ public:
 	static Sht4xConfigMonitor_bm globalUniqueConfigMonitor;
 
 	static MqttDeviceGlobalStatus_t globalDeviceStatus;
+
 
 #pragma endregion
 
@@ -94,7 +108,7 @@ public:
 		return &mqttSensorBaseTopic;
 	}
 
-	Sht4xSensor(const char* _name, const char* _device, int _index, int _subIndex) : MqttSensor(_name, _device, _index, _subIndex) {}
+	Sht4xSensor(const char* _name, int _index, int _subIndex) : MqttSensor(_name,  _index, _subIndex) {}
 
 #pragma region MqttDevice Functions
 

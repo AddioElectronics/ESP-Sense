@@ -19,7 +19,19 @@ DynamicJsonDocument* JsonHelper::CreateDocument(size_t size)
 
 	DynamicJsonDocument* doc = new DynamicJsonDocument(size);
 
+	
+
 	return doc;
+}
+
+void JsonHelper::DeallocateDocument(DynamicJsonDocument** doc)
+{
+	if (*doc != nullptr)
+	{
+		delete* doc;
+		//(*doc)->~BasicJsonDocument();
+		*doc = nullptr;
+	}
 }
 
 
@@ -56,8 +68,6 @@ DynamicJsonDocument* JsonHelper::CreateAndPackDocument(const char* rootName, siz
 		doc->createNestedObject(rootName);
 
 	JsonVariant docObj = doc->as<JsonVariant>();
-
-	DEBUG_LOG_F("docObj null? %d\r\n", docObj.isNull());
 
 	packFunction(docObj);
 	return doc;

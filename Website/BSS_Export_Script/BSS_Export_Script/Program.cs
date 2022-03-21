@@ -13,6 +13,13 @@ namespace BSS_Export_Script
         const bool ShowDialogs = true;
 
         /// <summary>
+        /// Change var devMode = true to false.
+        /// Dev mode is used for working on the website on PC,
+        /// mainly loading dummy JSON data.
+        /// </summary>
+        const bool assureDevModeFalse = true;
+
+        /// <summary>
         /// The data\www directory.
         /// </summary>
         static DirectoryInfo wwwDir;
@@ -111,6 +118,10 @@ namespace BSS_Export_Script
             //There are dummy json files for testing the JS code,
             //and the space on the ESP32 needs to be conserved.
             DeleteFilesOfType(wwwDir, ".json", SearchOption.AllDirectories, keepMatch);
+
+            //Execute any changes that are very specific,
+            //and code offers no repeatability.
+            HardCodedChanges();
 
             //Process all files in and below the data\www directory.
             ProcessAllFilesInAndBelowDirectory(wwwDir);
@@ -530,6 +541,24 @@ namespace BSS_Export_Script
         }
 
 
+        static void HardCodedChanges()
+        {
+            if (assureDevModeFalse)
+            {
+                var files = wwwDir.EnumerateFiles("esp.js", SearchOption.AllDirectories).ToArray();
+
+                if (files.Length == 1)
+                {
+                    string contents = File.ReadAllText(files[0].FullName);
+
+                    if (contents.IndexOf("var devMode = true;") != -1)
+                    {
+                        contents = contents.Replace("var devMode = true;", "var devMode = false;");
+                        File.WriteAllText(files[0].FullName, contents);
+                    }
+                }
+            }
+        }
 
 
         //static void RemoveElement(ref string contents, string search)

@@ -65,3 +65,11 @@ Build wizard - Select MQTT devices, and features, and wizard will modify the pre
 Add cache control for requests
 
 Store config path in retainedStatus, if wifi connects. If path has changed and wifi is unable to be connected, load up previously working config to allow user to configure. (has to be enabled)
+Firmware details(version, compatability) exchange before web/ota update
+Update browser files while updating firmware
+
+Reverse compatability when using browser (v0.1.1 doesn't use version, v0.1.2 requires version before auth)
+
+Change username and password from browser.
+
+Change progress bar in browser to say Updating. At 100% try to fit in request before restarting to see if update was success instead of just upload.

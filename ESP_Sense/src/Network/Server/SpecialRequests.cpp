@@ -55,7 +55,7 @@ void Network::Server::SpecialRequests::Initialize()
 		if (status.server.enabled)
 			request->send(200);
 		else
-			request->send(503);
+			request->send(503, ContentType::textPlain, Website::Strings::Messages::serviceUnavailable);
 	});
 
 	//Serialize status and send in response.
@@ -71,7 +71,7 @@ void Network::Server::SpecialRequests::Initialize()
 
 		if (!status.mqtt.devicesConfigured)
 		{
-			request->send(503, Website::Strings::Messages::serviceUnavailable);
+			request->send(503, ContentType::textPlain, Website::Strings::Messages::serviceUnavailable);
 			return;
 		}
 
@@ -91,7 +91,7 @@ void Network::Server::SpecialRequests::Initialize()
 	server.on(Website::Strings::Urls::requestReset, HTTP_POST, [](AsyncWebServerRequest* request) {
 		if (!Server::Authentication::IsAuthenticated(request))
 		{
-			request->send(401);
+			request->send(401, ContentType::textPlain, Messages::networkAuthenticationRequried);
 			return;
 		}
 
@@ -103,12 +103,12 @@ void Network::Server::SpecialRequests::Initialize()
 
 	//Control
 	server.on(Website::Strings::Urls::requestControl, HTTP_POST, [](AsyncWebServerRequest* request) {
-		request->send(503, Website::Strings::Messages::serviceUnavailable);
+		request->send(503, ContentType::textPlain, Website::Strings::Messages::serviceUnavailable);
 		return;
 		
 		if (!Server::Authentication::IsAuthenticated(request))
 		{
-			request->send(401);
+			request->send(401, ContentType::textPlain, Messages::networkAuthenticationRequried);
 			return;
 		}
 
@@ -117,6 +117,7 @@ void Network::Server::SpecialRequests::Initialize()
 		//Set test config to default path
 		//Cancel firmware rollback?
 		//Restart?
+		//Set new username and password
 
 
 		request->send(200);
@@ -146,8 +147,8 @@ int Network::Server::SpecialRequests::ResponseSerializedData(const char* rootNam
 		if (!Network::Server::Authentication::IsAuthenticated(request))
 		{
 			if (respondOnError)
-				Server::SendHttpResponseCode(511, request, messagedResponse);
-			//request->send(511, ContentType::textPlain, Messages::networkAuthenticationRequried);
+				request->send(511, ContentType::textPlain, Messages::networkAuthenticationRequried);
+				//Server::SendHttpResponseCode(511, request, messagedResponse);
 			return 511;
 		}
 
@@ -162,15 +163,14 @@ int Network::Server::SpecialRequests::ResponseSerializedData(const char* rootNam
 		response->setCode(200);
 		serializeJson(*doc, *response);
 		request->send(response);
-		doc->clear();
-		free(doc);
+		delete doc;
 		return 200;
 	}
 	else
 	{
 		if (respondOnError)
-			Server::SendHttpResponseCode(500, request, messagedResponse);
-			//request->send(500, ContentType::textPlain, Messages::internalServerError);
+			request->send(500, ContentType::textPlain, Messages::internalServerError);
+			//Server::SendHttpResponseCode(500, request, messagedResponse);
 		return 500;
 	}
 }
@@ -195,8 +195,7 @@ int Network::Server::SpecialRequests::ResponseSerializedData(const char* rootNam
 //		serializeJson(*doc, *response);
 //		request->send(response);
 //
-//		doc->clear();
-//		free(doc);
+//		delete doc;
 //	}
 //	else
 //		request->send(404);

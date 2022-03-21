@@ -255,7 +255,7 @@ function loadMqttDeviceSummary(){
         disableDeviceList();
         MqttDevice.activeDevice.GetStatus(function(data){
             enableDeviceList();
-            setMqttDeviceStatus(MqttDevice.activeDevice, data);
+            setMqttDeviceStatus(data, MqttDevice.activeDevice);
         }, function(xhr, status, error){
             enableDeviceList();
             let device = MqttDevice.activeDevice;

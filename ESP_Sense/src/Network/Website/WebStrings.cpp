@@ -12,6 +12,7 @@ namespace Network {
 
 			namespace Messages {
 
+				const char* badRequest = "400 : Bad Request";
 				const char* unauthorized = "401 : Unauthorized";
 				const char* internalServerError = "500 : Internal Server Error";
 				const char* serviceUnavailable = "503 : Service Unavailable";

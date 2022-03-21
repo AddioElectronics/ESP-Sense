@@ -21,7 +21,7 @@ using namespace Network::Website::Strings;
 
 void MqttDeviceWeb::Initialize(MqttDevice* parentDevice)
 {
-	DEBUG_LOG_F("Initializing Webpage for %s", parentDevice->name.c_str());
+	DEBUG_LOG_F("Initializing Webpage for %s\r\n", parentDevice->name.c_str());
 
 
 
@@ -38,7 +38,7 @@ void MqttDeviceWeb::Initialize(MqttDevice* parentDevice)
 	switch (deviceType)
 	{
 	case MqttDeviceType::MQTT_BINARY_SENSOR:
-		webStatus.url += "binarysensors/";
+		webStatus.url += "binarySensors/";
 		break;
 	case MqttDeviceType::MQTT_SENSOR:
 		webStatus.url += "sensors/";
@@ -161,11 +161,23 @@ void MqttDeviceWeb::InitializeRequests()
 	{
 		tempUrl = GetUrl("setEnabled");
 		handlers.statusHandler = &server.on(tempUrl.c_str(), HTTP_POST, [device](AsyncWebServerRequest* request) {
-			
-			if(!Network::Server::Authentication::IsAuthenticated(request))
-				request->send(401);
+
+			if (!Network::Server::Authentication::IsAuthenticated(request))
+			{
+				request->send(401, ContentType::textPlain, Messages::networkAuthenticationRequried);
+				return;
+			}
+
+			if (!request->hasParam("enable"))
+			{
+				Label_BadRequest:
+				request->send(400, ContentType::textPlain, Messages::badRequest);
+				return;
+			}
 
 			String enable = request->getParam("enable", true)->value();
+
+			DEBUG_LOG_F("%s SetEnabled(%s)", device->name.c_str(), enable.c_str());
 
 			if (enable == "0")
 			{
@@ -177,6 +189,7 @@ void MqttDeviceWeb::InitializeRequests()
 			}
 			else
 			{
+				goto Label_BadRequest;
 				request->send(400, ContentType::textPlain, "Bad Request : Expecting \"enable\" : \"0\" or \"1\".");
 			}
 
@@ -229,7 +242,7 @@ void MqttDeviceWeb::SetConfigResponse(MqttDevice* device, AsyncWebServerRequest*
 	if (!request->hasParam("config", true))
 	{
 		Label_BadRequest:
-		DEBUG_LOG_F("%s(%s)Cannot Set Config : No POST Data\r\n", device->name.c_str(), device->deviceName.c_str());
+		DEBUG_LOG_F("%s(%s)Cannot Set Config : No POST Data\r\n", device->name.c_str(), device->DeviceName());
 		request->send(400, ContentType::textPlain, "Bad Request : Requires \"config\" : (JSON DATA)");
 		return;
 	}

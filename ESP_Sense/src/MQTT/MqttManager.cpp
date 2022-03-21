@@ -7,6 +7,7 @@
 #endif
 
 #include <PubSubClient.h>	
+#include <ESP32Ping.h>
 //#include <ArduinoJson.hpp>
 //#include <ArduinoJson.h>
 
@@ -48,6 +49,7 @@ TaskHandle_t taskMqttBlink;
 
 bool ClientConnect(bool reconnect = false);
 void SelectIPAddress();
+bool PingCurrentIP();
 bool SetIpFromConfig(bool ap);
 bool ConnectIntervalMet();
 
@@ -106,6 +108,8 @@ bool ConnectIntervalMet()
 
 bool SetIpFromConfig(bool ap)
 {
+	bool hasRetried = false;
+	Label_Retry:
 	if (ap && !status.mqtt.ipStatus.triedConfigAP)
 	{
 		status.mqtt.ipStatus.triedConfigAP = true;
@@ -113,6 +117,18 @@ bool SetIpFromConfig(bool ap)
 		if (config.mqtt.broker.ipAP[0])
 		{
 			status.mqtt.ipStatus.ip = config.mqtt.broker.ipAP;
+
+			if (!PingCurrentIP())
+			{
+				if (hasRetried)
+					return false;
+				else
+				{
+					hasRetried = true;
+					goto Label_Retry;
+				}
+			}
+
 			status.mqtt.ipStatus.changed = true;
 			status.mqtt.ipStatus.maxRetries = config.mqtt.broker.maxRetries;
 
@@ -129,6 +145,18 @@ bool SetIpFromConfig(bool ap)
 		if (config.mqtt.broker.ip[0])
 		{
 			status.mqtt.ipStatus.ip = config.mqtt.broker.ip;
+
+			if (!PingCurrentIP())
+			{
+				if (hasRetried)
+					return false;
+				else
+				{
+					hasRetried = true;
+					goto Label_Retry;
+				}
+			}
+
 			status.mqtt.ipStatus.changed = true;
 			status.mqtt.ipStatus.maxRetries = config.mqtt.broker.maxRetries;
 
@@ -148,6 +176,8 @@ void SelectIPAddress()
 		status.mqtt.ipStatus.changed = false;
 		return;
 	}
+
+Label_Retry:
 
 	status.mqtt.ipStatus.currentAttemptsCounter = 0;
 
@@ -303,7 +333,28 @@ void SelectIPAddress()
 	}
 
 Label_SetServer:
+
+	//Make sure server exists at IP before attempting to connect.
+	if (!PingCurrentIP())
+	{
+		if (status.wifi.connected)
+			goto Label_Retry;
+	}
+
 	mqttClient.setServer(status.mqtt.ipStatus.ip, config.mqtt.broker.port);
+}
+
+bool PingCurrentIP()
+{
+	DEBUG_LOG_F("Pinging MQTT IP(%d.%d.%d.%d)...", status.mqtt.ipStatus.ip[0], status.mqtt.ipStatus.ip[1], status.mqtt.ipStatus.ip[2], status.mqtt.ipStatus.ip[3]);
+	bool exists = Ping.ping(status.mqtt.ipStatus.ip);
+	
+	if(exists)
+		DEBUG_LOG_LN("Received.");
+	else
+		DEBUG_LOG_LN("No Response.");
+
+	return exists;
 }
 
 /// <summary>
@@ -339,6 +390,12 @@ bool Mqtt::Connect()
 
 	//May be able to remove this line, as we are yielding in its calling functions.
 	if (!ConnectIntervalMet() && !status.device.tasks.wifiTaskRunning) return false;
+
+
+	while (!PingCurrentIP())
+	{
+		SelectIPAddress();
+	}
 
 	//status.mqtt.nextMqttConnectAttempt = millis();
 	if (sendMessages)
@@ -528,7 +585,7 @@ void Mqtt::SetConnectionLed()
 
 bool Mqtt::AllImportantDevicesFunctional()
 {
-	uint64_t* bitmap = &status.mqtt.devices.functioningDevicesImportant.bitmap0;
+	uint64_t* bitmap = &status.mqtt.devices.errorBitmapImportant.bitmap0;
 
 	DEBUG_LOG_F("Checking Important Devices State | bitmap : %000000000000000x\r\n", bitmap);
 
@@ -546,7 +603,7 @@ bool Mqtt::AllImportantDevicesFunctional()
 
 void Mqtt::Loop()
 {
-	if (!status.mqtt.enabled || !status.config.setupComplete || (!status.wifi.station.connected && !status.wifi.accessPoint.ipAssigned)) return;
+	if (status.device.configMode || !status.mqtt.enabled || !status.config.setupComplete || (!status.wifi.station.connected && !status.wifi.accessPoint.ipAssigned)) return;
 
 	DisplayMessageIntervalMet();
 
@@ -563,11 +620,11 @@ void Mqtt::Loop()
 	if (!status.device.tasks.mqttDeviceManagerTaskRunning)
 		Tasks::StartDeviceManagerLoopTask();
 
-	//Make sure all topics are subscribed
-	if (status.mqtt.devices.enabledCount != status.mqtt.devices.subscribedCount) 
-		DeviceManager::SubscribeAll(); 
-	else if(status.mqtt.devices.subscribedCount != 0)
-		DeviceManager::UnsubscribeAll();
+	//Make sure all topics are subscribed	*Handled in MqttDevice::Loop
+	//if (status.mqtt.devices.enabledCount > status.mqtt.devices.subscribedCount) 
+	//	DeviceManager::SubscribeAll(); 
+	//else if(status.mqtt.devices.enabledCount == 0 && status.mqtt.devices.subscribedCount != 0)
+	//	DeviceManager::UnsubscribeAll();
 
 	if (!status.mqtt.subscribed)
 		Subscribe();

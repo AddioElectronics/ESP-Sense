@@ -462,16 +462,16 @@ MqttDevice.prototype.IsImportant = function(){
 }
 
 
-MqttDevice.prototype.GetStatus = async function(success, errorcb, complete){
+MqttDevice.prototype.GetStatus = function(success, errorcb, complete){
     var dev = this;
     this.EventRequest.Invoke();
-    await requestJsonData(this.UrlStatus(), function(data){
-        dev.status = JSON.parse(data);
-        dev.state = GetStateFromId(dev.status['deviceStatus']['state']);
+    requestJsonData(this.UrlStatus(), function(data){
+        dev.status = data; //data[dev.name];
+        dev.state = MqttDevice.GetStateFromId(dev.status[dev.name]['deviceStatus']['state']);
         dev.EventStatusChanged.Invoke();
         dev.statusUpToDate = true;
         if(success != null)
-            success(dev, data);
+            success(data);
         
         dev.EventRequestSuccess.Invoke();
     }, function(xhr, status, error){
@@ -485,14 +485,16 @@ MqttDevice.prototype.GetStatus = async function(success, errorcb, complete){
         if(complete != null)
             complete();
         dev.EventRequestComplete.Invoke();
-    });
+    },
+                         5000,
+                         true);
 }
 
-MqttDevice.prototype.GetState = async function(success, errorcb, complete){
+MqttDevice.prototype.GetState = function(success, errorcb, complete){
     var dev = this;
     this.EventRequest.Invoke();
-    await requestJsonData(this.UrlState(), function(data){
-        dev.state = JSON.parse(data)['state'];
+    requestJsonData(this.UrlState(), function(data){
+        dev.state = data['state'];
         dev.EventStateChanged.Invoke();        
         
         if(success != null)
@@ -507,14 +509,16 @@ MqttDevice.prototype.GetState = async function(success, errorcb, complete){
         if(complete != null)
             complete();
         dev.EventRequestComplete.Invoke();
-    });
+    },
+                         5000,
+                         true);
 }
 
-MqttDevice.prototype.GetConfig = async function(success, errorcb, complete){
+MqttDevice.prototype.GetConfig = function(success, errorcb, complete){
     var dev = this;
     this.EventRequest.Invoke();
-    await requestJsonData(this.UrlConfig(), function(data){
-        dev.config = JSON.parse(data);
+    requestJsonData(this.UrlConfig(), function(data){
+        dev.config = data;
         dev.EventConfigChanged.Invoke();
         if(success != null)
             success(data);
@@ -529,7 +533,9 @@ MqttDevice.prototype.GetConfig = async function(success, errorcb, complete){
         if(complete != null)
             complete();
         dev.EventRequestComplete.Invoke();
-    });
+    },
+                         5000,
+                         true);
 }
 
 MqttDevice.prototype.SetConfig = async function(data, success, error){
@@ -557,10 +563,10 @@ MqttDevice.prototype.SetEnabled = async function(enabled, success, error, comple
          $.ajax({
             type: 'POST',
             url: dev.UrlSetEnabled(),
-            data: null,
+            data: { enable: enabled },
             success: function(data){
                 console.log(dev.name + ' SetEnabled('+enabled+') Success');
-                dev.state = JSON.parse(data)['state'];
+                dev.state = data['state'];
                 dev.statusUpToDate = false;
                 dev.SetLeds();
                 dev.EventStateChanged.Invoke();
@@ -577,7 +583,9 @@ MqttDevice.prototype.SetEnabled = async function(enabled, success, error, comple
                     complete();
                 dev.EventRequestComplete.Invoke();
             }
-        });
+        },
+               5000,
+               true);
     }
     
     

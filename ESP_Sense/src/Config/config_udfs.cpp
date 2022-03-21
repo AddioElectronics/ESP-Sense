@@ -18,27 +18,19 @@ bool canConvertFromJson(JsonVariantConst src, const Version_t&)
 void convertFromJson(JsonVariantConst src, Version_t& dst)
 {
 	JsonArrayConst jarray = src.as<JsonArrayConst>();
-	DEBUG_LOG_F("Convert JSON to Version : size %d\r\n", jarray.size());
+
 	dst.major = src[0];
 	dst.minor = src[1];
 	dst.revision = src[2];
-
-	DEBUG_LOG_F("Doc Version %d.%d.%d\r\n", dst.major, dst.minor, dst.revision);
 }
 
 bool convertToJson(const Version_t& src, JsonVariant dst)
 {
-	DEBUG_LOG_LN("Convert Version to JSON");
-	DEBUG_LOG_F("Doc Version %d.%d.%d\r\n", src.major, src.minor, src.revision);
 	JsonArray jarray = dst.as<JsonArray>();
-
-	DEBUG_LOG_F("JARRAY NULL? %d\r\nis array? %d\r\n", jarray.isNull(), dst.is<JsonArray>());
 
 	jarray.add(src.major);
 	jarray.add(src.minor);
 	jarray.add(src.revision);
-
-	DEBUG_LOG_F("Array Version %d.%d.%d\r\n", (const char*)jarray[0], (const char*)jarray[1], (const char*)jarray[2]);
 
 	return true;
 }
@@ -1104,8 +1096,8 @@ bool convertToJson(const MqttDevicesStatus_t& src, JsonVariant dst)
 	dst["lightCount"] = src.lightCount;
 	dst["sensorCount"] = src.sensorCount;
 	dst["binarySensorCount"] = src.binarySensorCount;
-	dst["functioningDevices"].set(src.functioningDevices);
-	dst["functioningDevicesImportant"].set(src.functioningDevicesImportant);
+	dst["errorBitmap"].set(src.errorBitmap);
+	dst["errorBitmapImportant"].set(src.errorBitmapImportant);
 }
 
 bool convertToJson(const GlobalMqttIpStatus_t& src, JsonVariant dst)

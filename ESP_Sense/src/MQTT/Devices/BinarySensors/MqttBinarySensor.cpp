@@ -1,5 +1,8 @@
 #include "MqttBinarySensor.h"
 
+const char* MqttBinarySensor::deviceTypeName = "Binary Sensor";
+const char* MqttBinarySensor::deviceTypeKey = "binarySensors";
+
 String MqttBinarySensor::mqttBinarySensorBaseTopic;
 
 void MqttBinarySensor::AddStatusData(JsonVariant& addTo)

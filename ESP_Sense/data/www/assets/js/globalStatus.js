@@ -71,6 +71,6 @@ function loadDummyGlobalStatus(){
 }
 
 EventReady.add(function(){
-    if ($('#global_status') == null) return;
+    if ($('#global_status').length == 0) return;
     onEvent('auth', globalStatusInit);
 });

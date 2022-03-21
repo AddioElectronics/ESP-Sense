@@ -21,6 +21,9 @@
 extern PubSubClient mqttClient;
 extern GlobalStatus_t status;
 
+const char* Sht4xSensor::deviceName = "SHT4x";
+const char* Sht4xSensor::deviceKey = "sht4x";
+
 MqttDeviceConfig_t Sht4xSensor::globalDeviceConfig;
 MqttDeviceConfigMonitor_t Sht4xSensor::globalDeviceConfigMonitor;
 
@@ -53,25 +56,6 @@ bool Sht4xSensor::Init()
 	//return false;
 }
 
-//void Sht4xSensor::Loop()
-//{
-//	if (!deviceStatus.enabled) return;
-//
-//	if (!sensorStatus.connected)
-//	{
-//		if (Connect())
-//		{
-//			MarkReconnected();
-//			if (deviceStatus.configured)
-//				DEBUG_LOG_F(MQTT_DMSG_RECONNECTED, name.c_str());
-//		}
-//
-//		//if (!deviceStatus.configured)
-//		//	Configure();
-//
-//		return;
-//	}
-//}
 
 bool Sht4xSensor::Configure()
 {
@@ -482,14 +466,16 @@ bool Sht4xSensor::IsConnected()
 
 	DEBUG_LOG_F("%s(SHT4x) Connection Status : %d\r\n", name.c_str(), sensorStatus.connected);
 
-	if ((currentStatus || !status.mqtt.devicesConfigured) && !sensorStatus.connected)
+	if (!sensorStatus.connected)
 	{
 		MarkDisconnected();
 
-		if (deviceStatus.configured)
-			DEBUG_LOG_F(MQTT_DMSG_DISCONNECTED, name.c_str());
+		if (currentStatus || !status.mqtt.devicesConfigured)
+		{
+			if (deviceStatus.configured)
+				DEBUG_LOG_F(MQTT_DMSG_DISCONNECTED, name.c_str());
+		}
 	}
-
 	
 	return sensorStatus.connected;
 }
