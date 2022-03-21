@@ -114,9 +114,15 @@ public:
 
 	bool Enable() override
 	{
+		if (!deviceStatus.initialized)
+		{
+			if (!Init())
+				return false;
+		}
+
 		if (!deviceStatus.configured) return false;
 
-		deviceStatus.enabled = true;
+		MqttDevice::Enable();
 	}
 
 	bool Subscribe() override;

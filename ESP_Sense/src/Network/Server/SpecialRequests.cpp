@@ -91,7 +91,7 @@ void Network::Server::SpecialRequests::Initialize()
 	server.on(Website::Strings::Urls::requestReset, HTTP_POST, [](AsyncWebServerRequest* request) {
 		if (!Server::Authentication::IsAuthenticated(request))
 		{
-			request->send(401, ContentType::textPlain, Messages::networkAuthenticationRequried);
+			request->send(511, ContentType::textPlain, Messages::networkAuthenticationRequried);
 			return;
 		}
 
@@ -103,12 +103,12 @@ void Network::Server::SpecialRequests::Initialize()
 
 	//Control
 	server.on(Website::Strings::Urls::requestControl, HTTP_POST, [](AsyncWebServerRequest* request) {
-		request->send(503, ContentType::textPlain, Website::Strings::Messages::serviceUnavailable);
+		request->send(501, ContentType::textPlain, Website::Strings::Messages::notImplemented);
 		return;
 		
 		if (!Server::Authentication::IsAuthenticated(request))
 		{
-			request->send(401, ContentType::textPlain, Messages::networkAuthenticationRequried);
+			request->send(511, ContentType::textPlain, Messages::networkAuthenticationRequried);
 			return;
 		}
 

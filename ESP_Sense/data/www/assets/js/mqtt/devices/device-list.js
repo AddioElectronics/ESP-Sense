@@ -187,7 +187,7 @@ function createDeviceForList(dev){
                                 [{key:'tabindex', value:0},{key:'mqttdevice'}, {key:'url', value:dev.url}] );
     
     let nameElem = createElement('span', null, null, {key:'name', value:dev.name}, dev.name);
-    let dtypeElem = createElement('span', null, null, [{key:'device', value:dev.device}, {key:'type', value:dev.type}], dev.device);
+    let dtypeElem = createElement('span', null, null, [{key:'device', value:dev.device}, {key:'type', value:dev.type}], dev.deviceName);
 
     let stateElem = MqttDevice.CreateLedController(true, true, true);        
     dev.ledGroup = stateElem;

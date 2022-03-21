@@ -571,10 +571,10 @@ int Mqtt::DeviceManager::UnsubscribeAll(bool disabledOnly)
 	{
 		MqttDevice* device = mqttDevices[i];
 
-		if (disabledOnly && device->deviceStatus.enabled)
+		if (disabledOnly && device->deviceStatus.state == (DeviceState_t)DeviceState::DEVICE_OK)
 			continue;
 
-		if (!device->Subscribe())failed++;
+		if (!device->Unsubscribe())failed++;
 		EspSense::YieldWatchdog(5);
 	}
 
@@ -647,6 +647,7 @@ void Mqtt::DeviceManager::PublishAll()
 
 	for (uint32_t i = 0; i < status.mqtt.devices.deviceCount; i++)
 	{
+		if (!mqttDevices[i]->deviceStatus.enabled) continue;
 		mqttDevices[i]->Publish();
 		EspSense::YieldWatchdog(5);
 	}

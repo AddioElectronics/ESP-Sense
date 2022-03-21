@@ -15,14 +15,16 @@ class Authenticator{
     </form>
 </div>`;
     
-    static Start(){
+    static Start(successfn, errorfn){
         console.log("Authenticating...");
+        var errfn = devMode ? (errorfn == undefined ? Authenticator.Success : errorfn) : (errorfn == undefined ? Authenticator.Failed : errorfn);
         $.ajax({
             type: 'GET',
             url: "/auth",
             data: null,
-            success: Authenticator.Success,
-            error: devMode ? Authenticator.Success : Authenticator.Failed
+            success: successfn == undefined ? Authenticator.Success : successfn,
+            error:  errfn,
+            async: false
         });
     }
     

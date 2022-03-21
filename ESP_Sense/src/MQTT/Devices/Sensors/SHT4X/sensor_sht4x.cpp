@@ -57,6 +57,14 @@ bool Sht4xSensor::Init()
 }
 
 
+void Sht4xSensor::Loop()
+{
+	if (!deviceStatus.initialized)
+		return;
+
+	MqttSensor::Loop();
+}
+
 bool Sht4xSensor::Configure()
 {
 	if (!sensorStatus.connected) return false;
@@ -490,7 +498,7 @@ bool Sht4xSensor::IsConnected()
 
 bool Sht4xSensor::Read()
 {	
-	if (!deviceStatus.enabled) 
+	if (deviceStatus.state != (DeviceState_t)DeviceState::DEVICE_OK)
 		return false;
 
 	if (sensorStatus.connected && deviceStatus.enabled)

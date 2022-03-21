@@ -8,7 +8,6 @@ Not a security risk, if someone un-hid the form and tried to upload the firmware
 
 //Initialize the Updater form
 function webupdate_init() {
-    
     console.log("webupdate_init()");
     Show($('#update_con'));
     $('#update_progress').hide();
@@ -21,6 +20,12 @@ function webupdate_init() {
     //$('#upload_button').on('submit', webupdate_submit);
 
     $('#update_form').submit(function(e) {
+        Authenticator.Start(function(){
+            console.log("Still authenticated.");
+        }, function(){
+            console.log('Not authenticated');
+            refreshPage();
+        });        
         webupdate_submit();
         e.preventDefault();
         var form = $('#update_form')[0];
@@ -126,5 +131,6 @@ function addToConsole(msg) {
 }
 
 EventReady.Add(function() {
+    if($('#update_form').length == 0) return;
     onEvent('auth', webupdate_init);
 });

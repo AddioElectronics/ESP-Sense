@@ -5,7 +5,7 @@ class MqttDevice {
     static deviceInfo;
     static rootDevInfoKey = 'mqttDeviceInfo';
     static activeDevice;
-    static stateStrings = {ok:'ok', disabled:'disabled', error:'error', unknown:'unknown', loading:'loading'};
+    static stateStrings = {ok:'ok', disabled:'disabled', error:'error', unknown:'unknown', loading:'loading', permanentOff:'permOff'};
     
     constructor(index, name, deviceKey, deviceName, type, state) {
         if(arguments.length == 1){
@@ -250,12 +250,13 @@ class MqttDevice {
         setAllMqttDevicesEnabled(false, subType);
     }
     
-    static SetLedState(state, group, okfn, disabledfn){
+    static SetLedState(state, group, okfn, disabledfn, errorFn){
         let leds = $(group).find('led');
         leds.unbind();
         leds.removeAttr('on');
         leds.removeAttr('event');
         leds.removeAttr('disabled');
+        leds.removeAttr('unknown');
         let ledOk = $(group).find('led[state='+MqttDevice.stateStrings.ok+']');
         let ledDis = $(group).find('led[state='+MqttDevice.stateStrings.disabled+']');
         let ledErr = $(group).find('led[state='+MqttDevice.stateStrings.error+']');
@@ -273,6 +274,10 @@ class MqttDevice {
                 disableObj(ledOk);
                 disableObj(ledDis);
                 $(group).find('led:not([state=error]').attr('disabled', '');
+                if(errorFn != null){
+                    ledOk.bind('click', errorFn);             
+                    ledOk.attr('event', '');
+                }
                 break;
             case MqttDevice.stateStrings.disabled: 
                 ledDis.attr('on', '');
@@ -282,8 +287,28 @@ class MqttDevice {
                     ledOk.attr('event', '');
                 }
                 break;
+            case MqttDevice.stateStrings.permanentOff: 
+                disableObj($(group));
+                
+                if(okfn != null){
+                    ledOk.bind('click', okfn);             
+                    ledOk.attr('event', '');
+                }
+                if(errorFn != null){
+                    ledDis.bind('click', errorFn);             
+                    ledDis.attr('event', '');
+                }
+                break;
             case MqttDevice.stateStrings.unknown: 
-                //WIP
+                $(group).attr('unknown');
+                if(okfn != null){
+                    ledOk.bind('click', okfn);             
+                    ledOk.attr('event', '');
+                }
+                if(disabledfn != null){
+                    ledDis.bind('click', disabledfn);
+                    ledDis.attr('event', '');   
+                }
                 break;
         }
     }
@@ -574,10 +599,12 @@ MqttDevice.prototype.SetEnabled = async function(enabled, success, error, comple
                 dev.EventRequestSuccess.Invoke();
             },
             error: function(xhr, status, error){
-                console.log(dev.name + ' SetEnabled('+enabled+') Error : ' + xhr.responseText);
-                dev.state = MqttDevice.stateStrings.unknown;
-                dev.statusUpToDate = false;
-                dev.EventRequestFailed.Invoke();
+                if(xhr.status == 404 || xhr.status == 511){
+                    console.log(dev.name + ' SetEnabled('+enabled+') Error : ' + xhr.responseText);
+                    dev.state = MqttDevice.stateStrings.unknown;
+                    dev.statusUpToDate = false;
+                    dev.EventRequestFailed.Invoke();
+                }
             },
             complete: function(){
                 if(complete != null)
@@ -605,9 +632,17 @@ MqttDevice.prototype.SetLeds = function(){
         let dev = mqttDevices[type][index];
         dev.SetEnabled(ledElem.attr('state') == MqttDevice.stateStrings.ok);
     }
+    
+    //function errorClickEvent(e){
+    //    let ledElem = $(e.target);
+    //    let devElem = $($(e.target).parent());
+    //    let index = devElem.attr('dev-index');
+    //    let type = devElem.attr('dev-type');
+    //    let dev = mqttDevices[type][index];
+    //}
         
     if(this.ledGroup != null)
-        MqttDevice.SetLedState(this.state, this.ledGroup, ledClickEvent, ledClickEvent)
+        MqttDevice.SetLedState(this.state, this.ledGroup, ledClickEvent, ledClickEvent/*, errorClickEvent*/);
     
     MqttDevice.SetSubTypeLeds(this.type);
 }

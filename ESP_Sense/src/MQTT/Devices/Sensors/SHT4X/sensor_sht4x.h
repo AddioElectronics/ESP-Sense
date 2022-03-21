@@ -124,7 +124,7 @@ public:
 		MqttSensor::ResetStatus();
 	}
 
-	//void Loop() override;
+	void Loop() override;
 
 	bool Configure() override;
 	bool Enable() override;

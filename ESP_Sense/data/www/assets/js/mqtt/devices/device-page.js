@@ -1,3 +1,9 @@
+function devicePageInit(){
+    //if($('main[contents=mqttdevice]').length == 0) return;
+    if(getPageName() != 'device.html') return;
+    getMqttDeviceData();
+}
+
 function setDeviceInfoElement(parent, type, text, pre, ignoreAttr, ignoreText){
     var elems = $(parent).find('['+type+']');//$('span['+type+'], h1['+type+'], h2['+type+'], h3['+type+'], h4['+type+'], h5['+type+'], h6['+type+']');
     
@@ -30,11 +36,13 @@ function setMqttDeviceStatus(data, device){
     
     if($('.device-config').length == 0) return;
     
+    $('[config-content=mqttdevice]').text("Not Implemented.");
+    return;
     MqttDevice.activeDevice.GetConfig(setConfigForm, function(xhr, status, error){
         $('[config-content=mqttdevice]').text("Get Status Failed...");
     });
     
-    return;
+    
     populateStatusTable(dsobj.find('[status-content=device]').find('tbody'), rootObj['deviceStatus']);
     populateStatusTable(dsobj.find('[status-content=deviceType]').find('tbody'), rootObj['sensorStatus']);
     populateStatusTable(dsobj.find('[status-content=unique]').find('tbody'), rootObj['uniqueStatus']);
@@ -64,6 +72,9 @@ function setConfigForm(data){
     let rootObj = data[key];
     let formObj = $('form[form-action=device-config]');
     
+    //Loads an HTML page containing a form for a specific device.
+    //*Going to scrap that idea and instead load a text file which contains
+    //values and types, and use it to dynamically create the form.
     formObj.load(MqttDevice.activeDevice.url);
     
     formObj.submit(submitMqttDeviceConfigForm);
@@ -79,11 +90,6 @@ function loadDummyMqttConfig(){
 
 //Set led function, (state, events)
 
-
-function devicePageInit(){
-    if($('main[contents=mqttdevice]').length == 0) return;
-    getMqttDeviceData();
-}
 
 
 

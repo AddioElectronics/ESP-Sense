@@ -12,12 +12,6 @@ bool MqttSensor::Init()
 	Connect();
 
 	return MqttDevice::Init();
-
-	InitWebpage();
-
-	if (!sensorStatus.connected) return false;
-
-	return Configure();
 }
 
 void MqttSensor::Loop()

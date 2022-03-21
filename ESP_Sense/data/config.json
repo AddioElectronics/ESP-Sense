@@ -117,7 +117,7 @@
 		"dns":true,
 		"hostname":"esp-sense",
 		"authenticate":true,
-		"sessionTimeout":10,
+		"sessionTimeout":30,
 		"retainSession":-1,
 		"user":"admin",
 		"pass":"password",

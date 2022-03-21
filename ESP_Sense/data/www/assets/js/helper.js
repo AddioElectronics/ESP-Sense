@@ -61,12 +61,11 @@ function enableObj(obj, ignoreAlready) {
         return;
     }
     
-    if(obj.attr('keep-disabled') != undefined && ignoreAlready == false){
-        removeAttr(obj, 'keep-disabled');
-    }else{
+    if(obj.attr('keep-disabled') == undefined || ignoreAlready == true){
         removeAttr(obj, 'disabled');
         obj.removeClass('disabled');
     }   
+    removeAttr(obj, 'keep-disabled');
 }
 
 function enableBlockingMsg(msg, blockNav, color, time, textElem) {
@@ -103,6 +102,12 @@ function disableBlockingMsg() {
     $('#blocking_message').remove();
     $('#blocking_overlay').remove();
     //$('#blocking_overlay').css('z-index', '')    
+}
+
+function getPageName(){
+    let path = window.location.pathname;
+    var page = path.split("/").pop();
+    return page;
 }
 
 function refreshPage() {

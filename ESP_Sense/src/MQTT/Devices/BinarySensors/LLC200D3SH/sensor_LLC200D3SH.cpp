@@ -35,6 +35,9 @@ bool Llc200d3sh_Sensor::Unsubscribe()
 
 bool Llc200d3sh_Sensor::Read()
 {
+	if (deviceStatus.state != (DeviceState_t)DeviceState::DEVICE_OK)
+		return;
+
 	DEBUG_LOG_F("Reading %s water level.\r\n-GPIO : %d\r\n", name.c_str(), uniqueConfig.program.gpio);
 
 	if (uniqueConfig.program.gpio == -1)

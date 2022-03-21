@@ -394,7 +394,7 @@ int WifiManager::Connect()
 		break;
 	case WIFI_MODE_AP:
 		DEBUG_LOG_LN("...Access Point Mode...");
-		WiFi.mode(WIFI_AP);
+		WiFi.mode(WIFI_AP);		
 		AccessPoint::StartAdvertising(true);
 		break;
 	case WIFI_MODE_APSTA:
@@ -403,6 +403,9 @@ int WifiManager::Connect()
 		AccessPoint::StartAdvertising(false);
 		status.wifi.nextDisplayMessage = 0;
 		WifiManager::ConnectWifi(false);
+
+		//Blink LEDS to show that they are enabled and waiting for a connection.
+		Tasks::StartBlinkTask(true, true, 1000);
 
 		EspSense::YieldWatchdog(5000);
 
@@ -429,7 +432,7 @@ int WifiManager::Connect()
 		break;
 	}
 
-	Tasks::StartBlinkTask(status.wifi.station.connected, status.wifi.accessPoint.ipAssigned);
+	Tasks::StartBlinkTask(status.wifi.station.connected, status.wifi.accessPoint.ipAssigned, 500);
 
 #endif
 #else
@@ -512,6 +515,7 @@ int InternalConnect(bool reconnect, bool waitForConnection, bool checkHotspotBut
 	else
 		WiFi.begin(config.wifi.station.ssid.c_str(), config.wifi.station.pass.c_str(), config.wifi.channel);
 
+	
 	status.wifi.connectAttempts++;
 	status.wifi.station.attemptTimestamp = millis();
 	
@@ -520,6 +524,7 @@ int InternalConnect(bool reconnect, bool waitForConnection, bool checkHotspotBut
 	//If Station mode only, wait for connection success.
 	if (status.wifi.mode == WIFI_MODE_STA)
 	{
+		WifiManager::Tasks::StartBlinkTask(true, false, 1000);
 		EspSense::YieldWatchdog(5000);
 
 		//If WiFi hasn't already connected, it may not.
@@ -899,9 +904,12 @@ bool WifiManager::AccessPoint::StartAdvertising(bool waitForConnection)
 			return false;
 		}
 
+	
 	status.wifi.accessPoint.ip = WiFi.softAPIP();
 	//accessPointIP = status.wifi.accessPoint.ip.toString();
 
+	if (status.wifi.mode == WIFI_MODE_AP)
+		Tasks::StartBlinkTask(false, true, 1000);
 
 	//if (status.wifi.mode == WIFI_MODE_AP)
 	//{
@@ -1073,7 +1081,7 @@ bool WifiManager::AccessPoint::CheckHotspotButton()
 	if (ButtonGetState(config.wifi.accessPoint.buttonGpio, config.wifi.accessPoint.buttonPress))
 	{
 		DEBUG_LOG_F("Hotspot Button Pressed...\r\n...Delaying for holdTime(%dsec)....", config.wifi.accessPoint.holdTime / 1000);
-		Tasks::StartBlinkTask(status.wifi.station.blink, true, config.wifi.accessPoint.holdTime);
+		Tasks::StartBlinkTask(status.wifi.station.blink, true, 2000, config.wifi.accessPoint.holdTime);
 		delay(config.wifi.accessPoint.holdTime);
 
 
@@ -1351,6 +1359,8 @@ bool WifiManager::Tasks::StartBlinkTask(bool station, bool accessPoint, uint16_t
 	status.wifi.station.blink = station && config.wifi.station.ledGpio != -1;
 	status.wifi.accessPoint.blink = accessPoint && config.wifi.accessPoint.ledGpio != -1;
 
+	DEBUG_LOG_F("Starting Blink Task.\r\n-Wifi : %d\r\nAccess Point : %d\r\n-Rate : %dms\r\n-Stop After : %dms\r\n", station, accessPoint, blinkRate, stopAfter);
+
 
 	xTaskCreatePinnedToCore(
 		BlinkTask,				// Task function
@@ -1367,6 +1377,7 @@ bool WifiManager::Tasks::StartBlinkTask(bool station, bool accessPoint, uint16_t
 void WifiManager::Tasks::StopBlinkTask()
 {
 	if (!status.device.tasks.wifiBlinkTaskRunning) return;
+	DEBUG_LOG_LN("Stopping Wifi Blink Task.");
 
 	vTaskDelete(taskWifiBlink);
 	status.device.tasks.wifiBlinkTaskRunning = false;
@@ -1379,17 +1390,18 @@ void WifiManager::Tasks::StopBlinkTask()
 
 void WifiManager::Tasks::BlinkTask(void* pvParameters)
 {
+	
 	status.device.tasks.wifiBlinkTaskRunning = true;
 
-	uint16_t blinkRate = *((uint8_t*)pvParameters);
-	uint16_t stopAfter = *((uint8_t*)pvParameters + 2);
+	uint16_t blinkRate = *((uint16_t*)pvParameters);
+	uint16_t stopAfter = *(((uint16_t*)pvParameters) + 1);
 
 	unsigned long stopTimestamp = stopAfter == 0 ? 0xFFFFFFFFFFFFFFFF : millis() + stopAfter;
 
 	for (;;)
 	{
 		if(status.wifi.station.blink)
-		LedToggle(config.wifi.station.ledGpio);
+			LedToggle(config.wifi.station.ledGpio);
 
 		if(status.wifi.accessPoint.blink)
 			LedToggle(config.wifi.accessPoint.ledGpio);

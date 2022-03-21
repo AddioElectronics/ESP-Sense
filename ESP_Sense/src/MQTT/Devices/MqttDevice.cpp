@@ -13,7 +13,7 @@ bool MqttDevice::Init()
 	//if (!status.mqtt.devicesConfigured)
 		//ResetStatus();
 
-	if (deviceStatus.configured) return true;
+	if (deviceStatus.initialized) return true;
 
 	//memset(&deviceStatus, 0, sizeof(MqttDeviceStatus_t));
 	//deviceStatus.enabled = true;
@@ -24,6 +24,7 @@ bool MqttDevice::Init()
 	InitWebpage();
 	//SetDeviceState();
 
+	deviceStatus.initialized = true;
 	return deviceStatus.configured;
 }
 
@@ -34,7 +35,7 @@ void MqttDevice::ResetStatus()
 
 void MqttDevice::Loop()
 {
-	if (!status.mqtt.connected) return;
+	if (!deviceStatus.initialized || !status.mqtt.connected) return;
 
 	if (deviceStatus.enabled)
 	{
@@ -119,6 +120,12 @@ void MqttDevice::MarkFunctional()
 
 bool MqttDevice::Enable()
 {
+	if (!deviceStatus.initialized)
+	{
+		if (!Init())
+			return false;
+	}
+
 	if (deviceStatus.enabled) return true;
 
 	deviceStatus.enabled = true;
@@ -161,7 +168,7 @@ void MqttDevice::SetDeviceState()
 
 bool MqttDevice::Subscribe()
 {
-	if (deviceStatus.subscribed || !deviceStatus.enabled)
+	if (deviceStatus.subscribed || deviceStatus.state != (DeviceState_t)DeviceState::DEVICE_OK)
 		return true;
 
 	if (mqttClient.subscribe(topics.jsonCommand.c_str()))
@@ -201,8 +208,9 @@ bool MqttDevice::Unsubscribe()
 
 bool MqttDevice::Publish()
 {
-	if (!deviceStatus.enabled || !status.mqtt.connected)
+	if (deviceStatus.state != (DeviceState_t)DeviceState::DEVICE_OK || !status.mqtt.connected)
 		return false;
+
 
 	DEBUG_LOG_F("Publishing %s Data...\r\n", name.c_str());
 
@@ -253,7 +261,8 @@ bool MqttDevice::Publish()
 
 bool MqttDevice::PublishAvailability()
 {
-	if (!deviceStatus.enabled) return false;
+	if (deviceStatus.state != (DeviceState_t)DeviceState::DEVICE_OK)
+		return false;
 
 	return mqttClient.publish(topics.availability.c_str(), Mqtt::Helper::GetAvailabilityString(/*deviceStatus.enabled && */deviceStatus.enabled).c_str());
 }

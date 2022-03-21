@@ -77,7 +77,7 @@ void HandleUpdate(AsyncWebServerRequest* request, String filename, size_t index,
 
 	status.server.browser.updater.updating = true;
 
-	if (status.server.updating != UpdateMode::ESP_UPDATE_NULL)
+	if (status.server.updating == UpdateMode::ESP_UPDATE_NULL)
 		EspSense::EnterUpdateMode(UpdateMode::ESP_UPDATE_WEB);
 
 	String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();

@@ -109,6 +109,7 @@ typedef struct {
 
 typedef struct {
 	struct {
+		bool initialized : 1;
 		bool configured : 1;
 		bool enabled : 1;
 		DeviceState_t state : 2;

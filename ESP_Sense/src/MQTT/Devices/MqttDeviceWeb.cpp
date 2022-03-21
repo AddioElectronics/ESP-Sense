@@ -145,12 +145,16 @@ void MqttDeviceWeb::InitializeRequests()
 	{
 		tempUrl = GetUrl("config");
 		handlers.statusHandler = &server.on(tempUrl.c_str(), HTTP_GET, [device](AsyncWebServerRequest* request) {
-			//this->StatusResponse(request);
+			//Not implemented
+			request->send(501, ContentType::textPlain, Messages::notImplemented);
+			return;
 			MqttDeviceWeb::GetConfigResponse(device, request);
 		});
 
 		handlers.statusHandler = &server.on(tempUrl.c_str(), HTTP_POST, [device](AsyncWebServerRequest* request) {
-			//this->StatusResponse(request);
+			//Not implemented
+			request->send(501, ContentType::textPlain, Messages::notImplemented);
+			return;
 			MqttDeviceWeb::SetConfigResponse(device, request);
 		});
 
@@ -164,7 +168,7 @@ void MqttDeviceWeb::InitializeRequests()
 
 			if (!Network::Server::Authentication::IsAuthenticated(request))
 			{
-				request->send(401, ContentType::textPlain, Messages::networkAuthenticationRequried);
+				request->send(511, ContentType::textPlain, Messages::networkAuthenticationRequried);
 				return;
 			}
 
@@ -193,7 +197,9 @@ void MqttDeviceWeb::InitializeRequests()
 				request->send(400, ContentType::textPlain, "Bad Request : Expecting \"enable\" : \"0\" or \"1\".");
 			}
 
-			request->send(200);
+			//Respond with new state.
+			MqttDeviceWeb::GetStateResponse(device, request);
+			//request->send(200);
 
 		});
 

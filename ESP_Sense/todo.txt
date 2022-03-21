@@ -73,3 +73,9 @@ Reverse compatability when using browser (v0.1.1 doesn't use version, v0.1.2 req
 Change username and password from browser.
 
 Change progress bar in browser to say Updating. At 100% try to fit in request before restarting to see if update was success instead of just upload.
+
+Check for auth before webupdate. If not authorized, upload bar will appear to reach 100%
+
+On auth failed serve webpage instead of using Javascript to create a form, may have to use .on instead of .serveStatic
+
+Move PowerDown and Wake functions to MqttDevice.
