@@ -77,6 +77,8 @@ public:
 
 	virtual bool Publish() override;
 
+	virtual bool IsFunctional() override;
+
 	virtual void AddStatusData(JsonVariant& addTo) override;		//device, binary/sensor/ect.., and unique status
 
 	bool SaveConfig() override

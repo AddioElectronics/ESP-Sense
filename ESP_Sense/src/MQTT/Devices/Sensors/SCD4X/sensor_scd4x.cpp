@@ -73,7 +73,7 @@ void Scd4xSensor::Loop()
 {
 	MqttSensor::Loop();
 
-	if (!deviceStatus.enabled) return;
+	if (!deviceStatus.enabled || !sensorStatus.connected) return;
 
 	if (uniqueStatus.performingFactoryReset)
 	{
@@ -743,15 +743,15 @@ bool Scd4xSensor::IsConnected()
 		DisplayError(false);
 	}
 
-	sensorStatus.connected = success && (serialNumber.serial0 && serialNumber.serial1 && serialNumber.serial2);
+	//If numbers are not equal to zero the device is connected,
+	//whether or not the full command failed.
+	sensorStatus.connected = /*success &&*/ (serialNumber.serial0 && serialNumber.serial1 && serialNumber.serial2);
 
 	if (sensorStatus.connected)
 		DEBUG_LOG_LN("Connected");
 
 	if (!sensorStatus.connected)
 	{
-		MarkDisconnected();
-
 		if (currentStatus || !status.mqtt.devicesConfigured)
 		{
 			if (deviceStatus.configured)
@@ -760,6 +760,8 @@ bool Scd4xSensor::IsConnected()
 			//ResetStatusPartial(false, false);
 		}
 	}
+
+	MarkFunctionalBitmap();
 
 	return sensorStatus.connected;
 }
@@ -1063,6 +1065,8 @@ CheckAgain:
 
 bool Scd4xSensor::StartPeriodicMeasurements()
 {
+	if (!sensorStatus.connected) return false;
+
 	if (uniqueStatus.periodicallyMeasuring) return true;
 
 	if (!uniqueStatus.periodicallyMeasuring)
@@ -1154,6 +1158,9 @@ void Scd4xSensor::FailedRead()
 bool Scd4xSensor::GetSerialNumber(SCD4xSerialNumber_t& serialNumber, bool displayError)
 {
 	DEBUG_LOG_F("Getting SCD4x(%s) Serial Number...", name.c_str());
+
+	memset(&serialNumber, 0, sizeof(SCD4xSerialNumber_t));
+
 	uniqueStatus.error = sensor.getSerialNumber(serialNumber.serial0, serialNumber.serial1, serialNumber.serial2);
 	
 	DEBUG_LOG_F("-SN : 0x%000x%000x%000x\r\n\r\n", serialNumber.serial0, serialNumber.serial1, serialNumber.serial2);
@@ -1253,7 +1260,7 @@ bool Scd4xSensor::PerformFactoryReset()
 		DEBUG_LOG_LN("SCD41 Factory Reset Complete.");
 	}
 
-	ResetStatusPartial(false, true);
+	ResetStatusPartial(false, true, true, false, true);
 	//uniqueStatus.dataReady = 0;
 	//uniqueStatus.error = 0;
 	//uniqueStatus.failedReads = 0;

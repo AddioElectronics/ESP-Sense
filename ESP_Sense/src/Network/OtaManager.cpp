@@ -16,7 +16,7 @@ void Network::OTA::Initialize()
 
 	if (status.server.ota.configured) return;
 
-	DEBUG_LOG_LN("Initializing OTA...");
+	DEBUG_LOG_LN("\r\nInitializing OTA...");
 
 	ArduinoOTA.onStart([]() {
 		String type;

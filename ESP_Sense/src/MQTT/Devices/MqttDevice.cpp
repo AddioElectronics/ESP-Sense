@@ -19,8 +19,7 @@ bool MqttDevice::Init()
 	//deviceStatus.enabled = true;
 	Configure();
 
-	//if (!deviceStatus.configured)
-		MarkDisconnected();
+	MarkFunctionalBitmap();
 
 	InitWebpage();
 	//SetDeviceState();
@@ -53,7 +52,22 @@ void MqttDevice::Loop()
 
 }
 
-void MqttDevice::MarkDisconnected()
+bool MqttDevice::IsFunctional()
+{
+	return deviceStatus.configured;
+}
+
+bool MqttDevice::MarkFunctionalBitmap()
+{
+	bool functional = IsFunctional();
+
+	if (functional)
+		MarkFunctional();
+	else
+		MarkNonFunctional();
+}
+
+void MqttDevice::MarkNonFunctional()
 {
 	//SetDeviceState();
 	if (deviceStatus.markedDisconnected) return;
@@ -78,7 +92,7 @@ void MqttDevice::MarkDisconnected()
 		Mqtt::Tasks::StartBlinkTask();
 }
 
-void MqttDevice::MarkReconnected()
+void MqttDevice::MarkFunctional()
 {
 	//SetDeviceState();
 	if (!deviceStatus.markedDisconnected) return;
@@ -129,7 +143,7 @@ bool MqttDevice::Disable()
 
 void MqttDevice::SetDeviceState()
 {
-	if (deviceStatus.configured)
+	if (IsFunctional())
 	{
 		if (deviceStatus.enabled)
 			deviceStatus.state = (DeviceState_t)DeviceState::DEVICE_OK;
@@ -138,7 +152,10 @@ void MqttDevice::SetDeviceState()
 	}
 	else
 	{
-		deviceStatus.state = (DeviceState_t)DeviceState::DEVICE_ERROR;
+		if (deviceStatus.enabled)
+			deviceStatus.state = (DeviceState_t)DeviceState::DEVICE_ERROR;
+		else
+			deviceStatus.state = (DeviceState_t)DeviceState::DEVICE_PERMANENT_OFF;
 	}
 }
 
@@ -396,10 +413,11 @@ size_t MqttDevice::StreamDocument(AsyncWebServerRequest* request)
 
 void MqttDevice::AddStatusData(JsonVariant& addTo)
 {
+	SetDeviceState();
 	addTo["deviceStatus"].set<MqttDeviceStatus_t>(deviceStatus);
 
-	if (this->website != nullptr)
-		this->website->AddStatusData(this->documentRoot);
+	if (website != nullptr)
+		website->AddStatusData(documentRoot);
 }
 
 void MqttDevice::AddConfigData(JsonVariant& addTo)

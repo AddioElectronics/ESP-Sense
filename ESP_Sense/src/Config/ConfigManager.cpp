@@ -1152,7 +1152,7 @@ bool Config::Documents::SetConfigFromDoc()
 
 	status.config.configRead = false;
 
-	DEBUG_LOG_F("SSID : %s\r\nPASS : %s\r\nMQTT IP : %s\r\nPort : %d\r\nUser : %s\r\nPass : %s\r\n", config.wifi.station.ssid.c_str(), config.wifi.station.pass.c_str(), config.mqtt.broker.ip.toString().c_str(), config.mqtt.broker.port, config.mqtt.broker.user.c_str(), config.mqtt.broker.pass.c_str());
+	DEBUG_LOG_F("SSID : %s\r\nPASS : %s\r\nMQTT IP : %s\r\nPort : %d\r\nUser : %s\r\nPass : %s\r\n\r\n", config.wifi.station.ssid.c_str(), config.wifi.station.pass.c_str(), config.mqtt.broker.ip.toString().c_str(), config.mqtt.broker.port, config.mqtt.broker.user.c_str(), config.mqtt.broker.pass.c_str());
 
 	return status.config.settingsConfigured = true;
 }

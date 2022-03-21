@@ -30,7 +30,7 @@ void Network::FTP::Construct()
 {
 	if (status.server.ftp.enabled) return;	//Already started.
 
-	DEBUG_LOG_LN("Starting FTP Server...");
+	DEBUG_LOG_LN("\r\nStarting FTP Server...");
 
 	if(config.server.ftp.anonymous)
 		DEBUG_LOG("-Anonymouse : true");

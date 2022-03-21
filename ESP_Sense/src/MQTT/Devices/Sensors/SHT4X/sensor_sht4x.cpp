@@ -88,11 +88,13 @@ bool Sht4xSensor::Configure()
 
 bool Sht4xSensor::Enable()
 {
+	MqttDevice::Enable();
+
 	if (!sensorStatus.connected)
 		if (!Connect())
 			return false;
 
-	return MqttDevice::Enable();
+	return deviceStatus.enabled;
 }
 
 
@@ -421,7 +423,13 @@ void Sht4xSensor::ReadConfigObjectUnique(JsonVariantConst& sht4xObject, Sht4xCon
 
 bool Sht4xSensor::Connect()
 {
-	if (sensorStatus.connected) return true;
+	DEBUG_LOG_F("%s Connecting...", name.c_str());
+
+	if (sensorStatus.connected)
+	{
+		DEBUG_LOG_LN("Already Connected.");
+		return true;
+	}
 
 	//Connect to SHT4x
 	if (sensor.begin())
@@ -468,14 +476,14 @@ bool Sht4xSensor::IsConnected()
 
 	if (!sensorStatus.connected)
 	{
-		MarkDisconnected();
-
 		if (currentStatus || !status.mqtt.devicesConfigured)
 		{
 			if (deviceStatus.configured)
 				DEBUG_LOG_F(MQTT_DMSG_DISCONNECTED, name.c_str());
 		}
 	}
+
+	MarkFunctionalBitmap();
 	
 	return sensorStatus.connected;
 }

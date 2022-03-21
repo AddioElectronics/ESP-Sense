@@ -7,7 +7,7 @@ class MqttDevice {
     static activeDevice;
     static stateStrings = {ok:'ok', disabled:'disabled', error:'error', unknown:'unknown', loading:'loading'};
     
-    constructor(index, name, device, type, state) {
+    constructor(index, name, deviceKey, deviceName, type, state) {
         if(arguments.length == 1){
             //index && Object.assign(this, index);
             //return;
@@ -19,13 +19,14 @@ class MqttDevice {
         
         this.index = index;
         this.name = name;
-        this.device = device;
+        this.device = deviceKey;
+        this.deviceName = deviceName;
         this.type = type;
         this.state = state;
         this.enabled = state == MqttDevice.stateStrings.ok;
         this.url = '/mqtt/devices/' + type + '/' + name;
-        this.path = '/mqtt/devices/' + type + '/' + device;
-        console.log('MqttDevice() name : ' + this.name + ' | device : ' + this.device + ' | type : ' + type + ' | state : ' + this.state + ' | url : ' + this.url)
+        this.path = '/mqtt/devices/' + type + '/' + deviceKey;
+        console.log('MqttDevice() name : ' + name + ' | device : ' + deviceKey + ' | type : ' + type + ' | state : ' + state + ' | url : ' + this.url)
         
         this.listElem = null;
         this.ledGroup = null;
@@ -193,7 +194,7 @@ class MqttDevice {
             var devs = MqttDevice.deviceInfo[MqttDevice.rootDevInfoKey][type];
             for (var i = 0; i < devs.length; i++) {
                 var d = devs[i];
-                mqttDevices[type].push(new MqttDevice(i, d['name'], d['device'], type, d['state']));
+                mqttDevices[type].push(new MqttDevice(i, d['name'], d['deviceKey'], d['deviceName'], type, d['state']));
             }
         }
     }

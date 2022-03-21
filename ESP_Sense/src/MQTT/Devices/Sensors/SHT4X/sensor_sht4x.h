@@ -108,7 +108,11 @@ public:
 		return &mqttSensorBaseTopic;
 	}
 
-	Sht4xSensor(const char* _name, int _index, int _subIndex) : MqttSensor(_name,  _index, _subIndex) {}
+	Sht4xSensor(const char* _name, int _index, int _subIndex) : MqttSensor(_name,  _index, _subIndex) 
+	{
+		ResetStatus();
+		sensor = Adafruit_SHT4x();
+	}
 
 #pragma region MqttDevice Functions
 

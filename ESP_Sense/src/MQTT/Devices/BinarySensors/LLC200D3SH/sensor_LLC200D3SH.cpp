@@ -6,7 +6,7 @@
 extern PubSubClient mqttClient;
 
 const char* Llc200d3sh_Sensor::deviceName = "LLC200D3SH";
-const char* Llc200d3sh_Sensor::deviceKey = "llc300d3sh";
+const char* Llc200d3sh_Sensor::deviceKey = "llc200d3sh";
 
 #pragma region Global Variables
 

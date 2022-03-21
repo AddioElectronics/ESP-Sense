@@ -22,30 +22,29 @@ bool MqttSensor::Init()
 
 void MqttSensor::Loop()
 {
-	MqttDevice::Loop();
-
 	if (!deviceStatus.enabled) return;
 
 	if (!sensorStatus.connected)
 	{
 		if (Connect())
 		{
-			MarkReconnected();
-
 			if (deviceStatus.configured)
 				DEBUG_LOG_F(MQTT_DMSG_RECONNECTED, name.c_str());
 		}
+
+		MarkFunctionalBitmap();
 
 		//if (!deviceStatus.configured)
 		//	Configure();
 
 		return;
 	}
+
+	MqttDevice::Loop();
 }
 
 void MqttSensor::ResetStatus()
 {
-	memset(&deviceStatus, 0, sizeof(MqttDeviceStatus_t));
 	memset(&sensorStatus, 0, sizeof(MqttSensorStatus_t));
 	MqttDevice::ResetStatus();
 }
@@ -89,8 +88,13 @@ int MqttSensor::ReadAndPublish()
 
 bool MqttSensor::Publish()
 {
+	DEBUG_LOG_F("%s MqttSensor::Publish()\r\n", name.c_str());
+
 	if (!deviceStatus.enabled || !sensorStatus.newData || !status.mqtt.connected)
+	{
+		DEBUG_LOG_LN("Failed : No new data, or not enabled or connected.");
 		return false;
+	}
 
 	sensorStatus.newData = false;
 
@@ -108,6 +112,11 @@ bool MqttSensor::Publish()
 	}
 
 	return false;
+}
+
+bool MqttSensor::IsFunctional()
+{
+	return sensorStatus.connected;
 }
 
 

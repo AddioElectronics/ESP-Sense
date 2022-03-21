@@ -493,8 +493,8 @@ void EspSense::ConfigureGpio()
 		DEBUG_LOG_F("Wifi AP Button - GPIO : %d - Pressed : %d - Pull-up : %d\r\n", config.wifi.accessPoint.buttonGpio, config.wifi.accessPoint.buttonPress, config.wifi.accessPoint.buttonPullup);
 	}
 
-	
 #endif
+	DEBUG_NEWLINE();
 }
 
 bool EspSense::InitializeI2C()
@@ -530,6 +530,7 @@ bool EspSense::InitializeI2C()
 		DEBUG_LOG_LN("...I2C Failed to Initialize!");
 		return false;
 	}
+
 	DEBUG_NEWLINE();
 }
 
@@ -564,6 +565,7 @@ void EspSense::ApplySerialSettings(HardwareSerial& port, SerialPortConfig_t& por
 	{
 		//No settings to apply.
 	}
+	DEBUG_NEWLINE();
 }
 
 bool EspSense::LoadRetainedStatus()

@@ -45,9 +45,10 @@ enum class MqttDeviceType
 
 enum class DeviceState
 {
-	DEVICE_OK,			//Functioning and publishing
-	DEVICE_DISABLED,	//Functioning but publishing disabled
-	DEVICE_ERROR		//Not functioning
+	DEVICE_OK,				//Functioning and publishing
+	DEVICE_DISABLED,		//Functioning but publishing disabled
+	DEVICE_ERROR,			//Not functioning
+	DEVICE_PERMANENT_OFF	//Disabled until next reset.
 };
 typedef uint8_t DeviceState_t;
 
@@ -217,13 +218,16 @@ public:
 	virtual void ResetStatus();
 
 	virtual void Loop();
-	virtual bool Configure() { return true; }			//Requires no configuration
+	virtual bool Configure() { deviceStatus.configured = true; MarkFunctionalBitmap(); return true; }			//Requires no configuration
 	virtual bool Reconfigure() { return Configure(); }
 	virtual void Denit() { /*website->Deinitialize();*/  return; }
 
-	virtual void MarkDisconnected();
-	virtual void MarkReconnected();
-
+	virtual bool IsFunctional();
+	virtual bool MarkFunctionalBitmap();
+protected:
+	virtual void MarkNonFunctional();
+	virtual void MarkFunctional();
+public:
 	virtual bool Enable();
 	virtual bool Disable();
 

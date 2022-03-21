@@ -33,20 +33,24 @@
 //
 //#include "MqttSwitch.h"
 
+typedef std::function<void(MqttDevice*&)> ITERATE_DEVICE_FUNCTION;
+
 namespace Mqtt
 {
 	class DeviceManager
 	{
 	public:
-		static int ConfigureDevices();
+		static int ConfigureDevices(uint32_t* out_Total = nullptr);
 		static int UnconfigureDevices();
 
 	private:
-		static device_count_t ConfigureSensors();
-		static device_count_t ConfigureBinarySensors();
-		static device_count_t ConfigureLights();
-		static device_count_t ConfigureButtons();
-		static device_count_t ConfigureSwitches();
+		static device_count_t ConfigureSensors(uint32_t* add_Total = nullptr);
+		static device_count_t ConfigureBinarySensors(uint32_t* add_Total = nullptr);
+		static device_count_t ConfigureLights(uint32_t* add_Total = nullptr);
+		static device_count_t ConfigureButtons(uint32_t* add_Total = nullptr);
+		static device_count_t ConfigureSwitches(uint32_t* add_Total = nullptr);
+
+		static void IterateAllDevices(ITERATE_DEVICE_FUNCTION func);
 
 	public:
 		static void EnableAll(bool initial = false);

@@ -168,7 +168,7 @@ void MqttDeviceWeb::InitializeRequests()
 				return;
 			}
 
-			if (!request->hasParam("enable"))
+			if (!request->hasParam("enable", true))
 			{
 				Label_BadRequest:
 				request->send(400, ContentType::textPlain, Messages::badRequest);
@@ -179,11 +179,11 @@ void MqttDeviceWeb::InitializeRequests()
 
 			DEBUG_LOG_F("%s SetEnabled(%s)", device->name.c_str(), enable.c_str());
 
-			if (enable == "0")
+			if (enable == "false")
 			{
 				device->Disable();
 			}
-			else if (enable == "1")
+			else if (enable == "true")
 			{
 				device->Enable();
 			}
