@@ -2,7 +2,7 @@
 var devMode = false;
 var keepTest = devMode && false;
 var alwaysLoadPage = false;
-var websiteVersion = [0,1,8];
+var websiteVersion = [0,2,0];
 var githubReleasesUrl = 'https://github.com/AddioElectronics/ESP-Sense/releases';
 
 /*Global Vars Retrieved from ESP*/
@@ -126,12 +126,11 @@ function receivedVersion(data){
     
     var latest = getLatestVersion();
     
-    if(compareVersions(espVersion, websiteVersion) == -1){
+    if(compareVersions(espVersion, latest) == -1){
         addNotification('fa fa-code', 'Update Available', function(){
             //window.location.href = '/update.html';                        //Go to update page (one-click update not implemented)
             openInNewTab('https://github.com/AddioElectronics/ESP-Sense');  //Go to github page
         });
-        addNotification('fa fa-code', 'Firmware and Website Version do not match', function(){openInNewTab(githubReleasesUrl);});
     }
     
     if(compareVersions(espVersion, websiteVersion) != 0){

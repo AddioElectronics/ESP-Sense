@@ -4,6 +4,10 @@
   right: 0px;
 }
 
+html:not([auth]) #notifications {
+  display: none;
+}
+
 #notifications > .tab {
   position: absolute;
   width: 38px;
@@ -27,7 +31,7 @@
   transition: left 1s, font-size 1s;
 }
 
-#notifications[value="0"] > .tab {
+#notifications[value="0"] > .tab, #notifications:not([value]) > .tab {
   left: 10px;
   transition: left 1s, font-size 1s;
 }

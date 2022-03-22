@@ -1,4 +1,4 @@
-.status-list [status-content], .config-list[config-content] {
+.status-list [status-content], .config-list[config-content], .status-list[config-content] {
   max-height: 50vh;
   overflow-y: auto;
   overflow-x: auto;

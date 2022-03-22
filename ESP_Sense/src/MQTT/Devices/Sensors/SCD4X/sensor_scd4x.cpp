@@ -315,13 +315,11 @@ void Scd4xSensor::AddStatePayload(JsonVariant& addTo)
 {
 	DEBUG_LOG_F("Add %s State Payload\r\n", name.c_str());
 
-	JsonObject obj = addTo.getOrAddMember("statePayload");
+	JsonVariant obj = addTo.getOrAddMember("statePayload");
 
 	if (uniqueConfig.mqtt.publishCo2)
 	{
 		JsonVariant co2 = obj.getOrAddMember("co2");
-
-		DEBUG_LOG_F("Add Co2 %dppm\r\n", measurementData.co2);
 
 		if (sensorStatus.connected)
 			co2.set(measurementData.co2);
@@ -333,8 +331,6 @@ void Scd4xSensor::AddStatePayload(JsonVariant& addTo)
 	{
 		JsonVariant temp = obj.getOrAddMember("temp");
 
-		DEBUG_LOG_F("Add temp %dppm\r\n", measurementData.temperature);
-
 		if (sensorStatus.connected)
 			temp.set(measurementData.temperature);
 		else
@@ -344,8 +340,6 @@ void Scd4xSensor::AddStatePayload(JsonVariant& addTo)
 	if (uniqueConfig.mqtt.publishHumdiity)
 	{
 		JsonVariant humidity = obj.getOrAddMember("humidity");
-
-		DEBUG_LOG_F("Add tehumiditymp %dppm\r\n", measurementData.humidity);
 
 		if (sensorStatus.connected)
 			humidity.set(measurementData.humidity);

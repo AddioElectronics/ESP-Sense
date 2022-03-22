@@ -96,10 +96,10 @@ bool MqttSensor::Publish()
 	{
 		return MqttDevice::Publish();
 	}
-	else if (!sensorStatus.connected || sensorStatus.failedReads >= MQTT_SENSOR_MAX_FAILED_READS)
-	{
-		PublishNoConnection();
-	}
+	//else if (!sensorStatus.connected || sensorStatus.failedReads >= MQTT_SENSOR_MAX_FAILED_READS)
+	//{
+	//	PublishNoConnection();
+	//}
 	else
 	{
 		DEBUG_LOG_F("%s cannot publish. No new Sensor Data.\r\n", name.c_str());
@@ -133,9 +133,9 @@ bool MqttSensor::PublishNoConnection()
 
 	String payload;
 
-	if (deviceMqttSettings.useParentTopics || deviceMqttSettings.json)
-		payload = GenerateJsonStatePayload();
-	else
+	//if (deviceMqttSettings.useParentTopics || deviceMqttSettings.json)
+	//	payload = 
+	//else
 		payload = SENSOR_DATA_UNKNOWN;
 
 	return mqttClient.publish(topic, SENSOR_DATA_UNKNOWN);

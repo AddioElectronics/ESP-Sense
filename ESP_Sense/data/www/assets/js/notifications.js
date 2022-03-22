@@ -34,6 +34,7 @@ function createNotificationBox(){
 }
 
 function addNotification(iconClass, message, clickfn){
+    
     let note = new ElementBuilder('notification', null, 'notification').Create();
     
     let iconCon = new ElementBuilder('div', null, 'note-icon-con').Create();
