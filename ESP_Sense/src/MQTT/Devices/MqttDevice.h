@@ -32,7 +32,7 @@ typedef int8_t ecode_t;
 
 //typedef bool(MqttDevice::* ADD_PAYLOAD_FUNC)(void);
 
-typedef std::function<void(JsonVariant&)> ADD_PAYLOAD_FUNC;
+typedef std::function<void(JsonVariant&, bool nest)> ADD_PAYLOAD_FUNC;
 
 enum class MqttDeviceType
 {
@@ -249,7 +249,7 @@ public:
 	//virtual int SetConfig(JsonDocument& doc);		//Set config with data from web
 	//virtual String GenerateJsonConfig() = 0;		//Generate config data as string.
 
-	String GenerateJsonData(ADD_PAYLOAD_FUNC, const char* dataType);
+	String GenerateJsonData(ADD_PAYLOAD_FUNC, const char* dataType, bool nest = true);
 	virtual String GenerateJsonStatePayload();
 	String GenerateJsonStatus();
 	String GenerateJsonConfig();
@@ -262,9 +262,9 @@ public:
 	size_t SerializeDocument(String* out_string, bool freeDoc = true);
 	size_t StreamDocument(AsyncWebServerRequest* request);
 
-	virtual void AddStatePayload(JsonVariant& addTo) = 0;		//Payload for MQTT state topic
-	virtual void AddStatusData(JsonVariant& addTo);				//device, binary/sensor/ect.., and unique status
-	virtual void AddConfigData(JsonVariant& addTo);				//device, binary/sensor/ect.., and unique config
+	virtual void AddStatePayload(JsonVariant& addTo, bool nest = true) = 0;		//Payload for MQTT state topic
+	virtual void AddStatusData(JsonVariant& addTo);								//device, binary/sensor/ect.., and unique status
+	virtual void AddConfigData(JsonVariant& addTo);								//device, binary/sensor/ect.., and unique config
 
 //protected:
 	//virtual bool GenerateStatusJsonPayload(JsonDocument& doc);	//Adds deviceStatus to a json string (each overloading function should call its parent) 

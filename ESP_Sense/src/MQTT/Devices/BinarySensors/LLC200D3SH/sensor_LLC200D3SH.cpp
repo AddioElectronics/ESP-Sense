@@ -64,9 +64,9 @@ bool Llc200d3sh_Sensor::Read()
 }
 
 
-void Llc200d3sh_Sensor::AddStatePayload(JsonVariant& addTo)
+void Llc200d3sh_Sensor::AddStatePayload(JsonVariant& addTo, bool nest)
 {
-	JsonVariant obj = addTo.getOrAddMember("statePayload");
+	JsonVariant obj = nest ? addTo.getOrAddMember("statePayload") : addTo;
 
 	JsonVariant waterlevel = obj.getOrAddMember("waterlevel");
 	waterlevel.set(measurement ? MQTT_BINARY_SENSOR_ON : MQTT_BINARY_SENSOR_OFF);

@@ -150,9 +150,9 @@ bool Sht4xSensor::Unsubscribe()
 //}
 
 
-void Sht4xSensor::AddStatePayload(JsonVariant& addTo)
+void Sht4xSensor::AddStatePayload(JsonVariant& addTo, bool nest)
 {
-	JsonVariant obj = addTo.getOrAddMember("statePayload");
+	JsonVariant obj = nest ? addTo.getOrAddMember("statePayload") : addTo;
 
 	if (uniqueConfig.mqtt.publishTemperature)
 	{

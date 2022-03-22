@@ -134,7 +134,7 @@ public:
 	//bool Publish() override;
 	//bool PublishAvailability() override;
 
-	void AddStatePayload(JsonVariant& addTo) override;				//Payload for MQTT state topic
+	void AddStatePayload(JsonVariant& addTo, bool nest = true) override;				//Payload for MQTT state topic
 	//void AddStatusData(JsonVariant& addTo) override;					//device, binary/sensor/ect.., and unique status
 	void AddConfigData(JsonVariant& addTo) override;					//device, binary/sensor/ect.., and unique config
 

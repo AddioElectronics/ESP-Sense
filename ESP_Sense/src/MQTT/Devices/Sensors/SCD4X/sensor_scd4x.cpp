@@ -311,11 +311,11 @@ bool Scd4xSensor::Publish()
 //	return mqttClient.publish(topics.availability.c_str(), Mqtt::Helper::GetAvailabilityString(sensorStatus.connected).c_str());
 //}
 
-void Scd4xSensor::AddStatePayload(JsonVariant& addTo)
+void Scd4xSensor::AddStatePayload(JsonVariant& addTo, bool nest)
 {
 	DEBUG_LOG_F("Add %s State Payload\r\n", name.c_str());
 
-	JsonVariant obj = addTo.getOrAddMember("statePayload");
+	JsonVariant obj = nest ? addTo.getOrAddMember("statePayload") : addTo;
 
 	if (uniqueConfig.mqtt.publishCo2)
 	{

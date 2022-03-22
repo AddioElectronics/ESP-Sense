@@ -287,7 +287,7 @@ bool MqttDevice::PublishDisabled(const char* topic)
 /// <param name=""></param>
 /// <param name="dataType"></param>
 /// <returns></returns>
-String MqttDevice::GenerateJsonData(ADD_PAYLOAD_FUNC addPayload, const char* dataType)
+String MqttDevice::GenerateJsonData(ADD_PAYLOAD_FUNC addPayload, const char* dataType, bool nest)
 {
 	DEBUG_LOG_F("Generating %s(%s) JSON %s Data :\r\n", name.c_str(), DeviceName(), dataType);
 
@@ -302,7 +302,7 @@ String MqttDevice::GenerateJsonData(ADD_PAYLOAD_FUNC addPayload, const char* dat
 	DEBUG_LOG_F("%s Add data to document\r\n", name.c_str());
 
 	//Add data to document
-	addPayload(documentRoot);
+	addPayload(documentRoot, nest);
 
 	SerializeDocument(&jdata, true);
 
@@ -315,16 +315,16 @@ String MqttDevice::GenerateJsonData(ADD_PAYLOAD_FUNC addPayload, const char* dat
 String MqttDevice::GenerateJsonStatePayload()
 {
 	//DEBUG_LOG_F("%s GenerateJsonStatePayload()\r\n", name.c_str());
-	return GenerateJsonData([this](JsonVariant&)
+	return GenerateJsonData([this](JsonVariant&, bool nest)
 	{
-		return this->AddStatePayload(this->documentRoot);
-	}, "State Payload");
+		return this->AddStatePayload(this->documentRoot, nest);
+	}, "State Payload", false);
 }
 
 String MqttDevice::GenerateJsonStatus()
 {
 	//DEBUG_LOG_F("%s GenerateJsonStatus()\r\n", name.c_str());
-	return GenerateJsonData([this](JsonVariant&)
+	return GenerateJsonData([this](JsonVariant&, bool nest)
 	{
 		return this->AddStatusData(this->documentRoot);
 	}, "Status");
@@ -333,7 +333,7 @@ String MqttDevice::GenerateJsonStatus()
 String MqttDevice::GenerateJsonConfig()
 {
 	//DEBUG_LOG_F("%s GenerateJsonConfig()\r\n", name.c_str());
-	return GenerateJsonData([this](JsonVariant&)
+	return GenerateJsonData([this](JsonVariant&, bool nest)
 	{
 		return this->AddConfigData(this->documentRoot);
 	}, "Config");
@@ -342,7 +342,7 @@ String MqttDevice::GenerateJsonConfig()
 String MqttDevice::GenerateJsonAll()
 {
 	//DEBUG_LOG_F("%s GenerateJsonAll()\r\n", name.c_str());
-	return GenerateJsonData([this](JsonVariant&)
+	return GenerateJsonData([this](JsonVariant&, bool nest)
 	{
 		return this->AddStatusData(this->documentRoot);
 		return this->AddConfigData(this->documentRoot);
