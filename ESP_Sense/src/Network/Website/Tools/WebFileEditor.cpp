@@ -7,7 +7,7 @@
 
 extern AsyncWebServer server;
 extern Config_t config;
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 
 
 void Network::Website::Tools::FileEditor::Initialize()
@@ -30,7 +30,7 @@ void Network::Website::Tools::FileEditor::Initialize()
 #if COMPILE_FILE_EDITOR
 	server.on(Strings::Urls::pageConfigToolFileEditor, HTTP_GET, [](AsyncWebServerRequest* request) {
 		if (!status.server.authenticated)
-			Network::Server::Server401(request);
+			Network::Server::Server511(request);
 
 		else if (status.server.browser.tools.fileEditor.enabled)
 			Network::Server::ServeWebpage(Network::Website::Strings::Urls::pageConfigToolFileEditor, request);

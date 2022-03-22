@@ -22,7 +22,7 @@
 
 FTPServer ftpServer(ESP_FS);
 extern Config_t config;
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 
 TaskHandle_t taskFtpLoop;
 
@@ -30,7 +30,7 @@ void Network::FTP::Construct()
 {
 	if (status.server.ftp.enabled) return;	//Already started.
 
-	DEBUG_LOG_LN("Starting FTP Server...");
+	DEBUG_LOG_LN("\r\nStarting FTP Server...");
 
 	if(config.server.ftp.anonymous)
 		DEBUG_LOG("-Anonymouse : true");

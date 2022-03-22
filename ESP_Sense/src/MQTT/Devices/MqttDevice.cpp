@@ -4,24 +4,28 @@
 #include "../../FileManager.h"
 #include "../../HelperFunctions.h"
 #include "../../Macros.h"
+#include "../../Network/Website/WebStrings.h"
 
 extern PubSubClient mqttClient;
 
-bool MqttDevice::Init(bool enable)
+bool MqttDevice::Init()
 {
-	if (!status.mqtt.devicesConfigured)
-		ResetStatus();
+	//if (!status.mqtt.devicesConfigured)
+		//ResetStatus();
+
+	if (deviceStatus.initialized) return true;
 
 	//memset(&deviceStatus, 0, sizeof(MqttDeviceStatus_t));
 	//deviceStatus.enabled = true;
 	Configure();
 
-	if (deviceStatus.configured && enable)
-		Enable();
-	else
-		MarkDisconnected();
+	MarkFunctionalBitmap();
 
-	return deviceStatus.configured && (deviceStatus.enabled || !enable);
+	InitWebpage();
+	//SetDeviceState();
+
+	deviceStatus.initialized = true;
+	return deviceStatus.configured;
 }
 
 void MqttDevice::ResetStatus()
@@ -29,17 +33,55 @@ void MqttDevice::ResetStatus()
 	memset(&deviceStatus, 0, sizeof(MqttDeviceStatus_t));
 }
 
-void MqttDevice::MarkDisconnected()
+void MqttDevice::Loop()
 {
+	if (!deviceStatus.initialized || !status.mqtt.connected) return;
+
+	if (deviceStatus.enabled)
+	{
+		if (!deviceStatus.configured)
+			if (!Configure()) return;
+
+		if (!deviceStatus.subscribed)
+			Subscribe();
+	}
+	else
+	{
+		if (deviceStatus.subscribed)
+			Unsubscribe();
+	}
+
+}
+
+bool MqttDevice::IsFunctional()
+{
+	return deviceStatus.configured;
+}
+
+bool MqttDevice::MarkFunctionalBitmap()
+{
+	bool functional = IsFunctional();
+
+	if (functional)
+		MarkFunctional();
+	else
+		MarkNonFunctional();
+}
+
+void MqttDevice::MarkNonFunctional()
+{
+	//SetDeviceState();
 	if (deviceStatus.markedDisconnected) return;
 
-	uint64_t mask = 1 << (index < 64 ? index : index % 64);
-	uint8_t bmIndex = index < 64 ? 0 : (index / 64);
+	uint64_t mask = 1 << (index < 64 ? index : index % 64);		//Create mask for bit
+	uint8_t bmIndex = index < 64 ? 0 : (index / 64);			//Get QWORD where device's bit resides
 
-	*((&status.mqtt.devices.functioningDevices.bitmap0) + bmIndex) |= mask;
+	//Set bit to indicate an error
+	*((&status.mqtt.devices.errorBitmap.bitmap0) + bmIndex) |= mask;
 
+	//If device is important, set bit. This will cause MQTT led to blink, and alerts in browser.
 	if (deviceConfig.important)
-		*((&status.mqtt.devices.functioningDevicesImportant.bitmap0) + bmIndex) |= mask;
+		*((&status.mqtt.devices.errorBitmapImportant.bitmap0) + bmIndex) |= mask;
 
 	DEBUG_LOG_F("Mark Disconnected\r\n-Device Index : %d\r\n-Important : %d\r\n", index, deviceConfig.important);
 
@@ -51,17 +93,20 @@ void MqttDevice::MarkDisconnected()
 		Mqtt::Tasks::StartBlinkTask();
 }
 
-void MqttDevice::MarkReconnected()
+void MqttDevice::MarkFunctional()
 {
+	//SetDeviceState();
 	if (!deviceStatus.markedDisconnected) return;
 
-	uint64_t mask = 1 << (index < 64 ? index : index % 64);
-	uint8_t bmIndex = index < 64 ? 0 : (index / 64);
+	uint64_t mask = 1 << (index < 64 ? index : index % 64);		//Create mask for bit in qword
+	uint8_t bmIndex = index < 64 ? 0 : (index / 64);			//Get QWORD where device's bit resides
 
-	*((&status.mqtt.devices.functioningDevices.bitmap0) + bmIndex) &= ~mask;
+	//Clear bit to indicate device is functional
+	*((&status.mqtt.devices.errorBitmap.bitmap0) + bmIndex) &= ~mask;
 
+	//If device is important, clear.
 	if (deviceConfig.important)
-		*((&status.mqtt.devices.functioningDevicesImportant.bitmap0) + bmIndex) &= ~mask;
+		*((&status.mqtt.devices.errorBitmapImportant.bitmap0) + bmIndex) &= ~mask;
 
 	DEBUG_LOG_F("Mark Reconnected\r\n-Device Index : %d\r\n-Important : %d\r\n", index, deviceConfig.important);
 
@@ -75,11 +120,18 @@ void MqttDevice::MarkReconnected()
 
 bool MqttDevice::Enable()
 {
+	if (!deviceStatus.initialized)
+	{
+		if (!Init())
+			return false;
+	}
+
 	if (deviceStatus.enabled) return true;
 
 	deviceStatus.enabled = true;
 	status.mqtt.devices.enabledCount++;
 	Subscribe();
+	//SetDeviceState();
 
 	return true;
 }
@@ -88,15 +140,35 @@ bool MqttDevice::Disable()
 {
 	if (!deviceStatus.enabled) return true;
 
-	Unsubscribe();
 	deviceStatus.enabled = false;
 	status.mqtt.devices.enabledCount--;
+	Unsubscribe();
+	//SetDeviceState();
+
 	return true;
+}
+
+void MqttDevice::SetDeviceState()
+{
+	if (IsFunctional())
+	{
+		if (deviceStatus.enabled)
+			deviceStatus.state = (DeviceState_t)DeviceState::DEVICE_OK;
+		else
+			deviceStatus.state = (DeviceState_t)DeviceState::DEVICE_DISABLED;
+	}
+	else
+	{
+		if (deviceStatus.enabled)
+			deviceStatus.state = (DeviceState_t)DeviceState::DEVICE_ERROR;
+		else
+			deviceStatus.state = (DeviceState_t)DeviceState::DEVICE_PERMANENT_OFF;
+	}
 }
 
 bool MqttDevice::Subscribe()
 {
-	if (deviceStatus.subscribed || !deviceStatus.enabled)
+	if (deviceStatus.subscribed || deviceStatus.state != (DeviceState_t)DeviceState::DEVICE_OK)
 		return true;
 
 	if (mqttClient.subscribe(topics.jsonCommand.c_str()))
@@ -123,6 +195,7 @@ bool MqttDevice::Unsubscribe()
 	if (!deviceStatus.subscribed)
 		return true;
 
+
 	if (mqttClient.unsubscribe(topics.jsonCommand.c_str()))
 	{
 		deviceStatus.subscribed = false;
@@ -135,12 +208,15 @@ bool MqttDevice::Unsubscribe()
 
 bool MqttDevice::Publish()
 {
-	if (!deviceStatus.enabled || !status.mqtt.connected)
+	if (deviceStatus.state != (DeviceState_t)DeviceState::DEVICE_OK || !status.mqtt.connected)
 		return false;
+
 
 	DEBUG_LOG_F("Publishing %s Data...\r\n", name.c_str());
 
-	String jdata = GenerateJsonPayload();
+	String jdata = GenerateJsonStatePayload(false);
+
+	DEBUG_LOG_F("-Data : %s\r\n", jdata.c_str());
 
 	if (jdata.isEmpty()) return false;
 
@@ -149,6 +225,24 @@ bool MqttDevice::Publish()
 	DEBUG_LOG_F("-Topic : %s\r\n", topic);
 
 	bool success = mqttClient.publish(topic, (uint8_t*)jdata.c_str(), jdata.length(), deviceMqttSettings.retain);
+	
+	
+	//bool success = false;
+	//size_t docSize = document->capacity();
+
+	//if (success = mqttClient.beginPublish(topic, docSize, deviceMqttSettings.retain))
+	//{
+	//	size_t size = serializeJson(document, mqttClient);
+
+	//	while (docSize > size)
+	//	{
+	//		mqttClient.write((uint8_t)" ");
+	//		size++;
+	//	}
+
+	//	success = mqttClient.endPublish();
+	//}
+
 
 	if (success)
 	{
@@ -167,7 +261,8 @@ bool MqttDevice::Publish()
 
 bool MqttDevice::PublishAvailability()
 {
-	if (!deviceStatus.enabled) return false;
+	if (deviceStatus.state != (DeviceState_t)DeviceState::DEVICE_OK)
+		return false;
 
 	return mqttClient.publish(topics.availability.c_str(), Mqtt::Helper::GetAvailabilityString(/*deviceStatus.enabled && */deviceStatus.enabled).c_str());
 }
@@ -182,6 +277,202 @@ bool MqttDevice::PublishDisabled(const char* topic)
 {
 	return mqttClient.publish(topic, MQTT_DEVICE_DISABLED);
 }
+
+
+/// <summary>
+/// Generates a fresh JsonDocument for the current device,
+/// adds data via the addPayload function pointer,
+/// and serializes the data into a string.
+/// </summary>
+/// <param name=""></param>
+/// <param name="dataType"></param>
+/// <returns></returns>
+String MqttDevice::GenerateJsonData(ADD_PAYLOAD_FUNC addPayload, const char* dataType, bool nest)
+{
+	DEBUG_LOG_F("Generating %s(%s) JSON %s Data :\r\n", name.c_str(), DeviceName(), dataType);
+
+	String jdata = "";
+
+	if (!FreshJsonDocument())
+	{
+		//Not enough heap memory
+		return jdata;
+	}
+
+	DEBUG_LOG_F("%s Add data to document\r\n", name.c_str());
+
+	//Add data to document
+	addPayload(documentRoot, nest);
+
+	SerializeDocument(&jdata, true);
+
+	DEBUG_LOG_LN("Serialized : ");
+	DEBUG_LOG_LN(jdata.c_str());
+
+	return jdata;
+}
+
+String MqttDevice::GenerateJsonStatePayload(bool nest)
+{
+	//DEBUG_LOG_F("%s GenerateJsonStatePayload()\r\n", name.c_str());
+	return GenerateJsonData([this](JsonVariant&, bool nest)
+	{
+		return this->AddStatePayload(this->documentRoot, nest);
+	}, "State Payload", nest);
+}
+
+String MqttDevice::GenerateJsonStatus()
+{
+	//DEBUG_LOG_F("%s GenerateJsonStatus()\r\n", name.c_str());
+	return GenerateJsonData([this](JsonVariant&, bool nest)
+	{
+		return this->AddStatusData(this->documentRoot);
+	}, "Status");
+}
+
+String MqttDevice::GenerateJsonConfig()
+{
+	//DEBUG_LOG_F("%s GenerateJsonConfig()\r\n", name.c_str());
+	return GenerateJsonData([this](JsonVariant&, bool nest)
+	{
+		return this->AddConfigData(this->documentRoot);
+	}, "Config");
+}
+
+String MqttDevice::GenerateJsonTopics()
+{
+	return GenerateJsonData([this](JsonVariant&, bool nest)
+	{
+		return this->AddTopicsData(this->documentRoot);
+	}, "Topics");
+}
+
+String MqttDevice::GenerateJsonAll()
+{
+	//DEBUG_LOG_F("%s GenerateJsonAll()\r\n", name.c_str());
+	return GenerateJsonData([this](JsonVariant&, bool nest)
+	{
+		return this->AddStatusData(this->documentRoot);
+		return this->AddConfigData(this->documentRoot);
+		return this->AddStatePayload(this->documentRoot);
+		return this->AddTopicsData(this->documentRoot);
+	}, "All");
+}
+
+bool MqttDevice::CreateJsonDocument()
+{	
+	if (document != nullptr) return false;
+
+	//DEBUG_LOG_F("%s CreateJsonDocument()\r\n", name.c_str());
+
+	#warning change size for each device
+	document = JsonHelper::CreateDocument(2048);
+	documentRoot = document->createNestedObject(name.c_str());
+
+	return true;
+}
+
+
+bool MqttDevice::FreshJsonDocument()
+{
+	//DEBUG_LOG_F("%s FreshJsonDocument()\r\n", name.c_str());
+
+	FreeJsonDocument();
+	return CreateJsonDocument();
+}
+
+void MqttDevice::FreeJsonDocument()
+{
+	//DEBUG_LOG_F("%s FreeJsonDocument()\r\n", name.c_str());
+	if (document != nullptr)
+	{
+		delete document;
+		document = nullptr;
+	}
+}
+
+bool MqttDevice::IsDocumentCreated(bool create)
+{
+	if (document != nullptr)
+		return true;
+
+	if (create)
+		return CreateJsonDocument();
+
+	return false;
+}
+
+size_t MqttDevice::SerializeDocument(String* out_string, bool freeDoc)
+{
+	if(document == nullptr || out_string == nullptr)
+	return 0;
+
+	size_t size = serializeJson(*document, *out_string);
+
+	if (freeDoc)
+		FreeJsonDocument();
+
+	return size;
+}
+
+size_t MqttDevice::StreamDocument(AsyncWebServerRequest* request)
+{
+	if (document == nullptr)
+	{
+		request->send(204);	//No Content
+		return 0;
+	}
+
+	AsyncResponseStream* response = request->beginResponseStream(Network::Website::Strings::ContentType::appJSON);
+	size_t size = serializeJson(*document, *response);
+	request->send(response);
+
+	return size;
+}
+
+void MqttDevice::AddStatusData(JsonVariant& addTo)
+{
+	SetDeviceState();
+	addTo["deviceStatus"].set<MqttDeviceStatus_t>(deviceStatus);
+
+	if (website != nullptr)
+		website->AddStatusData(documentRoot);
+}
+
+void MqttDevice::AddConfigData(JsonVariant& addTo)
+{
+	addTo["deviceConfig"].set<MqttDeviceConfig_t>(deviceConfig);
+	addTo["deviceMqttSettings"].set<MqttDeviceMqttSettings_t>(deviceMqttSettings);
+}
+
+void MqttDevice::AddTopicsData(JsonVariant& addTo)
+{
+	JsonVariant obj = addTo.getOrAddMember("topics");
+
+	obj["availability"].set(topics.availability);
+	obj["jsonCommand"].set(topics.jsonCommand);
+	obj["jsonState"].set(topics.jsonState);
+}
+
+
+bool MqttDevice::InitWebpage()
+{
+	//If global settings have disabled website, do not configure.
+	if (!config.server.browser.enabled || !config.server.browser.mqttDevices) return false;
+
+	if (website == nullptr)
+		website = new MqttDeviceWeb();
+
+	website->Initialize(this);
+}
+
+void MqttDevice::DenitWebpage()
+{
+	if (website == nullptr) return;
+
+	website->Deinitialize();
+}
+
 
 bool MqttDevice::ReadGlobalConfig()
 {
@@ -326,6 +617,12 @@ void MqttDevice::SetDefaultDeviceSettings(MqttDeviceConfig_t& deviceConfig, Mqtt
 
 	deviceConfigMonitor.important = deviceConfig.important != MQTTDEVICE_IMPORTANT;
 	deviceConfig.important = MQTTDEVICE_IMPORTANT;	
+
+	deviceConfigMonitor.website.hostWebsite = deviceConfig.website.hostWebsite != MQTTDEVICE_WEBSITE_HOST;
+	deviceConfig.website.hostWebsite = MQTTDEVICE_WEBSITE_HOST;
+
+	deviceConfigMonitor.website.configurable = deviceConfig.website.configurable != MQTTDEVICE_WEBSITE_CONFIG;
+	deviceConfig.website.configurable = MQTTDEVICE_WEBSITE_CONFIG;
 }
 
 void MqttDevice::SetDefaultMqttSettings(MqttDeviceMqttSettings_t& mqttSettings, MqttDeviceMqttSettingsMonitor_t& mqttSettingsMonitor)
@@ -382,6 +679,9 @@ void MqttDevice::ReadConfigDeviceSettings(JsonVariantConst& deviceObj, MqttDevic
 
 	if (deviceObj.containsKey("important"))
 		deviceConfig.important = deviceObj["important"];
+
+	if (deviceObj.containsKey("website"))
+		convertFromJson(deviceObj["website"], deviceConfig.website);
 }
 
 void MqttDevice::ReadConfigMqttSettings(JsonVariantConst& mqttObj, MqttDeviceMqttSettings_t& mqttSettings, MqttDeviceMqttSettingsMonitor_t& mqttSettingsMonitor)
@@ -450,3 +750,321 @@ void MqttDevice::ReadConfigMqttSettings(JsonVariantConst& mqttObj, MqttDeviceMqt
 
 #pragma endregion
 
+
+#pragma region JSON UDFs
+
+
+const char* mqtt_deviceType_strings[5] = { "binarysensor", "button", "light", "sensor", "switch" };
+
+bool canConvertFromJson(JsonVariantConst src, const MqttDeviceType&)
+{
+	return JsonHelper::JsonParseEnum(src, 5, mqtt_deviceType_strings) != -1;
+}
+
+void convertFromJson(JsonVariantConst src, MqttDeviceType& dst)
+{
+	JsonHelper::UdfHelperConvertFromJsonEnums(src, (EnumClass_t&)dst, 5, "MqttDeviceType", mqtt_deviceType_strings, nullptr);
+}
+
+bool convertToJson(const MqttDeviceType& src, JsonVariant dst)
+{
+	JsonHelper::UdfHelperConvertToJsonEnums((EnumClass_t&)src, dst, 5, "MqttDeviceType", mqtt_deviceType_strings, nullptr);
+}
+
+//void convertFromJson(JsonVariantConst src, MqttDeviceType& dst)
+//{
+//
+//	MqttDeviceType parseResult = (MqttDeviceType)JsonHelper::JsonParseEnum(src, 5, mqtt_deviceType_strings);
+//
+//	if ((int)parseResult != -1)
+//		dst = parseResult;
+//	else
+//		DEBUG_LOG_LN("MqttDeviceType Parsing Failed");
+//}
+//
+//bool convertToJson(const MqttDeviceType& src, JsonVariant dst)
+//{
+//#if SERIALIZE_ENUMS_TO_STRING
+//	bool set = JsonHelper::EnumValueToJson(dst, (int)src, mqtt_deviceType_strings, 5);
+//#else
+//	bool set = dst.set(src);
+//#endif
+//
+//	if (set) return true;
+//
+//	DEBUG_LOG_LN("MqttDeviceType Conversion to JSON failed.");
+//	return false;
+//}
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttDeviceTopics_t&)
+//{
+
+//}
+
+void convertFromJson(JsonVariantConst src, MqttDeviceTopics_t& dst)
+{
+	JsonVariantConst obj = src;
+
+	if (src.containsKey("deviceTopics"))
+		obj = src["deviceTopics"];
+
+
+	if (obj.containsKey("command"))
+		dst.command = obj["command"].as<String>();
+
+	if (obj.containsKey("state"))
+		dst.state = obj["state"].as<String>();
+
+}
+
+bool convertToJson(const MqttDeviceTopics_t& src, JsonVariant dst)
+{
+	dst["command"] = src.command;
+	dst["state"] = src.state;
+}
+
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttDeviceConfig_t&)
+//{
+
+//}
+
+void convertFromJson(JsonVariantConst src, MqttDeviceConfig_t& dst)
+{
+	JsonVariantConst obj = src;
+
+	if (src.containsKey("deviceConfig"))
+		obj = src["deviceConfig"];
+
+
+	if (obj.containsKey("useDefaults"))
+		dst.useDefaults = obj["useDefaults"];
+
+	if (obj.containsKey("useGlobalConfig"))
+		dst.useGlobalConfig = obj["useGlobalConfig"];
+
+	if (obj.containsKey("initiallyEnabled"))
+		dst.initiallyEnabled = obj["initiallyEnabled"];
+
+	if (obj.containsKey("important"))
+		dst.important = obj["important"];
+
+	if (obj.containsKey("website"))
+	convertFromJson(obj, dst);
+}
+
+bool convertToJson(const MqttDeviceConfig_t& src, JsonVariant dst)
+{
+	dst["important"] = src.useDefaults;
+	dst["important"] = src.useGlobalConfig;
+	dst["important"] = src.initiallyEnabled;
+	dst["important"] = src.important;
+	dst["website"] = src.website;
+}
+
+
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttDeviceStatus_t&)
+//{
+//	return src.containsKey("deviceStatus") || src.containsKey("markedDisconnected");
+//}
+
+//void convertFromJson(JsonVariantConst src, MqttDeviceStatus_t& dst)
+//{
+//	JsonVariantConst deviceStatusObj = src;
+//
+//	if (src.containsKey("deviceStatus"))
+//		deviceStatusObj = src["deviceStatus"];
+//
+//	if (deviceStatusObj.containsKey("configured"))
+//		dst.configured = deviceStatusObj["configured"];
+//
+//	if (deviceStatusObj.containsKey("enabled"))
+//		dst.enabled = deviceStatusObj["enabled"];
+//
+//	if (deviceStatusObj.containsKey("state"))
+//		dst.state = deviceStatusObj["state"];
+//
+//	if (deviceStatusObj.containsKey("subscribed"))
+//		dst.subscribed = deviceStatusObj["subscribed"];
+//
+//	if (deviceStatusObj.containsKey("markedDisconnected"))
+//		dst.markedDisconnected = deviceStatusObj["markedDisconnected"];
+//
+//	if (deviceStatusObj.containsKey("configModified"))
+//		dst.configModified = deviceStatusObj["configModified"];
+//
+//	if (deviceStatusObj.containsKey("publishTimestamp"))
+//		dst.publishTimestamp = deviceStatusObj["publishTimestamp"];
+//
+//	if (deviceStatusObj.containsKey("publishErrorTimestamp"))
+//		dst.publishErrorTimestamp = deviceStatusObj["publishErrorTimestamp"];
+//
+//}
+
+bool convertToJson(const MqttDeviceStatus_t& src, JsonVariant dst)
+{
+	dst["configured"] = src.configured;
+	dst["enabled"] = src.enabled;
+	dst["state"] = src.state;
+	dst["subscribed"] = src.subscribed;
+	dst["markedDisconnected"] = src.markedDisconnected;
+	dst["configModified"] = src.configModified;
+	dst["publishTimestamp"] = src.publishTimestamp;
+	dst["publishErrorTimestamp"] = src.publishErrorTimestamp;
+}
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttDeviceWebConfig_t&)
+//{
+//	return src.containsKey("hostWebsite") || src.containsKey("website") || src.containsKey("configurable");
+//}
+
+void convertFromJson(JsonVariantConst src, MqttDeviceWebConfig_t& dst)
+{
+	JsonVariantConst websiteObj = src;
+
+	if (src.containsKey("website"))
+		websiteObj = src["website"];
+
+
+	if (websiteObj.containsKey("hostWebsite"))
+		dst.hostWebsite = websiteObj["hostWebsite"];
+
+	if (websiteObj.containsKey("configurable"))
+		dst.configurable = websiteObj["configurable"];
+}
+
+bool convertToJson(const MqttDeviceWebConfig_t& src, JsonVariant dst)
+{
+	dst["hostWebsite"] = src.hostWebsite;
+	dst["configurable"] = src.configurable;
+}
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttDeviceMqttSettings_t&)
+//{
+
+//}
+
+void convertFromJson(JsonVariantConst src, MqttDeviceMqttSettings_t& dst)
+{
+	JsonVariantConst obj = src;
+
+	if (src.containsKey("deviceMqttSettings"))
+		obj = src["deviceMqttSettings"];
+
+
+	if (obj.containsKey("useDefaults"))
+		dst.useDefaults = obj["useDefaults"];
+
+	if (obj.containsKey("useParentTopics"))
+		dst.useParentTopics = obj["useParentTopics"];
+
+	if (obj.containsKey("retain"))
+		dst.retain = obj["retain"];
+
+	if (obj.containsKey("json"))
+		dst.json = obj["json"];
+}
+
+bool convertToJson(const MqttDeviceMqttSettings_t& src, JsonVariant dst)
+{
+	dst["useDefaults"] = src.useDefaults;
+	dst["useParentTopics"] = src.useParentTopics;
+	dst["json"] = src.json;
+	dst["retain"] = src.retain;
+}
+
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttDeviceGlobalStatus_t&)
+//{
+
+//}
+
+//void convertFromJson(JsonVariantConst src, MqttDeviceGlobalStatus_t& dst)
+//{
+//	JsonVariantConst obj = src;
+//
+//	if (src.containsKey("globalDeviceStatus"))
+//		obj = src["globalDeviceStatus"];
+//
+//
+//	if (obj.containsKey("configRead"))
+//		dst.configRead = obj["configRead"];
+//
+//}
+
+bool convertToJson(const MqttDeviceGlobalStatus_t& src, JsonVariant dst)
+{
+	dst["configRead"] = src.configRead;
+}
+
+
+////bool canConvertFromJson(JsonVariantConst src, const MqttDeviceWebpageStatus_t&)
+////{
+//
+////}
+//
+//void convertFromJson(JsonVariantConst src, MqttDeviceWebpageStatus_t& dst)
+//{
+//	JsonVariantConst webpageStatus = src;
+//
+//	if (src.containsKey("website"))
+//		webpageStatus = src["website"];
+//
+//
+//	if (webpageStatus.containsKey("enabled"))
+//		dst.enabled = webpageStatus["enabled"];
+//
+//	if (webpageStatus.containsKey("configured"))
+//		dst.configured = webpageStatus["configured"];
+//}
+//
+//bool convertToJson(const MqttDeviceWebpageStatus_t& src, JsonVariant dst)
+//{
+//	dst["enabled"] = src.enabled;
+//	dst["configured"] = src.configured;
+//}
+
+const char* device_state_strings[3] = { "ok", "disabled", "error" };
+
+//bool canConvertFromJson(JsonVariantConst src, const DeviceState&)
+//{
+//	return JsonHelper::JsonParseEnum(src, 3, device_state_strings, nullptr) != -1;
+//}
+//
+//void convertFromJson(JsonVariantConst src, DeviceState& dst)
+//{
+//	JsonHelper::UdfHelperConvertFromJsonEnums(src, (EnumClass_t&)dst, 3, "DeviceState", device_state_strings, nullptr);
+//}
+
+bool convertToJson(const DeviceState& src, JsonVariant dst)
+{
+	JsonHelper::UdfHelperConvertToJsonEnums((EnumClass_t&)src, dst, 3, "DeviceState", device_state_strings, nullptr);
+}
+
+//void convertFromJson(JsonVariantConst src, DeviceState& dst)
+//{
+//	DeviceState parseResult = (DeviceState)JsonHelper::JsonParseEnum(src, 3, device_state_strings, nullptr);
+//
+//	if ((int)parseResult != -1)
+//		dst = parseResult;
+//	else
+//		DEBUG_LOG_LN("DeviceState Parsing Failed");
+//
+//}
+//
+//bool convertToJson(const DeviceState& src, JsonVariant dst)
+//{
+//#if SERIALIZE_ENUMS_TO_STRING
+//	bool set = JsonHelper::EnumValueToJson(dst, (int)src, device_state_strings, 3);
+//#else
+//	bool set = dst.set(src);
+//#endif
+//
+//	if (set) return true;
+//
+//	DEBUG_LOG_LN("DeviceState Conversion to JSON failed.");
+//	return false;
+//}
+
+#pragma endregion

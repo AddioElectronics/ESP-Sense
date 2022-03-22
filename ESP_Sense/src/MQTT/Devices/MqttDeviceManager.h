@@ -3,7 +3,11 @@
 
 #include <Arduino.h>
 
+#include <ArduinoJson.hpp>
+#include <ArduinoJson.h>
+
 #include "../../Config/config_master.h"
+#include "../../Config/global_status.h"
 #include "../../Config/config_mqtt.h"
 
 #include "MqttDevice.h"
@@ -15,9 +19,13 @@
 #include "BinarySensors/MqttBinarySensor.h"
 #include "BinarySensors/LLC200D3SH/sensor_LLC200D3SH.h"
 
-
-
-
+//#warning put somewhere else
+//typedef struct {
+//	String* name;
+//	String* deviceName;
+//	MqttDeviceType type;
+//	String* url;
+//}MqttDeviceInfo_t;
 
 //#include "MqttLight.h"
 //
@@ -25,30 +33,51 @@
 //
 //#include "MqttSwitch.h"
 
+typedef std::function<void(MqttDevice*&)> ITERATE_DEVICE_FUNCTION;
+
 namespace Mqtt
 {
 	class DeviceManager
 	{
 	public:
-		static int ConfigureDevices();
+		static int ConfigureDevices(uint32_t* out_Total = nullptr);
 		static int UnconfigureDevices();
 
 	private:
-		static device_count_t ConfigureSensors();
-		static device_count_t ConfigureBinarySensors();
-		static device_count_t ConfigureLights();
-		static device_count_t ConfigureButtons();
-		static device_count_t ConfigureSwitches();
+		static device_count_t ConfigureSensors(uint32_t* add_Total = nullptr);
+		static device_count_t ConfigureBinarySensors(uint32_t* add_Total = nullptr);
+		static device_count_t ConfigureLights(uint32_t* add_Total = nullptr);
+		static device_count_t ConfigureButtons(uint32_t* add_Total = nullptr);
+		static device_count_t ConfigureSwitches(uint32_t* add_Total = nullptr);
+
+		static void IterateAllDevices(ITERATE_DEVICE_FUNCTION func);
 
 	public:
 		static void EnableAll(bool initial = false);
 		static void DisableAll();
 		static int SubscribeAll();
-		static int UnsubscribeAll();
+		static int UnsubscribeAll(bool disabledOnly = true);
 		static void PublishAvailability();
 		static void ReadAll();
 		static void PublishAll();
 		static void Loop();
+
+		/// <summary>
+		/// Packs all MQTT device's names and deviceNames into a JSON document.
+		/// </summary>
+		static int PackDeviceInfo(JsonVariant& doc);
+
+		///// <summary>
+		///// Packs all MQTT device's names and deviceNames into a JSON document,
+		///// before serializing in to a string.
+		///// *If string is nullptr, it will only pack and not serialize(out_doc must be passed).
+		///// </summary>
+		//static size_t GetJsonDeviceInfo(String* serializeTo, DynamicJsonDocument** out_doc = nullptr);
+
+		///// <summary>
+		///// Packs all MQTT device's names and deviceNames into a JSON document.
+		///// </summary>
+		//static size_t GetJsonDeviceInfo(DynamicJsonDocument** out_doc);
 
 		/// <summary>
 		/// Forwards the received MQTT message to all devices.
@@ -60,9 +89,9 @@ namespace Mqtt
 		static size_t GetMaxFileSize();
 
 		static bool IsValidSensor(const char* device);
-		static MqttSensor* CreateMqttSensor(int deviceIndex, int sensorIndex, const char* name, const char* device);
+		static MqttSensor* CreateMqttSensor(int index, int subIndex, const char* name, const char* device);
 		static bool IsValidBinarySensor(const char* device);
-		static MqttBinarySensor* CreateMqttBinarySensor(int deviceIndex, int sensorIndex, const char* name, const char* device);
+		static MqttBinarySensor* CreateMqttBinarySensor(int index, int subIndex, const char* name, const char* device);
 
 	};
 
@@ -73,7 +102,6 @@ namespace Mqtt
 		void DeviceManagerLoopTask(void* pvParameters);
 	}
 }
-
 
 
 #endif

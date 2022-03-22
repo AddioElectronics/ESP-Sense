@@ -8,12 +8,12 @@
 
 extern AsyncWebServer server;
 extern Config_t config;
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 
 extern AsyncWebServer server;
 
 extern Config_t config;
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 
 void Network::Website::ConfigBrowser::Initialize()
 {
@@ -25,12 +25,13 @@ void Network::Website::ConfigBrowser::Initialize()
 	//Server 501 if browser is not enabled in config..
 	if (!status.server.browser.configBrowser.enabled)
 	{
-		server.on(Strings::Urls::pageConfigMqtt, HTTP_GET, [](AsyncWebServerRequest* request) {
+		server.on(Strings::Urls::pageConfig, HTTP_GET, [](AsyncWebServerRequest* request) {
 			Network::Server::Server501(request);
 		});
 
 		return;
 	}
+
 #if COMPILE_CONFIG_BROWSER
 	status.server.browser.configBrowser.enabled = true;
 
@@ -48,15 +49,16 @@ void Network::Website::ConfigBrowser::Initialize()
 
 void Network::Website::ConfigBrowser::InitializeMqtt()
 {
-	status.server.browser.mqttConfigBrowser.enabled = config.server.browser.mqttDeviceConfig && COMPILE_CONFIG_BROWSER_MQTT;
+	status.server.browser.mqttDevices.enabled = config.server.browser.mqttDevices && COMPILE_CONFIG_BROWSER_MQTT;
 
-	if (status.server.browser.mqttConfigBrowser.configured) return;		//Already configured, exit.
-	status.server.browser.mqttConfigBrowser.configured = true;			//Set configured flag
+	if (status.server.browser.mqttDevices.configured) return;		//Already configured, exit.
+	status.server.browser.mqttDevices.configured = true;			//Set configured flag
 
 	//Server 501 if browser is not enabled in config.
-	if (!status.server.browser.mqttConfigBrowser.enabled)
+	if (!status.server.browser.mqttDevices.enabled)
 	{
-		server.on(Strings::Urls::pageConfigMqtt, HTTP_GET, [](AsyncWebServerRequest* request) {
+#warning not checking auth
+		server.on(Strings::Urls::pageMqttDevices, HTTP_GET, [](AsyncWebServerRequest* request) {
 			Network::Server::Server501(request);
 		});
 
@@ -64,17 +66,17 @@ void Network::Website::ConfigBrowser::InitializeMqtt()
 	}
 
 #if COMPILE_CONFIG_BROWSER_MQTT
-	status.server.browser.mqttConfigBrowser.enabled = true;
+	status.server.browser.mqttDevices.enabled = true;
 
 
-	server.on(Website::Strings::Urls::pageConfig, HTTP_GET, [](AsyncWebServerRequest* request) {
-		if (status.server.browser.mqttConfigBrowser.enabled)
-			Network::Server::ServeWebpage(Website::Strings::Urls::pageConfig, request);
+	server.on(Website::Strings::Urls::pageMqttDevices, HTTP_GET, [](AsyncWebServerRequest* request) {
+		if (status.server.browser.mqttDevices.enabled)
+			Network::Server::ServeWebpage(Website::Strings::Urls::pageMqttDevices, request);
 		else
 			Network::Server::ServeWebpage(Website::Strings::Urls::error501, request);
 	});
 
-	status.server.browser.mqttConfigBrowser.configured = true;
+	status.server.browser.mqttDevices.configured = true;
 #endif
 }
 
@@ -90,11 +92,11 @@ void Network::Website::ConfigBrowser::Disable()
 
 void Network::Website::ConfigBrowser::EnableMqtt()
 {
-	status.server.browser.mqttConfigBrowser.enabled = status.server.browser.mqttConfigBrowser.configured;
+	status.server.browser.mqttDevices.enabled = status.server.browser.mqttDevices.configured;
 }
 
 void Network::Website::ConfigBrowser::DisableMqtt()
 {
-	status.server.browser.mqttConfigBrowser.enabled = false;
+	status.server.browser.mqttDevices.enabled = false;
 }
 

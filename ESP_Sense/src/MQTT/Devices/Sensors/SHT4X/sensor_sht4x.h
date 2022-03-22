@@ -14,6 +14,7 @@
 #include <Adafruit_SHT4x.h>
 
 #include "../../../../Config/config_master.h"
+#include "../../../../Config/global_status.h"
 #include "sht4x_config.h"
 
 #include "../../MqttDevice.h"
@@ -32,6 +33,19 @@ typedef struct
 class Sht4xSensor : public MqttSensor
 {
 public:
+
+	static const char* deviceName;		//Used for print statements
+	static const char* deviceKey;		//Used for keys, and filtering
+
+
+	const char* DeviceName() override
+	{
+		return deviceName;
+	}
+	const char* DeviceKey() override
+	{
+		return deviceKey;
+	}
 
 	Adafruit_SHT4x sensor = Adafruit_SHT4x();
 
@@ -56,6 +70,7 @@ public:
 	static Sht4xConfigMonitor_bm globalUniqueConfigMonitor;
 
 	static MqttDeviceGlobalStatus_t globalDeviceStatus;
+
 
 #pragma endregion
 
@@ -93,11 +108,15 @@ public:
 		return &mqttSensorBaseTopic;
 	}
 
-	Sht4xSensor(const char* _name, int _index) : MqttSensor(_name, _index) {}
+	Sht4xSensor(const char* _name, int _index, int _subIndex) : MqttSensor(_name,  _index, _subIndex) 
+	{
+		ResetStatus();
+		sensor = Adafruit_SHT4x();
+	}
 
 #pragma region MqttDevice Functions
 
-	bool Init(bool enable) override;
+	bool Init() override;
 
 	void ResetStatus() override
 	{
@@ -105,16 +124,19 @@ public:
 		MqttSensor::ResetStatus();
 	}
 
-	//void Loop() override;
+	void Loop() override;
 
 	bool Configure() override;
-	//bool Enable() override;
+	bool Enable() override;
 	//bool Disable() override;
 	bool Subscribe() override;
 	bool Unsubscribe() override;
 	//bool Publish() override;
 	//bool PublishAvailability() override;
-	String GenerateJsonPayload() override;
+
+	void AddStatePayload(JsonVariant& addTo, bool nest = true) override;				//Payload for MQTT state topic
+	//void AddStatusData(JsonVariant& addTo) override;					//device, binary/sensor/ect.., and unique status
+	void AddConfigData(JsonVariant& addTo) override;					//device, binary/sensor/ect.., and unique config
 
 	int ReceiveCommand(char* topic, byte* payload, size_t length) override;
 
@@ -220,20 +242,33 @@ public:
 extern const char* sht4x_heater_strings[7];
 extern const char* sht4x_precision_strings[3];
 
+//Classify enums so ArduinoJson can determine the correct function.
+//(Regular enums are ints)
 enum class sht4x_precision {};
 enum class sht4x_heater {};
 
-bool canConvertFromJson(JsonVariantConst src, const sht4x_precision&);
-
+//bool canConvertFromJson(JsonVariantConst src, const sht4x_precision&);
 void convertFromJson(JsonVariantConst src, sht4x_precision& dst);
-
 bool convertToJson(const sht4x_precision& src, JsonVariant dst);
 
-bool canConvertFromJson(JsonVariantConst src, const sht4x_heater&);
-
+//bool canConvertFromJson(JsonVariantConst src, const sht4x_heater&);
 void convertFromJson(JsonVariantConst src, sht4x_heater& dst);
-
 bool convertToJson(const sht4x_heater& src, JsonVariant dst);
+
+//bool canConvertFromJson(JsonVariantConst src, const SHT4xStatus_t&);
+//void convertFromJson(JsonVariantConst src, SHT4xStatus_t& dst);
+//bool convertToJson(const SHT4xStatus_t& src, JsonVariant dst);
+
+//bool canConvertFromJson(JsonVariantConst src, const Sht4xConfig_t&);
+void convertFromJson(JsonVariantConst src, Sht4xConfig_t& dst);
+bool convertToJson(const Sht4xConfig_t& src, JsonVariant dst);
+
+#pragma endregion
+
+#pragma region JSON UDFs
+
+
+
 #pragma endregion
 
 #endif

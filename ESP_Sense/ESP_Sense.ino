@@ -1,56 +1,10 @@
 /*
-	All functions, variables, files and other names are subject to change. Project is in a temporary "have to get it done" state.
-	Code is in a very messy state, after I pass the device off it may remain in this state until I can find the time to work on it more.
+	All functions, variables, files and other names are subject to change. 
+	Lots of functions are uncommented, and unorganized, they will be fixed in the future.
 */
 
-
-//Todo  
-//Organize everything, move functions into different files. move files into directories. main namespace, cleanup includes, comments
-//After config create file, or show in browser all the topics available.
-//Browser - Edit config. Parse json? Config helper: json document sizer. Debug console
-//Ethernet?
-//Potentially build topics as needed. Split all topics into sections to preserve RAM. (Look into if this would be better, and maybe only if supporting individual instead of just JSON)
-//Template files of Home assistant MQTT configuration files for MQTT settings, get via FTP or browser.
-//Change some DEBUG_LOG and all Serial.print to SERIAL_PRINT. Also add levels. 
-//Add validation code, and the ability to not compile. (Make functions consistant, some have it, some dont)
-//Register and validate GPIO to make sure none are overlapping or invalid. (Almost done, need to implement checker to see if in use)
-//Add GPIO structure or class, and or button/led
-//Make sure json documents are cleared after use.
-//Add the ability to unconfigure everything, some has already been added (quickly and poorly), need to fix/test.
-//Config monitor isn't really being used
-//Web tool to convert json files to new format(after updates, adding ability to configure multiple I2C ports, if using old config, will convert)
-//If useDefaults are set, it simply skips reading the next config block. Unless defaults are already set they wont be set. (this overwrites the config when saving, need to stop this.)
-//Boot source, only use config path once. Apply button on webpage
-//Buzzer for if MQTT device disconnected. Add a required option in the device config. if a required device is disconnected then buzz on an interval, other wise just blink.
-//Add Json UDFs for config structs
-//Make initialization functions consistant. Some only enable module if config is enabled, some ignore and set status to enabled. (Make all ignore config, and set status. Then in setup routines, only call init function if config enabled.)
-//Add wifi connection checks in task initializers
-//Lost keeping up ESP8266, get it up to date.
-//MQTT Devices status on webpage. Make it well known if a device did not configure, and especially nit connect
-//MqttDeviceManager is a class, should probably match other "Managers"
-//Not all tasks are included in the config. Should also narrow down stack sizes. *Can only change task in config in developer mode
-//Not sure if I should leave tasks if wifi or mqtt is diconnected, or just put in loop that constantly yields.
-//Website json tool, add custom tool which parses each value and validates, showing you which key and line has an error.
-//Website control panel, possible side bar, reset device, enable/disable backups, stuff like that.
-//Possibly put each MQTT device on their own task
-//Remove autobackup mode, and add own bool for each type
-//toggleable (at compile time) validation for mqtt IsConnected before each device command. or status.mqtt.connected with the connection being monitored in its own task
-//Clean up Messages, add newlines to seperate functions and devices
-//Narrow down stack sizes (To get stack size of FTP and MQTT will need to edit libraries, or guess...)
-//Add option for server led, ftp, OTA. (RGB LED?)
-//Setup browser for first boot. in AP mode
-//File to retain status of sensors (Like SCD4X to see if settings have been retained on its EEPROM) save to FS as a binary.
-//SSL/Websocket MQTT, SSL browser
-//Switch FTP library.
-//Add MQTT retained IP for AP. (If wifi loses connection, switch to retained or config, or possibly start looking for IPs)
-//Switch FTP library.
-//Add MQTT retained IP for AP. (If wifi loses connection, switch to retained or config, or possibly start looking for IPs)
-//On device Automation with the option for no MQTT publishing.
-//Email warning for sensor failure
-//TFT support
-//Serial commands (USB Serial not functioning after wifi is enabled, atleast for my dev board)
-//Disable mqtt device after so many disconnects.
-//Change back to HTTP authentication
+//Current version of the firmware.
+#define ESP_SENSE_VERSION	0,2,0
 
 
 #if !defined(ESP8266) && !defined(ESP32)
@@ -68,6 +22,8 @@
 #include <Arduino.h>
 
 #include "src/Config/config_master.h"
+#include "src/Config/global_status.h"
+#include "src/Config/config_udfs.h"
 
 #include <StreamUtils.hpp>
 #include <StreamUtils.h>											
@@ -76,6 +32,8 @@
 #include <EEPROM.h>						//For saving a backup of settings. (Improved version of EEPROM.h)
 #include <CRC32.h>
 #include <PubSubClient.h>				//MQTT Library
+#include <ESP32Ping.h>
+#include <List.hpp>
 
 #if defined(ESP8266)
 #include <Schedule.h>
@@ -139,7 +97,7 @@
 #include "src/MQTT/MqttHelper.h"
 #include "src/MQTT/MqttTopicManager.h"
 #include "src/MQTT/Devices/MqttDeviceManager.h"
-
+#include "src/MQTT/Devices/MqttDeviceWeb.h"
 
 #include "src/Network/Server/ServerManager.h"
 #include "src/Network/Server/Authentication.h"
@@ -166,7 +124,7 @@
 
 Config_t config;
 ConfigMonitor_t configMonitor;
-DeviceStatus_t status;
+GlobalStatus_t status;
 ConfigBitmap_bm configBitmap;
 
 extern PubSubClient mqttClient;
@@ -177,10 +135,10 @@ StatusRetained_t statusRetained;
 StatusRetainedMonitor_t statusRetainedMonitor;
 
 
-HardwareSerial& Serial0 = Serial;	//Reference Serial as Serial0
+HardwareSerial& Serial0 = Serial;			//Reference Serial as Serial0
 
-HardwareSerial* serial;				//Message
-HardwareSerial* serialDebug;		//Debug
+HardwareSerial* serial = nullptr;			//Message
+HardwareSerial* serialDebug = nullptr;		//Debug
 
 unsigned long nextAliveMessage;
 void* stackStart;
@@ -188,8 +146,6 @@ void* stackStart;
 //#if defined(ESP8266)
 //extern void serialEventRun(void) __attribute__((weak));
 //#endif
-
-
 
 
 //////////////////////////////////////////////////////
@@ -239,16 +195,30 @@ void setup()
 	//Set Structures to 0 as memory is not guaranteed to blank on reset.
 	EspSense::BlankStructures();
 
+	//Set the Version
+	status.misc.version = {ESP_SENSE_VERSION};
+
+	DEBUG_LOG_F("Version %d.%d.%d\r\n", status.misc.version.major, status.misc.version.minor, status.misc.version.revision);
+
 	//Initialize settings to default
 	Config::Defaults::SetAll();
 
 	EspSense::MountEEPROM();
 	FileManager::MountFileSystem();
 
+#if DEVELOPER_MODE
+
+	uint32_t configFileCrc = FileManager::GetFileCRC("/config.json");
+
+	DEBUG_LOG_F("Config File CRC : 0x%0000000X\r\n", configFileCrc);
+
+#endif
+
 	EspSense::LoadRetainedStatus();
 
 	//Load configuration files.
 	Config::Documents::LoadBootSettings();
+
 	Config::Documents::LoadConfiguration();
 	Config::Documents::SetConfigFromDoc();
 
@@ -282,7 +252,7 @@ void setup()
 	status.device.tasks.enabled = true;
 	WifiManager::Tasks::StartWifiLoopTask();
 
-	if (status.wifi.configMode)
+	if (status.device.configMode)
 	{
 		//goto Label_SkipMqtt;
 
@@ -319,11 +289,11 @@ void setup()
 	//Configure, connect and enable MQTT devices.
 	Mqtt::DeviceManager::ConfigureDevices();
 
-	//Subscribe to ESP-Sense topics
-	Mqtt::Subscribe();
+	////Subscribe to ESP-Sense topics
+	//Mqtt::Subscribe();
 
-	//Enable all devices that are initially enabled.
-	Mqtt::DeviceManager::EnableAll(true);
+	////Enable all devices that are initially enabled.
+	//Mqtt::DeviceManager::EnableAll(true);
 
 	//If wifi and MQTT is connected, we have required data.
 	status.config.hasRequiredData = true;
@@ -345,17 +315,27 @@ Label_SkipBackup:
 	//Apply changes to EEPROM.
 	Config::Status::SaveRetainedStatus();
 
-	status.config.setupComplete = true;
+	
 	//status.mqtt.publishingEnabled = true;
 
 	////Loop task only used for configuration.
 	//TaskManager::StopLoopTask();
 
 	//Start MQTT tasks
-	if (!status.wifi.configMode)
-		Mqtt::Tasks::StartAllTasks();
+	if (!status.device.configMode)
+	{
+		//Subscribe to ESP-Sense topics
+		Mqtt::Subscribe();
 
-	DEBUG_LOG_LN("Device Initialized");
+		//Enable all devices that are initially enabled.
+		Mqtt::DeviceManager::EnableAll(true);
+
+		Mqtt::Tasks::StartAllTasks();
+	}
+
+	status.config.setupComplete = true;
+
+	DEBUG_LOG_LN("Device Initialized\r\n\r\n");
 
 	/*EspSense::Initialize();*/
 }
@@ -385,15 +365,14 @@ void loop()
 		WifiManager::Loop();
 	}
 
-	if (!status.wifi.configMode)
-		Mqtt::Loop();
+	Mqtt::Loop();
 
 	//if(status.device.tasks.wifiTaskRunning /*&& config.device.taskSettings.enabled*/)
 	//	Mqtt::Loop();
 	//else
 	//	WifiManager::Loop();
 
-	bool longYield = status.device.tasks.wifiTaskRunning && (status.mqtt.connected || status.wifi.configMode);
+	bool longYield = status.device.tasks.wifiTaskRunning && (status.mqtt.connected || status.device.configMode);
 
 	EspSense::YieldWatchdog(longYield ? 5000 : 1);
 
@@ -412,7 +391,7 @@ void loop()
 
 void EspSense::BlankStructures()
 {
-	memset(&status, 0, sizeof(DeviceStatus_t));
+	memset(&status, 0, sizeof(GlobalStatus_t));
 	memset(&configMonitor, 0, sizeof(ConfigMonitor_t));
 	memset(&statusRetained, 0, sizeof(StatusRetained_t));
 	memset(&statusRetainedMonitor, 0, sizeof(StatusRetainedMonitor_t));
@@ -513,8 +492,8 @@ void EspSense::ConfigureGpio()
 		DEBUG_LOG_F("Wifi AP Button - GPIO : %d - Pressed : %d - Pull-up : %d\r\n", config.wifi.accessPoint.buttonGpio, config.wifi.accessPoint.buttonPress, config.wifi.accessPoint.buttonPullup);
 	}
 
-	
 #endif
+	DEBUG_NEWLINE();
 }
 
 bool EspSense::InitializeI2C()
@@ -550,6 +529,7 @@ bool EspSense::InitializeI2C()
 		DEBUG_LOG_LN("...I2C Failed to Initialize!");
 		return false;
 	}
+
 	DEBUG_NEWLINE();
 }
 
@@ -584,11 +564,13 @@ void EspSense::ApplySerialSettings(HardwareSerial& port, SerialPortConfig_t& por
 	{
 		//No settings to apply.
 	}
+	DEBUG_NEWLINE();
 }
 
 bool EspSense::LoadRetainedStatus()
 {
-	if (!status.storage.eepromMounted)
+
+	if (!status.device.eepromMounted)
 	{
 		DEBUG_LOG_LN("Cannot load Retained Status : EEPROM not mounted!");
 		return status.device.retainedStatusLoaded = false;
@@ -597,16 +579,16 @@ bool EspSense::LoadRetainedStatus()
 	//Get boot settings.
 	EEPROM.get(0, statusRetained);
 
-	if (statusRetained.boot.freshBoot)
+	if (statusRetained.boot.freshBoot || statusRetained.statusRetainedSize != sizeof(StatusRetained_t))
 		FreshBoot();
 
 
 	statusRetainedMonitor.boot.configMode = statusRetained.boot.configMode != false;
 
-#if COMPILE_BACKUP
-	status.backup.eepromBackedUp = status.backup.ableToBackupEeprom && statusRetained.crcs.eepromBackupFile != 0;
-	status.backup.filesystemBackedUp = statusRetained.crcs.fileSystemBackupFile != 0;
-#endif
+//#if COMPILE_BACKUP
+//	status.config.backup.eepromBackedUp = status.config.backup.ableToBackupEeprom && statusRetained.crcs.eepromBackupFile != 0;
+//	status.config.backup.filesystemBackedUp = statusRetained.crcs.fileSystemBackupFile != 0;
+//#endif
 
 	return status.device.retainedStatusLoaded = true;
 }
@@ -620,6 +602,7 @@ void EspSense::FreshBoot()
 	DEBUG_LOG_LN("Fresh Boot, saving default settings to EEPROM...");
 
 	memset(&statusRetained, 0, sizeof(StatusRetained_t));
+	statusRetained.statusRetainedSize = sizeof(StatusRetained_t);
 
 	EEPROM.put(0, statusRetained);
 	status.device.freshBoot = true;				//Change retained settings to false, but program still needs to know.
@@ -631,21 +614,21 @@ bool EspSense::MountEEPROM()
 	DEBUG_LOG_LN("Initializing EEPROM...");
 
 #if DOC_CONFIG_SERIALIZE_SIZE + 64 < 4096
-	status.storage.eepromMounted = EEPROM.begin(sizeof(StatusRetained_t) + DOC_CONFIG_SERIALIZE_SIZE);
+	status.device.eepromMounted = EEPROM.begin(sizeof(StatusRetained_t) + DOC_CONFIG_SERIALIZE_SIZE);
 #if COMPILE_BACKUP
-	status.backup.ableToBackupEeprom = status.storage.eepromMounted;
+	status.config.backup.ableToBackupEeprom = status.device.eepromMounted;
 #endif
 #else
-	status.storage.eepromMounted = EEPROM.begin(sizeof(DeviceRetainedStatus_t));
-	status.backup.ableToBackupEeprom = false;
+	status.device.eepromMounted = EEPROM.begin(sizeof(DeviceRetainedStatus_t));
+	status.config.backup.ableToBackupEeprom = false;
 #endif
 
-	if (!status.storage.eepromMounted)
+	if (!status.device.eepromMounted)
 	{
 		DEBUG_LOG_LN("EEPROM Failed to Mount!");
 	}
 
-	return status.storage.eepromMounted;
+	return status.device.eepromMounted;
 }
 
 
@@ -697,6 +680,12 @@ void EspSense::EnterUpdateMode(UpdateMode mode)
 		break;
 	}
 
+	Mqtt::Disconnect();
+	Mqtt::Tasks::StopLoopTask();
+	Mqtt::Tasks::StopBlinkTask();
+	Mqtt::Tasks::StopDeviceManagerLoopTask();
+	Mqtt::Tasks::StopPublishAvailabilityTask();
+	//Mqtt::DeviceManager::DisableAll();
 }
 
 void EspSense::StopAllTasks()

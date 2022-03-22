@@ -1,5 +1,11 @@
 {
 	"LLC200D3SH":{
+		"device":{
+			"web":{
+				"hostWebsite":true,
+				"configurable": true
+			}
+		},
 		"program":{
 			"useDefaults":false,
 			"waterPresent":0,

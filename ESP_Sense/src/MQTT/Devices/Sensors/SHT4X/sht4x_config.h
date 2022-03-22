@@ -3,12 +3,14 @@
 #include <Arduino.h>
 
 #include "../../../../Config/config_master.h"
+#include "../../../../Config/global_status.h"
 #include "../../../../Config/config_mqtt.h"
 #include "../MqttSensor_Config.h"
 
 #define SHT4X_CONFIG_NAME							"sht4x.json"
 #define SHT4X_CONFIG_PATH							"/mqtt/devices/sensors/" SHT4X_CONFIG_NAME
 #define SHT4X_CONFIG_OBJECT_KEY						"sht4x"
+#define SHT4X_WEBSITE_PATH							"/www/mqtt/devices/sensors/sht4x.html"
 
 //Internal
 #define SENSOR_SHT40_PRECISION						SHT4X_HIGH_PRECISION

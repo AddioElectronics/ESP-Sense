@@ -6,6 +6,7 @@
 #include <SensirionI2CScd4x.h>
 
 #include "../../../../Config/config_master.h"
+#include "../../../../Config/global_status.h"
 #include "../../../../Config/config_mqtt.h"
 #include "../MqttSensor_Config.h"
 
@@ -13,11 +14,10 @@ enum class SCD4x_PowerMode { PM_STANDARD = 0, PM_LOW = 1 };
 
 #pragma region Config
 
-
-
 #define SCD4X_CONFIG_NAME					"scd4x.json"
 #define SCD4X_CONFIG_PATH					"/mqtt/devices/sensors/" SCD4X_CONFIG_NAME
 #define SCD4X_CONFIG_OBJECT_KEY				"scd4x"
+#define SCD4X_WEBSITE_PATH					"/www/mqtt/devices/sensors/scd4x.html"
 
 //Internal
 #define SCD4X_ALTITUDE						0					//Elevation from sea level. Required for accurate Co2 measurements.		
@@ -185,7 +185,7 @@ typedef struct
 	bool periodicallyMeasuring : 1;
 	bool dataReady : 1;
 	bool skipNextMeasurement : 1;
-	bool usingGlobalConfig : 1;			//Using settings from config_scd4x.json
+	//bool usingGlobalConfig : 1;			//Using settings from config_scd4x.json
 	bool performingSelfTest : 1;
 	bool performingFactoryReset : 1;
 	bool performingCalibration : 1;

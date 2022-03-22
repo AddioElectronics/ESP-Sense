@@ -10,6 +10,7 @@
 
 #include "../GlobalDefs.h"
 #include "config_mqtt.h"
+//#include "global_status.h"
 
 #pragma region Default Definitions
 
@@ -40,7 +41,8 @@ enum ESP_MEMSIZE
 #define COMPILE_DEBUG_CODE			true						//Compile extra code which makes debugging easier, but increases program size.
 #define SHOW_DEBUG_MESSAGES			true						//Compiles DEBUG_LOG print functions.
 #define DEVELOPER_MODE				true						//Compile extra code which makes life easier when frequently flashing or switching devices(ESP32->8266) *Barely used
-#define SERIALIZE_ENUMS_TO_STRING	true						//If true, when serializing config files for saving, enums will be displayed as strings, and if false their "index."
+#define SERIALIZE_ENUMS_TO_STRING	true						//If true, when serializing config files for saving, enums will be displayed as strings, else serialize to index.
+//#define SERIALIZE_ENUMS_TO_INDEX	true						//If true and TO_STRING is false, enums will be displayed as an index from 0 and incrementing, even if the true value is something else.
 
 #define NEWLINE						\r\n
 
@@ -208,7 +210,8 @@ enum ESP_MEMSIZE
 #define BOOT_DELAY						10
 #define DEVICE_BOOT_ORDER				{ConfigSource::CFG_FILESYSTEM, ConfigSource::CFG_EEPROM, ConfigSource::CFG_BACKUP_FILESYSTEM, ConfigSource::CFG_BACKUP_FILESYSTEM}
 #define AUTO_BACKUP_MODE				ConfigAutobackupMode::AUTOBACKUP_OFF
-#define CRC_ON_BACKUP					true					//Only save backup if the serialized document is different than current backup. *Will take CPU time, but potentially save flash life.
+#define MAX_FAILED_BACKUPS				5						//How many times will a backup attempt fail before being disabled?
+//#define VERIFY_BACKUP					true					//Verify backup after saving. *Was working before, now CRC is different.
 
 #pragma region I2C
 
@@ -362,7 +365,7 @@ enum ESP_MEMSIZE
 #define SERVER_USER						"admin"
 #define SERVER_PASS						"admin"
 #define SERVER_UPDATER_ENABLED			false					//Enable WebUpdater during regular operation (non accessPoint mode) (Not currently supported)
-#define SERVER_SESSION_TIMEOUT			10						//How many minutes before authentication is lost?
+#define SERVER_SESSION_TIMEOUT			30						//How many minutes before authentication is lost?
 
 
 #define BROWSER_ENABLED					true					//Enable configuration browser during regular operation. (non accessPoint mode) (Not currently supported)
@@ -370,11 +373,13 @@ enum ESP_MEMSIZE
 #define BROWSER_CONFIG_ENABLED			true					//Host a webpage for configuring the device?
 #define BROWSER_CONFIG_MQTT_ENABLED		true					//Host a webpage for configuring the connected MQTT devices?
 #define BROWSER_CONSOLE_ENABLED			true					//Host a webpage which emulates the Serial port.
-#define BROWSER_UPDATER_ENABLED			true					//Host a webpage for updating firmware?
 #define BROWSER_TOOLS_FILE_EDITOR		true					//Host a webpage for editing files?
 #define BROWSER_TOOLS_JSON_VERIFY		true					//Host a webpage for verifying JSON files?
+#define BROWSER_UPDATER_ENABLED			true					//Host a webpage for updating firmware?
 
 #define OTA_ENABLED						true
+#define OTA_ROLLBACK_MODE				OtaRollbackMode::ROLLBACK_AUTO
+#define OTA_ROLLBACK_TIMER				10						//How many seconds after setup will the firmware be accepted as valid.
 #define OTA_TASK_CORE					1
 #define OTA_TASK_PRIORITY				1
 #define OTA_TASK_RECURRATE				1000
@@ -402,38 +407,43 @@ typedef union{
 
 
 typedef struct {
+	bool enabled : 1;
+	bool ledOn : 1;
+	String ssid;
+	String pass;
+	int8_t	ledGpio;
+}WifiStationConfig_t;
+
+typedef struct {
+	bool useDefaults : 1;
+	bool enabled : 1;
+	bool configOnly : 1;
+	bool buttonPullup : 1;
+	bool buttonPress : 1;
+	bool hidden : 1;
+	bool ledOn : 1;
+	uint8_t reserved : 1;
+	String ssid;
+	String pass;
+	uint8_t maxConnections;
+	uint8_t buttonGpio;
+	uint16_t holdTime;
+	int8_t ledGpio;
+}WifiAccessPointConfig_t;
+
+typedef struct {
 	bool useDefaults : 1;
 	int32_t channel;
 	wifi_power_t powerLevel;
 
-	struct {
-		bool enabled : 1;
-		bool ledOn : 1;
-		String ssid;
-		String pass;
-		int8_t	ledGpio;
-	}station;
+	WifiStationConfig_t station;
 
 #if COMPILE_ACCESSPOINT
-	struct {
-		bool useDefaults : 1;
-		bool enabled : 1;
-		bool configOnly : 1;
-		bool buttonPullup : 1;
-		bool buttonPress : 1;
-		bool hidden : 1;
-		bool ledOn : 1;
-		uint8_t reserved : 1;
-		String ssid;
-		String pass;
-		uint8_t maxConnections;
-		uint8_t buttonGpio;
-		uint16_t holdTime;
-		int8_t ledGpio;
-	}accessPoint;
+	WifiAccessPointConfig_t accessPoint;
 #endif
 	TaskConfig_t taskSettings;
 }WifiConfig_t;
+
 
 typedef struct {
 	bool useDefaults : 1;
@@ -448,6 +458,30 @@ typedef struct {
 
 typedef struct {
 	bool useDefaults : 1;
+	bool enabled : 1;
+	bool config : 1;				//Enable ConfigBrowser?
+	bool console : 1;				//Enable debug console?
+	bool updater : 1;
+	bool mqttDevices : 1;		//Enable the ability to configure MQTT devices on a webpage?
+	bool ssl : 1;
+	uint8_t reserved : 2;
+	struct {
+		bool fileEditor : 1;
+		bool jsonVerify : 1;
+		uint8_t reserved : 6;
+	}tools;
+}BrowserConfig_t;
+
+typedef struct {
+	bool useDefaults : 1;
+	bool enabled : 1;
+	OtaRollbackMode rollbackMode : 3;	//Also used by browser updater
+	uint8_t rollbackTimer;
+	TaskConfig_t taskSettings;
+}OtaConfig_t;
+
+typedef struct {
+	bool useDefaults : 1;
 	bool dns : 1;
 	bool authenticate : 1;				//Require authentication
 	uint8_t reserved : 5;
@@ -455,27 +489,9 @@ typedef struct {
 	String user;
 	String pass;
 	unsigned long sessionTimeout;
-	struct {
-		bool useDefaults : 1;
-		bool enabled : 1;
-		bool config : 1;				//Enable ConfigBrowser?
-		bool console : 1;				//Enable debug console?
-		bool updater : 1;
-		bool mqttDeviceConfig : 1;		//Enable the ability to configure MQTT devices on a webpage?
-		bool ssl : 1;
-		uint8_t reserved : 2;
-		struct {
-			bool fileEditor : 1;
-			bool jsonVerify : 1;
-			uint8_t reserved : 6;
-		}tools;
-	}browser;
+	BrowserConfig_t browser;
 	FtpConfig_t ftp;
-	struct {
-		bool useDefaults : 1;
-		bool enabled : 1;
-		TaskConfig_t taskSettings;
-	}ota;
+	OtaConfig_t ota;
 }ServerConfig_t;
 
 typedef struct {
@@ -506,21 +522,22 @@ typedef struct {
 	SerialPortConfig_t port1;
 }SerialConfig_t;
 
+typedef struct {
+	bool useDefaults : 1;
+	bool enabled : 1;
+	uint8_t reserved : 7;
+	int8_t sclGpio;
+	int8_t sdaGpio;
+	uint32_t freq;
+}I2cConfig_t;
 
 typedef struct {
 	bool useDefaults : 1;
 	ConfigAutobackupMode_t autoBackupMode : 2;
-	//bool crcOnBackup : 1;
 	uint8_t reserved : 5;
+	uint8_t maxFailedBackups;
 	SerialConfig_t serial;
-	struct {
-		bool useDefaults : 1;
-		bool enabled : 1;
-		uint8_t reserved : 7;
-		int8_t sclGpio;
-		int8_t sdaGpio;
-		uint32_t freq;
-	}i2c;
+	I2cConfig_t i2c;
 }ConfigDevice_t;
 
 typedef struct{
@@ -607,7 +624,7 @@ typedef union {
 			bool config : 1;
 			bool console : 1;
 			bool updater : 1;
-			bool mqttDeviceConfig : 1;
+			bool mqttDevices : 1;
 			bool ssl : 1;
 			struct {
 				bool fileEditor : 1;
@@ -618,6 +635,8 @@ typedef union {
 		struct {
 			bool useDefaults : 1;
 			bool enabled : 1;
+			bool rollbackMode : 1;
+			bool rollbackTimer : 1;
 			TaskConfigMonitor_t taskSettings;
 		}ota;
 	};
@@ -653,7 +672,7 @@ typedef union {
 	struct {
 		bool useDefaults : 1;
 		bool autoBackupMode : 1;
-		//bool crcOnBackup : 1;
+		bool maxFailedBackups : 1;
 		SerialConfigMonitor_t serial;
 		struct {
 			bool useDefaults : 1;
@@ -666,234 +685,25 @@ typedef union {
 	uint64_t bitmap;
 }ConfigDeviceMonitor_t;
 
-#pragma endregion
-
 /// <summary>
 /// Used to determine which settings have been changed.
 /// </summary>
-typedef struct{
+typedef struct {
 	WifiConfigMonitor_t wifi;
 	MqttConfigMonitor_t mqtt;
 	ConfigDeviceMonitor_t device;
 	ServerConfigMonitor_t server;
 }ConfigMonitor_t;
 
-
-typedef struct {
-	struct {
-		bool freshBoot : 1;
-		bool retainedStatusLoaded : 1;			//Was the retained status succesfully loaded?
-		bool i2cInitialized : 1;
-		unsigned long nextAliveMessage;
-		struct {
-			bool enabled : 1;
-			bool wifiTaskRunning : 1;
-			bool wifiBlinkTaskRunning : 2;
-			bool ftpTaskRunning : 1;
-			bool otaTaskRunning : 1;
-			bool mqttTaskRunning : 1;
-			bool mqttPublishAvailabilityTaskRunning : 1;
-			bool mqttDeviceManagerTaskRunning : 1;
-			bool mqttBlinkTaskRunning : 1;
-		}tasks;
-	}device;
-	struct {
-		bool setupComplete : 1;
-		bool configRead : 1;					//Was config.json parsed successfully?
-		bool hasRequiredData : 1;				//True if config contains all the required data to connect and run. If false, saving to backup will be disabled.
-		bool settingsConfigured : 1;			//Has config.json been parsed in to the config structure? (Or default settings set)
-		//bool settingsChanged : 1;				//Config has been changed during runtime. **Using combination of eepromBackedUp and filesystemBackedUp instead.
-		ConfigSource configSource : 3;			//Where was the config configured from this boot?
-		bool pathSet : 1;						//Has the config path been set?
-		bool testingConfig : 1;
-		bool saveRetainedLoop : 1;				//Has retained status been saved in one of the setup loops? Safety measure incase AP button stuck on.
-		char path[CONFIG_PATH_MAX_LENGTH];
-		char fileName[CONFIG_PATH_MAX_LENGTH];
-	}config;
-	struct {
-		//bool enabled : 1;
-		bool connected : 1;
-		wifi_mode_t mode : 3;
-		//WifiMode_t mode : 2;					//Soon to be deprecated.
-		bool eventsRegistered : 1;				//Soon to be deprecated, station and access point have their own flag.
-		bool configMode : 1;					//Is the device currently in config mode?
-		wifi_power_t powerLevel;
-		uint32_t connectAttempts;
-		unsigned long nextDisplayMessage;
-		struct {
-			bool enabled : 1;					//If connected is intended to be true. (If connected is false and enabled is true, device will attempt to reconnect)
-			bool connected : 1;					//If connected to a network.
-			//bool startedConnecting : 1;		//Set when WiFi.begin has been called.
-			bool missingRequiredInfo : 1;
-			bool gotIP : 1;
-			bool eventsRegistered : 1;
-			bool blink : 1;
-			IPAddress ip;
-			unsigned long attemptTimestamp;
-		}station;
-		struct {
-			bool enabled : 1;					//If connected is intended to be true. (If connected is false and enabled is true, device will attempt to start AP mode.)
-			bool connected : 1;					//If softAP mode was succesfully started.
-			bool ipAssigned : 1;				//Atleast 1 client has been assigned an IP.
-			bool eventsRegistered : 1;
-			bool blink : 1;
-			uint8_t clientCount;
-			IPAddress ip;
-		}accessPoint;
-	}wifi;
-	struct {
-		bool enabled : 1;
-		bool connected : 1;
-		bool missingRequiredInfo : 1;
-		bool subscribed : 1;
-		bool devicesConfigured : 1;
-		bool publishingDisabled : 1;
-		bool serverSet : 1;
-		//bool canPublishErrors : 1;
-		uint32_t connectAttempts;
-		unsigned long nextPublish;
-		unsigned long nextDisplayMessages;
-		unsigned long nextPublishAvailability;
-		unsigned long nextMqttConnectAttempt;
-		unsigned long nextWarningBlink;
-		MqttDevicesStatus_t devices;
-		struct {
-			IPAddress ip;
-			uint8_t ipIndex;
-			//uint8_t totalAttemptsCounter;		//How many IP's have tried to connect?
-			uint8_t currentAttemptsCounter;
-			uint8_t maxRetries;
-			wifi_mode_t mode : 2;
-			bool triedRetainedIP : 1;
-			bool triedConfigStation : 1;
-			bool triedConfigAP : 1;
-			bool stationAutoExhausted : 1;
-			bool accessPointAutoExhausted : 1;
-			bool changed : 1;
-			bool autoDetectingStation : 1;
-		}ipStatus;
-	}mqtt;
-	struct {
-		bool fsMounted : 1;						//Was the file system successfully mounted?
-		bool eepromMounted : 1;
-	}storage;
-	struct {
-		bool ableToBackupEeprom : 1;			//Is the config file small enough to fit on the EEPROM?
-		bool backupsDisabled : 1;
-		bool eepromBackedUp : 1;				//A backup has been saved to the EEPROM since the last time settings were changed.
-		bool filesystemBackedUp : 1;			//A backup has been saved to the File System since the last time settings were changed.
-	}backup;
-	struct {
-		bool enabled : 1;
-		bool configured : 1;
-		bool authenticated : 1;
-		bool authConfigured : 1;
-		bool specialRequestsConfigured : 1;
-		IPAddress clientIP;
-		UpdateMode updating;
-		unsigned long sessionEnd;
-		struct {
-			bool enabled : 1;
-			bool configured : 1;
-		}dns;
-		struct {
-			bool enabled : 1;
-			bool configured : 1;
-			struct {
-				bool enabled : 1;
-				bool configured : 1;
-			}console;
-			struct {
-				bool enabled : 1;
-				bool configured : 1;
-			}configBrowser;
-			struct {
-				bool enabled : 1;
-				bool configured : 1;
-			}mqttConfigBrowser;
-			struct {
-				bool enabled : 1;
-				bool configured : 1;
-				bool updating : 1;
-			}updater;
-			struct {
-				struct {
-					bool enabled : 1;
-					bool configured : 1;
-				}fileEditor;
-				struct {
-					bool enabled : 1;
-					bool configured : 1;
-				}jsonVerify;
-			}tools;
-		}browser;
-		struct {
-			bool enabled : 1;
-		}ftp;
-		struct {
-			bool enabled : 1;
-			bool configured : 1;
-			bool updating : 1;
-		}ota;
-	}server;
-	struct {
-		bool developerMode : 1;					//Developer mode is only compiled if the definition is true, but can still be disabled at runtime.
-	}misc;
-}DeviceStatus_t;
-
-typedef struct {
-	uint32_t bootFile;
-	uint32_t configPath;
-	uint32_t configFile;
-	uint32_t recentBackup;
-	uint32_t fileSystemBackupFile;
-	uint32_t eepromBackupFile;
-}Crcs_t;
-
-typedef struct {
-	size_t recentBackup;		//Size of the most recent backup.
-	size_t fileSystemBackup;	//Size of the backup on the file system
-	size_t eepromBackup;		//Size of the backup on the EEPROM.
-}FileSizes_t;
+#pragma endregion
 
 
-typedef struct {
-	Boot_bm boot;
-	//char lastConfigPath[CONFIG_PATH_MAX_LENGTH];
-	Crcs_t crcs;
-	FileSizes_t fileSizes;
-	struct {
-		//char ip[16];				//Last IP that was able to connect.
-		IPAddress ip;
-	}mqtt;
-}StatusRetained_t;
 
-typedef union {
-	struct {
-		BootMonitor_bm boot;
-		//bool eepromBackup : 1;
-		//bool filesystemBackup : 1;
-		//bool lastConfigPath : 1;
-		struct {
-			bool bootFile : 1;
-			bool configPath : 1;
-			bool configFile : 1;
-			bool recentBackup : 1;
-			bool fileSystemBackupFile : 1;
-			bool eepromBackupFile : 1;
-		}crcs;
-		struct {
-			bool recentBackup : 1;
-			bool fileSystemBackup : 1;
-			bool eepromBackup : 1;
-		}fileSizes;
-		struct {
-			bool ip : 1;				//Last IP that was able to connect.
-		}mqtt;
-	};
-	uint32_t bitmap;
-}StatusRetainedMonitor_t;
 
+/// <summary>
+/// Used to select which parts of the config will be updated.
+/// (Unused)
+/// </summary>
 typedef union
 {
 	struct {

@@ -66,7 +66,7 @@ extern FTPServer ftpServer;
 
 extern PubSubClient mqttClient;
 extern Config_t config;
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 
 
 
@@ -95,7 +95,7 @@ namespace Network {
 		OTA::Initialize();
 #endif
 
-		if (config.server.ftp.enabled || status.wifi.configMode)
+		if (config.server.ftp.enabled || status.device.configMode)
 		{
 			Network::FTP::Construct();
 			Network::FTP::SetTimeout(config.server.ftp.timeout);
@@ -153,7 +153,7 @@ namespace Network {
 
 		//status.server.browser.configBrowser.enabled = false;
 		//status.server.browser.console.enabled = false;
-		//status.server.browser.mqttConfigBrowser.enabled = false;
+		//status.server.browser.mqttDevices.enabled = false;
 		//status.server.browser.updater.enabled = false;
 		//status.server.browser.tools.fileEditor.enabled = false;
 		//status.server.browser.tools.jsonVerify.enabled = false;
@@ -161,7 +161,7 @@ namespace Network {
 		//status.server.browser.configBrowser.configured = false;
 		//status.server.browser.console.configured = false;
 		//status.server.browser.home.configured = false;
-		//status.server.browser.mqttConfigBrowser.configured = false;
+		//status.server.browser.mqttDevices.configured = false;
 		//status.server.browser.updater.configured = false;
 		//status.server.browser.tools.fileEditor.configured = false;
 		//status.server.browser.tools.jsonVerify.configured = false;
@@ -178,6 +178,7 @@ namespace Network {
 		Network::FTP::Loop();
 		Network::OTA::Loop();
 
+		if(status.server.authenticated)
 		if (status.server.sessionEnd != 0)
 			if (millis() > status.server.sessionEnd)
 				Authentication::Logout();

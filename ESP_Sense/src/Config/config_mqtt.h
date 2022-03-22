@@ -3,6 +3,9 @@
 #include <WiFi.h>
 #include "../GlobalDefs.h"
 
+
+#define TOTAL_MQTT_DEVICE_TYPES	2 //Sensors and BinarySensors are only types currently supported.
+
 //////////////////////////////////////////////////////
 //					Broker Settings
 //////////////////////////////////////////////////////
@@ -145,20 +148,34 @@ typedef struct {
 	uint64_t bitmap3;
 }DevicesFunctioning_t;
 
-#pragma region Config Structures
+//typedef struct {
+//	const char* name;
+//	const char* key;
+//	device_count_t count;
+//}MqttDeviceTypeInfo_t;
 
 typedef struct {
 	uint32_t subscribedCount;
 	uint32_t enabledCount;
 	uint32_t deviceCount;
+	//MqttDeviceTypeInfo_t sensors;
+	//MqttDeviceTypeInfo_t binarySensors;
+	//MqttDeviceTypeInfo_t buttons;
+	//MqttDeviceTypeInfo_t switches;
+	//MqttDeviceTypeInfo_t lights;
 	device_count_t buttonCount;
 	device_count_t switchCount;
 	device_count_t lightCount;
 	device_count_t sensorCount;
 	device_count_t binarySensorCount;
-	DevicesFunctioning_t functioningDevices;
-	DevicesFunctioning_t functioningDevicesImportant;
+	DevicesFunctioning_t errorBitmap;
+	DevicesFunctioning_t errorBitmapImportant;
 }MqttDevicesStatus_t;
+
+
+
+#pragma region Config Structures
+
 #warning reminder to remove json or individual
 typedef struct {
 	uint16_t bufferSize;
@@ -167,7 +184,7 @@ typedef struct {
 	uint16_t availabilityRate;
 	bool json;
 	bool onIndividualTopics;
-	String unknownPayload;
+	//String unknownPayload;
 }MqttPublishConfig_t;
 
 typedef struct {
@@ -292,3 +309,39 @@ typedef union {
 	uint64_t bitmap;
 }MqttConfigMonitor_t;
 #pragma endregion
+
+typedef struct {
+	IPAddress ip;
+	uint8_t ipIndex;
+	//uint8_t totalAttemptsCounter;		//How many IP's have tried to connect?
+	uint8_t currentAttemptsCounter;
+	uint8_t maxRetries;
+	wifi_mode_t mode : 2;
+	bool triedRetainedIP : 1;
+	bool triedConfigStation : 1;
+	bool triedConfigAP : 1;
+	bool stationAutoExhausted : 1;
+	bool accessPointAutoExhausted : 1;
+	bool changed : 1;
+	bool autoDetectingStation : 1;
+}GlobalMqttIpStatus_t;
+
+typedef struct {
+	bool enabled : 1;
+	bool connected : 1;
+	bool missingRequiredInfo : 1;
+	bool subscribed : 1;
+	bool devicesConfigured : 1;
+	bool publishingDisabled : 1;
+	bool serverSet : 1;
+	//bool canPublishErrors : 1;
+	uint32_t connectAttempts;
+	unsigned long nextPublish;
+	unsigned long nextDisplayMessages;
+	unsigned long nextPublishAvailability;
+	unsigned long nextMqttConnectAttempt;
+	unsigned long nextWarningBlink;
+	MqttDevicesStatus_t devices;
+	GlobalMqttIpStatus_t ipStatus;
+}GlobalMqttStatus_t;
+

@@ -24,6 +24,18 @@ class Llc200d3sh_Sensor : public MqttBinarySensor
 {
 public:
 
+	static const char* deviceName;		//Used for print statements
+	static const char* deviceKey;		//Used for keys, and filtering
+
+	const char* DeviceName() override
+	{
+		return deviceName;
+	}
+	const char* DeviceKey() override
+	{
+		return deviceKey;
+	}
+
 #pragma region Global Variables 
 
 	/// <summary>
@@ -76,9 +88,18 @@ public:
 		return &mqttBinarySensorBaseTopic;
 	}
 
-	Llc200d3sh_Sensor(const char* _name, int _index) : MqttBinarySensor(_name, _index) {}
+	Llc200d3sh_Sensor(const char* _name, int _index, int _subIndex) : MqttBinarySensor(_name, _index, _subIndex) 
+	{
+		ResetStatus();
+	}
 
 #pragma region MqttDevice Functions
+
+	virtual void ResetStatus() override
+	{
+		memset(&uniqueStatus, 0, sizeof(Llc200d3sh_Status_t));
+		MqttBinarySensor::ResetStatus();
+	}
 
 	//bool Configure() override;
 
@@ -93,15 +114,23 @@ public:
 
 	bool Enable() override
 	{
+		if (!deviceStatus.initialized)
+		{
+			if (!Init())
+				return false;
+		}
+
 		if (!deviceStatus.configured) return false;
 
-		deviceStatus.enabled = true;
+		MqttDevice::Enable();
 	}
 
 	bool Subscribe() override;
 	bool Unsubscribe() override;
-	//bool Publish() override;
-	String GenerateJsonPayload() override;
+
+	void AddStatePayload(JsonVariant& addTo, bool nest = true) override;			//Payload for MQTT state topic
+	void AddStatusData(JsonVariant& addTo) override;								//device, binary/sensor/ect.., and unique status
+	void AddConfigData(JsonVariant& addTo) override;								//device, binary/sensor/ect.., and unique config
 
 	int ReceiveCommand(char* topic, byte* payload, size_t length) override;
 
@@ -163,6 +192,20 @@ private:
 };
 
 
+#pragma region JSON UDFs
+
+
+
+//bool canConvertFromJson(JsonVariantConst src, const Llc200d3sh_Config_t&);
+void convertFromJson(JsonVariantConst src, Llc200d3sh_Config_t& dst);
+bool convertToJson(const Llc200d3sh_Config_t& src, JsonVariant dst);
+
+//bool canConvertFromJson(JsonVariantConst src, const Llc200d3sh_Status_t&);
+void convertFromJson(JsonVariantConst src, Llc200d3sh_Status_t& dst);
+bool convertToJson(const Llc200d3sh_Status_t& src, JsonVariant dst);
+
+
+#pragma endregion
 
 
 #endif

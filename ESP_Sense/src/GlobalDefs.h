@@ -1,11 +1,30 @@
 #pragma once
 
+#include <Arduino.h>
+#include <ArduinoJson.h>
+#include <ArduinoJson.hpp>
+
 #include <WiFi.h>
+
+typedef int EnumClass_t;
+
+typedef struct {
+	uint8_t major;
+	uint8_t minor;
+	uint16_t revision;
+}Version_t;
 
 enum class UpdateMode {
 	ESP_UPDATE_NULL,
 	ESP_UPDATE_WEB,
 	ESP_UPDATE_OTA	
+};
+
+/*Unsupported ATM*/
+enum class OtaRollbackMode {
+	ROLLBACK_NONE,			//No option to rollback, if firmware fails, device will need to be flashed via USB.
+	ROLLBACK_AUTO,			//Firmware will cancel rollback after running for n seconds after setup complete. *(If MQTT does not connect, manual option will be necessary)
+	ROLLBACK_MANUAL			//User will have to use browser to accept new firmware as valid.
 };
 
 typedef struct {
@@ -32,8 +51,8 @@ enum class ConfigSource
 	CFG_DEFAULT = 0b00,				//Default source, used to determine when it hasn't been changed.
 	CFG_FILESYSTEM = 0b01,
 	CFG_EEPROM = 0b10,
-	CFG_FIRMWARE = 0b11,			//Firmware defaults
-	CFG_BACKUP_FILESYSTEM = 0b100
+	CFG_BACKUP_FILESYSTEM = 0b11,
+	CFG_FIRMWARE = 0b100			//Firmware defaults
 };
 typedef uint8_t ConfigSource_t;
 
@@ -127,6 +146,7 @@ typedef void (*MQTT_CB)(char* topic, byte* payload, unsigned int length);
 extern const char* config_source_strings[5];
 extern const char* wifi_power_strings[12];
 extern const char* esp_updater_strings[4];
+extern const char* ota_rollbackMode_strings[3];
 extern const char* esp_autobackup_strings[4];
 extern const char* wifi_mode_strings[4];
 extern const char* uart_parity_strings[3];
@@ -136,3 +156,4 @@ extern wifi_power_t wifi_power_values[12];
 extern UART_DATABITS uart_databits_values[4];
 extern UART_PARITY uart_parity_values[3];
 extern UART_STOPBITS uart_stopbits_values[2];
+

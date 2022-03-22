@@ -5,6 +5,8 @@
 
 #include <Arduino.h>
 
+#include <functional>
+
 #include <ArduinoJson.hpp>
 #include <ArduinoJson.h>
 #include <PubSubClient.h>
@@ -13,7 +15,8 @@
 #include "../../Config/config_mqtt.h"
 #include "MqttDevice_Config.h"
 #include "../MqttHelper.h"
-
+#include "MqttDeviceWeb.h"
+#include "../../JsonHelper.h"
 
 //#include <ArduinoJson.hpp>
 //#include <ArduinoJson.h>
@@ -27,6 +30,30 @@
 enum class ecode{EXIT_UNSUPPORTED = -1, EXIT_FAILED = 0, EXIT_OK = 1};
 typedef int8_t ecode_t;
 
+//typedef bool(MqttDevice::* ADD_PAYLOAD_FUNC)(void);
+
+typedef std::function<void(JsonVariant&, bool nest)> ADD_PAYLOAD_FUNC;
+
+enum class MqttDeviceType
+{
+	MQTT_BINARY_SENSOR,
+	MQTT_BUTTON,
+	MQTT_LIGHT,
+	MQTT_SENSOR,
+	MQTT_SWITCH
+};
+
+enum class DeviceState
+{
+	DEVICE_OK,				//Functioning and publishing
+	DEVICE_DISABLED,		//Functioning but publishing disabled
+	DEVICE_ERROR,			//Not functioning
+	DEVICE_PERMANENT_OFF	//Disabled until next reset.
+};
+typedef uint8_t DeviceState_t;
+
+extern const char* device_state_strings[3];
+
 /// <summary>
 /// Topics used by individual devices.
 /// </summary>
@@ -36,11 +63,17 @@ typedef struct {
 }MqttDeviceTopics_t;
 
 typedef struct {
+	bool hostWebsite : 1;
+	bool configurable : 1;
+}MqttDeviceWebConfig_t;
+
+typedef struct {
 	bool useDefaults : 1;
 	bool initiallyEnabled : 1;			//Enabled by default.
 	bool useGlobalConfig : 1;
 	bool important : 1;			//Is the MQTT device required for proper functioning?
-	uint8_t reserved : 5;
+	uint8_t reserved : 4;
+	MqttDeviceWebConfig_t website;
 }MqttDeviceConfig_t;
 
 typedef struct {
@@ -48,7 +81,11 @@ typedef struct {
 	bool initiallyEnabled : 1;
 	bool useGlobalConfig : 1;
 	bool important : 1;
-	uint8_t reserved : 6;
+	uint8_t reserved : 4;
+	struct {
+		bool hostWebsite : 1;
+		bool configurable : 1;
+	}website;
 }MqttDeviceConfigMonitor_t;
 
 typedef struct {
@@ -65,16 +102,25 @@ typedef struct {
 	bool useParentTopics : 1;
 }MqttDeviceMqttSettingsMonitor_t;
 
+//typedef struct {
+//	bool enabled : 1;
+//	bool configured : 1;
+//}MqttDeviceWebpageStatus_t;
+
 typedef struct {
 	struct {
+		bool initialized : 1;
 		bool configured : 1;
 		bool enabled : 1;
+		DeviceState_t state : 2;
 		bool subscribed : 1;
 		bool markedDisconnected : 1;
-		uint8_t reserved : 4;
+		bool configModified : 1;			//Has its config been modified during runtime?
+		uint8_t reserved : 1;
 	};
 	unsigned long publishTimestamp;
 	unsigned long publishErrorTimestamp;
+	//MqttDeviceWebpageStatus_t web;
 }MqttDeviceStatus_t;
 
 typedef struct {
@@ -84,13 +130,10 @@ typedef struct {
 	};
 }MqttDeviceGlobalStatus_t;
 
-typedef struct {
-	bool enabled : 1;
-	bool configured : 1;
-}MqttDeviceWebpageStatus_t;
+
 
 extern Config_t config;
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 extern PubSubClient mqttClient;
 
 class MqttDevice
@@ -105,12 +148,24 @@ public:
 	/// <summary>
 	/// Index of the MQTT device for the specific type. (Binary Sensor, Sensor, ect...)
 	/// </summary>
-	uint8_t indexType;
+	uint8_t subTypeIndex;
 
 	/// <summary>
 	/// Custom name for the MQTT device.
 	/// </summary>
 	String name;
+	
+	///// <summary>
+	///// Name of the IC or feature.
+	///// *Make pointer, and store string in device type's global config.
+	///// </summary>
+	//String deviceName;
+
+	virtual const char* DeviceName() = 0;
+	virtual const char* DeviceKey() = 0;
+	virtual const char* DeviceTypeName() = 0;
+	virtual const char* DeviceTypeKey() = 0;
+	//virtual device_count_t* GetDeviceTypeCount() = 0;
 
 	/// <summary>
 	/// MQTT Device Configuration
@@ -130,7 +185,14 @@ public:
 	MqttDeviceTopics_t deviceTopics;
 
 	MqttDeviceStatus_t deviceStatus;
-	MqttDeviceWebpageStatus_t webpageStatus;
+	
+
+	MqttDeviceWeb* website = nullptr;
+
+protected:
+	DynamicJsonDocument* document = nullptr;	//Change to non pointer? Document contains pointer to data, may be no benefits to using pointer.
+	JsonVariant documentRoot;
+public:
 
 	virtual const char* GetConfigFilePath() = 0;
 	virtual const char* GetConfigFileName() = 0;
@@ -140,28 +202,37 @@ public:
 	virtual String* GetParentBaseTopic() = 0;
 
 
-	MqttDevice(const char* _name, int _index)
+	MqttDevice(const char* _name, int _index, int _subIndex)
 	{
 		//strlcpy(name, _name, NAME_MAX_LENGTH);
 		name = _name;
 		index = _index;
+		subTypeIndex = _subIndex;
+		document = nullptr;
+		website = nullptr;
+		ResetStatus();
 	}
 
 
-	virtual bool Init(bool enable = true);
+	virtual bool Init();
 
 	virtual void ResetStatus();
 
-	virtual void Loop() {return;}
-	virtual bool Configure() { return true; }			//Requires no configuration
+	virtual void Loop();
+	virtual bool Configure() { deviceStatus.configured = true; MarkFunctionalBitmap(); return true; }			//Requires no configuration
 	virtual bool Reconfigure() { return Configure(); }
-	virtual void Denit() {return;}
+	virtual void Denit() { /*website->Deinitialize();*/  return; }
 
-	virtual void MarkDisconnected();
-	virtual void MarkReconnected();
-
+	virtual bool IsFunctional();
+	virtual bool MarkFunctionalBitmap();
+protected:
+	virtual void MarkNonFunctional();
+	virtual void MarkFunctional();
+public:
 	virtual bool Enable();
 	virtual bool Disable();
+
+	virtual void SetDeviceState();
 
 	virtual bool Subscribe();
 	virtual bool Unsubscribe();
@@ -171,22 +242,63 @@ public:
 	virtual bool PublishDisabled();
 	static bool PublishDisabled(const char* topic);
 
-	virtual String GenerateJsonPayload() = 0;
+	virtual bool ParseConfigFromWeb(String& jsonData) { return false; };
+	virtual bool SaveConfig() = 0;	//Save config to file.
 
-	//virtual String GenerateStatusJsonPayload() = 0;
+
+	//virtual int SetConfig(JsonDocument& doc);		//Set config with data from web
+	//virtual String GenerateJsonConfig() = 0;		//Generate config data as string.
+
+	String GenerateJsonData(ADD_PAYLOAD_FUNC, const char* dataType, bool nest = true);
+	virtual String GenerateJsonStatePayload(bool nest = true);
+	String GenerateJsonStatus();
+	String GenerateJsonConfig();
+	String GenerateJsonTopics();
+	String GenerateJsonAll();
+
+	virtual bool CreateJsonDocument();
+	bool FreshJsonDocument();
+	void FreeJsonDocument();
+	bool IsDocumentCreated(bool create = true);
+	size_t SerializeDocument(String* out_string, bool freeDoc = true);
+	size_t StreamDocument(AsyncWebServerRequest* request);
+
+	virtual void AddStatePayload(JsonVariant& addTo, bool nest = true) = 0;		//Payload for MQTT state topic
+	virtual void AddStatusData(JsonVariant& addTo);								//device, binary/sensor/ect.., and unique status
+	virtual void AddConfigData(JsonVariant& addTo);								//device, binary/sensor/ect.., and unique config
+	virtual void AddTopicsData(JsonVariant& addTo);								//
 
 //protected:
 	//virtual bool GenerateStatusJsonPayload(JsonDocument& doc);	//Adds deviceStatus to a json string (each overloading function should call its parent) 
 
-	virtual bool InitWebpage() { return true; }								//Start hosting configuration webpage
-	virtual void StopHostingWebpage() { webpageStatus.enabled = false; }	//Stop hosting configuration webpage
-	virtual void DenitWebpage() {}
+	virtual bool InitWebpage();									//Start hosting configuration webpage
+	virtual void DenitWebpage();
 
 	/// <summary>
 	/// Receive MQTT command.
 	/// </summary>
 	/// <returns></returns>
 	virtual int ReceiveCommand(char* topics, byte* payload, size_t length) { return -1; }	//Not supported
+
+	virtual MqttDeviceType GetDeviceType() = 0;
+
+	//MqttDeviceType GetDeviceType()
+	//{
+	//	MqttBinarySensor* binarySensor = dynamic_cast<MqttBinarySensor*>(this);
+	//	if (binarySensor != nullptr) return MqttDeviceType::MQTT_BINARY_SENSOR;
+
+	//	//MqttButton* button = dynamic_cast<MqttButton*>(this);
+	//	//if (button != nullptr) return MqttDeviceType::MQTT_BUTTON;
+
+	//	MqttSensor* sensor = dynamic_cast<MqttSensor*>(this);
+	//	if (sensor != nullptr) return MqttDeviceType::MQTT_SENSOR;
+
+	//	//MqttLight* light = dynamic_cast<MqttLight*>(this);
+	//	//if (light != nullptr) return MqttDeviceType::MQTT_LIGHT;
+
+	//	//MqttSwitch* mqttSwitch = dynamic_cast<MqttSwitch*>(this);
+	//	//if (mqttSwitch != nullptr) return MqttDeviceType::MQTT_SWITCH;
+	//}
 
 //protected:
 
@@ -297,8 +409,55 @@ public:
 
 	//static void ReadConfigMqttTopics(JsonObject& topicsObj, MqttTopics_t& topics, MqttDeviceTopics_t& deviceTopics, String& baseTopic, const char* defaultDeviceBase, String& parentBase);
 
+	
+
 #pragma endregion
 };
+
+
+#pragma region JSON UDFs
+
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttDeviceType&);
+void convertFromJson(JsonVariantConst src, MqttDeviceType& dst);
+bool convertToJson(const MqttDeviceType& src, JsonVariant dst);
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttDeviceTopics_t&);
+void convertFromJson(JsonVariantConst src, MqttDeviceTopics_t& dst);
+bool convertToJson(const MqttDeviceTopics_t& src, JsonVariant dst);
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttDeviceConfig_t&);
+void convertFromJson(JsonVariantConst src, MqttDeviceConfig_t& dst);
+bool convertToJson(const MqttDeviceConfig_t& src, JsonVariant dst);
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttDeviceStatus_t&);
+//void convertFromJson(JsonVariantConst src, MqttDeviceStatus_t& dst);
+bool convertToJson(const MqttDeviceStatus_t& src, JsonVariant dst);
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttDeviceWebConfig_t&);
+void convertFromJson(JsonVariantConst src, MqttDeviceWebConfig_t& dst);
+bool convertToJson(const MqttDeviceWebConfig_t& src, JsonVariant dst);
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttDeviceMqttSettings_t&);
+void convertFromJson(JsonVariantConst src, MqttDeviceMqttSettings_t& dst);
+bool convertToJson(const MqttDeviceMqttSettings_t& src, JsonVariant dst);
+
+//bool canConvertFromJson(JsonVariantConst src, const MqttDeviceGlobalStatus_t&);
+//void convertFromJson(JsonVariantConst src, MqttDeviceGlobalStatus_t& dst);
+bool convertToJson(const MqttDeviceGlobalStatus_t& src, JsonVariant dst);
+
+////bool canConvertFromJson(JsonVariantConst src, const MqttDeviceWebpageStatus_t&);
+//void convertFromJson(JsonVariantConst src, MqttDeviceWebpageStatus_t& dst);
+//bool convertToJson(const MqttDeviceWebpageStatus_t& src, JsonVariant dst);
+
+
+//bool canConvertFromJson(JsonVariantConst src, const DeviceState&);
+//void convertFromJson(JsonVariantConst src, DeviceState& dst);
+bool convertToJson(const DeviceState& src, JsonVariant dst);
+
+#pragma endregion
+
+
 
 
 #endif

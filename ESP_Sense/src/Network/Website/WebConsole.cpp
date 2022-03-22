@@ -7,7 +7,7 @@
 
 extern AsyncWebServer server;
 extern Config_t config;
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 
 
 void Network::Website::Console::Initialize()
@@ -30,7 +30,7 @@ void Network::Website::Console::Initialize()
 #if COMPILE_SERVER_CONSOLE
 	server.on(Strings::Urls::pageConsole, HTTP_GET, [](AsyncWebServerRequest* request) {
 		if (!status.server.authenticated)
-			Network::Server::Server401(request);
+			Network::Server::Server511(request);
 
 		else if (status.server.browser.console.enabled)
 			Network::Server::ServeWebpage(Network::Website::Strings::Urls::pageConsole, request);

@@ -19,7 +19,10 @@
 
 
 extern PubSubClient mqttClient;
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
+
+const char* Sht4xSensor::deviceName = "SHT4x";
+const char* Sht4xSensor::deviceKey = "sht4x";
 
 MqttDeviceConfig_t Sht4xSensor::globalDeviceConfig;
 MqttDeviceConfigMonitor_t Sht4xSensor::globalDeviceConfigMonitor;
@@ -34,16 +37,16 @@ MqttDeviceGlobalStatus_t Sht4xSensor::globalDeviceStatus;
 
 #pragma region MqttDevice Functions
 
-bool Sht4xSensor::Init(bool enable)
+bool Sht4xSensor::Init()
 {
 	if (!status.device.i2cInitialized)
 		if (!EspSense::InitializeI2C())
 			return false;
 
-	if (!status.mqtt.devicesConfigured)
-	memset(&uniqueStatus, 0, sizeof(SHT4xStatus_t));
+	//if (!status.mqtt.devicesConfigured)
+	//memset(&uniqueStatus, 0, sizeof(SHT4xStatus_t));
 
-	return MqttSensor::Init(enable);
+	return MqttSensor::Init();
 	//memset(&deviceStatus, 0, sizeof(MqttDeviceStatus_t));
 	//memset(&sensorStatus, 0, sizeof(MqttSensorStatus_t));
 
@@ -53,25 +56,14 @@ bool Sht4xSensor::Init(bool enable)
 	//return false;
 }
 
-//void Sht4xSensor::Loop()
-//{
-//	if (!deviceStatus.enabled) return;
-//
-//	if (!sensorStatus.connected)
-//	{
-//		if (Connect())
-//		{
-//			MarkReconnected();
-//			if (deviceStatus.configured)
-//				DEBUG_LOG_F(MQTT_DMSG_RECONNECTED, name.c_str());
-//		}
-//
-//		//if (!deviceStatus.configured)
-//		//	Configure();
-//
-//		return;
-//	}
-//}
+
+void Sht4xSensor::Loop()
+{
+	if (!deviceStatus.initialized)
+		return;
+
+	MqttSensor::Loop();
+}
 
 bool Sht4xSensor::Configure()
 {
@@ -102,9 +94,23 @@ bool Sht4xSensor::Configure()
 	return true;
 }
 
+bool Sht4xSensor::Enable()
+{
+	MqttDevice::Enable();
+
+	if (!sensorStatus.connected)
+		if (!Connect())
+			return false;
+
+	return deviceStatus.enabled;
+}
+
 
 bool Sht4xSensor::Subscribe()
 {
+	deviceStatus.subscribed = true;
+	return true;
+
 	return MqttDevice::Subscribe();
 
 	//#warning  Also remember about the useParents settings.
@@ -121,6 +127,8 @@ bool Sht4xSensor::Subscribe()
 }
 bool Sht4xSensor::Unsubscribe()
 {
+	deviceStatus.subscribed = false;
+	return true;
 	return MqttDevice::Unsubscribe();
 
 	//if (deviceMqttSettings.json)
@@ -141,17 +149,14 @@ bool Sht4xSensor::Unsubscribe()
 //	return mqttClient.publish(topics.availability.c_str(), Mqtt::Helper::GetAvailabilityString(sensorStatus.connected).c_str());
 //}
 
-String Sht4xSensor::GenerateJsonPayload()
-{
-	DEBUG_LOG_F("...Generating %s(SHT4x) JSON Data :\r\n", name.c_str());
 
-	String jdata;
-	StaticJsonDocument<128> doc;
-	JsonObject obj = doc.createNestedObject(name);
+void Sht4xSensor::AddStatePayload(JsonVariant& addTo, bool nest)
+{
+	JsonVariant obj = nest ? addTo.getOrAddMember("statePayload") : addTo;
 
 	if (uniqueConfig.mqtt.publishTemperature)
 	{
-		JsonVariant temp = obj.createNestedObject("temp");
+		JsonVariant temp = obj.getOrAddMember("temp");
 
 		if (sensorStatus.connected)
 			temp.set(measurementData.temperature.temperature);
@@ -161,20 +166,27 @@ String Sht4xSensor::GenerateJsonPayload()
 
 	if (uniqueConfig.mqtt.publishHumdiity)
 	{
-		JsonVariant humidity = obj.createNestedObject("humidity");
+		JsonVariant humidity = obj.getOrAddMember("humidity");
 
 		if (sensorStatus.connected)
 			humidity.set(measurementData.humidity.relative_humidity);
 		else
 			humidity.set(SENSOR_DATA_UNKNOWN);
 	}
-
-	serializeJson(doc, jdata);
-
-	DEBUG_LOG_LN(jdata.c_str());
-
-	return jdata;
 }
+
+//void Sht4xSensor::AddStatusData(JsonVariant& addTo)
+//{
+//	MqttSensor::AddStatusData(addTo);
+//	addTo["uniqueStatus"].set<SHT4xStatus_t>(uniqueStatus);
+//}
+
+void Sht4xSensor::AddConfigData(JsonVariant& addTo)
+{
+	MqttDevice::AddConfigData(addTo);
+	addTo["uniqueConfig"].set<Sht4xConfig_t>(uniqueConfig);
+}
+
 
 int Sht4xSensor::ReceiveCommand(char* topic, byte* payload, size_t length)
 {
@@ -424,7 +436,13 @@ void Sht4xSensor::ReadConfigObjectUnique(JsonVariantConst& sht4xObject, Sht4xCon
 
 bool Sht4xSensor::Connect()
 {
-	if (sensorStatus.connected) return true;
+	DEBUG_LOG_F("%s Connecting...", name.c_str());
+
+	if (sensorStatus.connected)
+	{
+		DEBUG_LOG_LN("Already Connected.");
+		return true;
+	}
 
 	//Connect to SHT4x
 	if (sensor.begin())
@@ -453,6 +471,8 @@ bool Sht4xSensor::Connect()
 
 bool Sht4xSensor::IsConnected()
 {
+	
+
 	struct {
 		sensors_event_t  temperature;
 		sensors_event_t  humidity;
@@ -465,26 +485,30 @@ bool Sht4xSensor::IsConnected()
 
 	sensorStatus.connected = testData.temperature.temperature != 0;
 
-	if ((currentStatus || !status.mqtt.devicesConfigured) && !sensorStatus.connected)
-	{
-		MarkDisconnected();
+	DEBUG_LOG_F("%s(SHT4x) Connection Status : %d\r\n", name.c_str(), sensorStatus.connected);
 
-		if (deviceStatus.configured)
-			DEBUG_LOG_F(MQTT_DMSG_DISCONNECTED, name.c_str());
+	if (!sensorStatus.connected)
+	{
+		if (currentStatus || !status.mqtt.devicesConfigured)
+		{
+			if (deviceStatus.configured)
+				DEBUG_LOG_F(MQTT_DMSG_DISCONNECTED, name.c_str());
+		}
 	}
 
+	MarkFunctionalBitmap();
 	
 	return sensorStatus.connected;
 }
 
 bool Sht4xSensor::Read()
 {	
-	if (!deviceStatus.enabled) 
+	if (deviceStatus.state != (DeviceState_t)DeviceState::DEVICE_OK)
 		return false;
 
 	if (sensorStatus.connected && deviceStatus.enabled)
 	{
-		DEBUG_LOG_F("Reading %s(SHT40) Measurement...", name.c_str());
+		DEBUG_LOG_F("Reading %s(SHT4x) Measurement...", name.c_str());
 		sensor.getEvent(&measurementData.humidity, &measurementData.temperature);
 		sensorStatus.newData = measurementData.temperature.temperature != 0;
 
@@ -517,63 +541,159 @@ const char* sht4x_precision_strings[3] = { "high" , "med", "low" };
 
 bool canConvertFromJson(JsonVariantConst src, const sht4x_precision&)
 {
-	return JsonParseEnum(src, 7, sht4x_precision_strings, nullptr) != -1;
+	return JsonHelper::JsonParseEnum(src, 7, sht4x_precision_strings, nullptr) != -1;
 }
 
 void convertFromJson(JsonVariantConst src, sht4x_precision& dst)
 {
-	bool success;
-	sht4x_precision parseResult = (sht4x_precision)JsonParseEnum(src, 7, sht4x_precision_strings, nullptr, &success);
-
-	if (success)
-		dst = parseResult;
-	else
-		DEBUG_LOG_LN("sht4x_precision Parsing Failed");
+	JsonHelper::UdfHelperConvertFromJsonEnums(src, (EnumClass_t&)dst, 7, "sht4x_precision", sht4x_precision_strings, nullptr);
 }
 
 bool convertToJson(const sht4x_precision& src, JsonVariant dst)
 {
-#if SERIALIZE_ENUMS_TO_STRING
-	bool set = EnumValueToJson(dst, (uint8_t)src, sht4x_precision_strings, 7);
-#else
-	bool set = dst.set((uint8_t)src);
-#endif
-
-	if (set) return true;
-
-	DEBUG_LOG_LN("sht4x_precision Conversion to JSON failed.");
-	return false;
+	JsonHelper::UdfHelperConvertToJsonEnums((EnumClass_t&)src, dst, 7, "sht4x_precision", sht4x_precision_strings, nullptr);
 }
+
+//void convertFromJson(JsonVariantConst src, sht4x_precision& dst)
+//{
+//	bool success;
+//	sht4x_precision parseResult = (sht4x_precision)JsonHelper::JsonParseEnum(src, 7, sht4x_precision_strings, nullptr, &success);
+//
+//	if (success)
+//		dst = parseResult;
+//	else
+//		DEBUG_LOG_LN("sht4x_precision Parsing Failed");
+//}
+//
+//bool convertToJson(const sht4x_precision& src, JsonVariant dst)
+//{
+//#if SERIALIZE_ENUMS_TO_STRING
+//	bool set = JsonHelper::EnumValueToJson(dst, (uint8_t)src, sht4x_precision_strings, 7);
+//#else
+//	bool set = dst.set((uint8_t)src);
+//#endif
+//
+//	if (set) return true;
+//
+//	DEBUG_LOG_LN("sht4x_precision Conversion to JSON failed.");
+//	return false;
+//}
 
 
 bool canConvertFromJson(JsonVariantConst src, const sht4x_heater&)
 {
-	return JsonParseEnum(src, 7, sht4x_heater_strings, nullptr) != -1;
+	return JsonHelper::JsonParseEnum(src, 7, sht4x_heater_strings, nullptr) != -1;
 }
 
 void convertFromJson(JsonVariantConst src, sht4x_heater& dst)
 {
-	bool success;
-	sht4x_heater parseResult = (sht4x_heater)JsonParseEnum(src, 7, sht4x_heater_strings, nullptr, &success);
-
-	if (success)
-		dst = parseResult;
-	else
-		DEBUG_LOG_LN("sht4x_heater Parsing Failed");
+	JsonHelper::UdfHelperConvertFromJsonEnums(src, (EnumClass_t&)dst, 7, "sht4x_heater", sht4x_heater_strings, nullptr);
 }
 
 bool convertToJson(const sht4x_heater& src, JsonVariant dst)
 {
-#if SERIALIZE_ENUMS_TO_STRING
-	bool set = EnumValueToJson(dst, (uint8_t)src, sht4x_heater_strings, 7);
-#else
-	bool set = dst.set((uint8_t)src);
-#endif
+	JsonHelper::UdfHelperConvertToJsonEnums((EnumClass_t&)src, dst, 7, "sht4x_heater", sht4x_heater_strings, nullptr);
+}
 
-	if (set) return true;
+//void convertFromJson(JsonVariantConst src, sht4x_heater& dst)
+//{
+//	bool success;
+//	sht4x_heater parseResult = (sht4x_heater)JsonHelper::JsonParseEnum(src, 7, sht4x_heater_strings, nullptr, &success);
+//
+//	if (success)
+//		dst = parseResult;
+//	else
+//		DEBUG_LOG_LN("sht4x_heater Parsing Failed");
+//}
+//
+//bool convertToJson(const sht4x_heater& src, JsonVariant dst)
+//{
+//#if SERIALIZE_ENUMS_TO_STRING
+//	bool set = JsonHelper::EnumValueToJson(dst, (uint8_t)src, sht4x_heater_strings, 7);
+//#else
+//	bool set = dst.set((uint8_t)src);
+//#endif
+//
+//	if (set) return true;
+//
+//	DEBUG_LOG_LN("sht4x_heater Conversion to JSON failed.");
+//	return false;
+//}
 
-	DEBUG_LOG_LN("sht4x_heater Conversion to JSON failed.");
-	return false;
+
+//bool canConvertFromJson(JsonVariantConst src, const SHT4xStatus_t&)
+//{
+//	return src.containsKey("") || src.containsKey("");
+//}
+//
+//void convertFromJson(JsonVariantConst src, SHT4xStatus_t& dst)
+//{
+//	JsonVariantConst uniqueStatusObj = src;
+//
+//	if (src.containsKey("uniqueStatus"))
+//		uniqueStatusObj = src["uniqueStatus"];
+//
+//
+//	if (uniqueStatusObj.containsKey("connected"))
+//		dst.connected = uniqueStatusObj["connected"];
+//
+//}
+//
+//bool convertToJson(const SHT4xStatus_t& src, JsonVariant dst)
+//{
+//	dst["connected"] = src.connected;
+//}
+
+//bool canConvertFromJson(JsonVariantConst src, const Scd4xConfig_t&)
+//{
+//	return src.containsKey("internal") || src.containsKey("program");
+//}
+
+void convertFromJson(JsonVariantConst src, Sht4xConfig_t& dst)
+{
+	JsonVariantConst root = src;
+
+	if (src.containsKey("uniqueStatus"))
+		root = src["uniqueStatus"];
+
+
+	if (root.containsKey("internal"))
+	{
+		JsonVariantConst obj = root["internal"];
+
+		if (obj.containsKey("useDefaults"))
+			dst.internal.useDefaults = obj["useDefaults"];
+
+		if (obj.containsKey("heater"))
+			dst.internal.heater = (sht4x_heater_t)(obj["heater"].as<sht4x_heater>());
+
+		if (obj.containsKey("precision"))
+			dst.internal.precision = (sht4x_precision_t)(obj["precision"].as<sht4x_precision>());
+	}
+
+	if (root.containsKey("mqtt"))
+	{
+		JsonVariantConst obj = root["mqtt"];
+
+		if (obj.containsKey("publishHumdiity"))
+			dst.mqtt.publishHumdiity = obj["publishHumdiity"];
+
+		if (obj.containsKey("publishTemperature"))
+			dst.mqtt.publishTemperature = obj["publishTemperature"];
+	}
+
+}
+
+bool convertToJson(const Sht4xConfig_t& src, JsonVariant dst)
+{
+	JsonObject internalObj = dst.createNestedObject("internal");
+	internalObj["useDefaults"] = src.internal.useDefaults;
+	internalObj["heater"].set<sht4x_heater>((sht4x_heater)src.internal.heater);
+	internalObj["precision"].set<sht4x_precision>((sht4x_precision)src.internal.precision);
+
+	JsonObject mqttObj = dst.createNestedObject("mqtt");
+	mqttObj["publishHumdiity"] = src.mqtt.publishHumdiity;
+	mqttObj["publishTemperature"] = src.mqtt.publishTemperature;
 }
 
 #pragma endregion

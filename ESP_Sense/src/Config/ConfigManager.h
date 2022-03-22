@@ -9,6 +9,8 @@
 #include <ArduinoJson.h>
 
 #include "config_master.h"
+#include "global_status.h"
+#include "config_udfs.h"
 
 namespace Config
 {
@@ -39,10 +41,14 @@ namespace Config
 
 	namespace Documents
 	{
+		bool AllocateDocument();
+		bool DeallocateDocument();
 		void LoadBootSettings();
 
 		int CheckConfigCrc(bool saveRetained = false);
 		int CheckConfigPathCrc(bool saveRetained = false);
+
+
 
 		bool LoadConfiguration();
 		void Reconfigure();
@@ -66,25 +72,10 @@ namespace Config
 		bool GenerateBackupPath(const char* path, String* backupPath, String* backupName = nullptr);
 
 		bool DeserializeConfig();
+		bool SetConfigFromDoc();
 		//void SerializeConfig();
 		bool SerializeConfig(JsonDocument* out_doc);
 		size_t SaveConfig();
-
-
-		bool SetConfigFromDoc();
-
-		bool SetDeviceFromDoc();
-		bool SetWifiFromDoc();
-		bool SetMqttFromDoc();
-		//bool SetDocFromDoc();
-#if COMPILE_FTP
-		bool SetFtpFromDoc();
-#endif
-
-#if COMPILE_SERVER
-		bool SetServerFromDoc();
-#endif
-
 
 	}
 
@@ -93,30 +84,36 @@ namespace Config
 		//#warning if config path has changed, should handle saving backups differently.
 		bool SaveBackupConfig(bool fs = true, bool eeprom = true, bool saveRetained = false, size_t* out_sizeFileSystem = nullptr, size_t* out_sizeEeprom = nullptr);
 		bool AutoSaveBackupConfig(bool saveRetained = false, size_t* out_sizeFileSystem = nullptr, size_t* out_sizeEeprom = nullptr);
-		size_t SaveBackupEeprom(bool saveRetained = false);
-		size_t SaveBackupEeprom(JsonDocument* doc, bool saveRetained = false, const uint32_t crc = 0);
-		size_t SaveBackupFilesystem(bool saveRetained);
-		size_t SaveBackupFilesystem(JsonDocument* doc, bool saveRetained = false, const uint32_t crc = 0);
-		bool DeserializeEepromBackupConfig();
+		bool SaveBackupEeprom(JsonDocument* doc, bool saveRetained = false, const uint32_t crc = 0, size_t* out_size = nullptr, bool isFullBackup = false);
+		bool SaveBackupFilesystem(JsonDocument* doc, bool saveRetained = false, const uint32_t crc = 0, size_t* out_size = nullptr, bool isFullBackup = false);
+		bool DeserializeEepromBackupConfig(JsonDocument& doc);
 
 		void DisableBackups();
 		void EnableBackups();
-		void SetBackupExistFlags();
+		void SetBackupFlags();
+		void SetConfigCRCs();
 	}
 
 
 	namespace Status
 	{
 		/// <summary>
-		/// Serializes the device status structure to a String.
+		/// Adds status(GlobalStatus_t) and statusRetained (RetainedStatus_t) into a JSON document.
 		/// </summary>
-		/// <param name="serializeTo">String to serialize in to.</param>
-		/// <param name="pretty">True will serialize to human readable form(Newlines, tabs, ect..), false will serialize all to a single line.</param>
-		/// <param name="out_doc">Get the serialized JsonDocument after serialization. Warning : Must free if used.</param>
-		/// <returns>Size of the serialized document.</returns>
-		size_t SerializeDeviceStatus(String& serializeTo, DynamicJsonDocument** out_doc = nullptr);
+		int PackDeviceStatus(JsonVariant& obj);
 
-		bool SaveRetainedStatus();
+		///// <summary>
+		///// Serializes the device status structure to a String.
+		///// If you do not wish to serialize at this time, pass nullptr to "serializeTo", but you must pass a document pointer to "out_doc".
+		///// </summary>
+		///// <param name="serializeTo">String to serialize to. If nullptr the document will not be serialized(must pass out_doc).</param>
+		///// <param name="pretty">True will serialize to human readable form(Newlines, tabs, ect..), false will serialize all to a single line.</param>
+		///// <param name="out_doc">Get the serialized JsonDocument after serialization. Warning : Must free if used.</param>
+		///// <returns>Size of the serialized document.</returns>
+		//size_t SerializeDeviceStatus(String* serializeTo, DynamicJsonDocument** out_doc = nullptr);
+		//size_t SerializeDeviceStatus(DynamicJsonDocument** out_doc);
+
+		bool SaveRetainedStatus(bool force = false);
 
 		bool SetRetainedConfigPath(bool saveRetained = false);
 	}
@@ -128,12 +125,13 @@ namespace Config
 	void FactoryReset(bool format = true, bool restart = true, bool keepConnectionSettings = true, bool overwriteConfig = false);
 
 
-	namespace Parsers
-	{
-		void ParseSerialPort(JsonObject& portObj, SerialPortConfig_t& port, SerialPortConfigMonitor_t& portMonitor);
-	}
 
 }
+
+
+
+
+
 #endif
 
 

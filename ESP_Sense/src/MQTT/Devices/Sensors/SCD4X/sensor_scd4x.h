@@ -13,6 +13,7 @@
 #include <SensirionI2CScd4x.h>
 
 #include "../../../../Config/config_master.h"
+#include "../../../../Config/global_status.h"
 #include "scd4x_config.h"
 
 #include "../../MqttDevice.h"
@@ -25,6 +26,18 @@
 class Scd4xSensor : public MqttSensor
 {
 public:
+
+	static const char* deviceName;		//Used for print statements
+	static const char* deviceKey;		//Used for keys, and filtering
+
+	const char* DeviceName() override
+	{
+		return deviceName;
+	}
+	const char* DeviceKey() override
+	{
+		return deviceKey;
+	}
 
 	/// <summary>
 	/// Sensor object which controls the actual sensor.
@@ -58,6 +71,8 @@ public:
 	//static SCD4xSpecialBaseTopics_t globalUniqueBaseTopics;
 
 	static char errorMessage[256];
+
+	//static const char* deviceName;
 
 #pragma endregion
 
@@ -105,18 +120,21 @@ public:
 		return &mqttSensorBaseTopic;
 	}
 
-	Scd4xSensor(const char* _name, int _index) : MqttSensor(_name, _index) {}
+	Scd4xSensor(const char* _name, int _index, int _subIndex) : MqttSensor(_name,  _index, _subIndex) 
+	{ 
+		ResetStatus();
+	}
 
 #pragma region MqttDevice Functions
 
 
-	bool Init(bool enable) override;
+	bool Init() override;
 
-void ResetStatus() override
-{
-	memset(&uniqueStatus, 0, sizeof(SCD4xStatus_t));
-	MqttSensor::ResetStatus();
-}
+	void ResetStatus() override
+	{
+		memset(&uniqueStatus, 0, sizeof(SCD4xStatus_t));
+		MqttSensor::ResetStatus();
+	}
 
 	void Loop() override;
 
@@ -129,7 +147,10 @@ void ResetStatus() override
 	bool Unsubscribe() override;
 	bool Publish() override;
 	//bool PublishAvailability() override;
-	String GenerateJsonPayload() override;
+
+	void AddStatePayload(JsonVariant& addTo, bool nest = true) override;				//Payload for MQTT state topic
+	void AddStatusData(JsonVariant& addTo) override;					//device, binary/sensor/ect.., and unique status
+	void AddConfigData(JsonVariant& addTo) override;					//device, binary/sensor/ect.., and unique config
 
 	int ReceiveCommand(char* topic, byte* payload, size_t length) override;
 
@@ -303,11 +324,17 @@ private:
 #pragma region Json UDFs
 
 extern const char* scd4x_powermode_strings[2];
-bool canConvertFromJson(JsonVariantConst src, const SCD4x_PowerMode&);
-
+//bool canConvertFromJson(JsonVariantConst src, const SCD4x_PowerMode&);
 void convertFromJson(JsonVariantConst src, SCD4x_PowerMode& dst);
-
 bool convertToJson(const SCD4x_PowerMode& src, JsonVariant dst);
+
+//bool canConvertFromJson(JsonVariantConst src, const SCD4xStatus_t&);
+//void convertFromJson(JsonVariantConst src, SCD4xStatus_t& dst);
+bool convertToJson(const SCD4xStatus_t& src, JsonVariant dst);
+
+//bool canConvertFromJson(JsonVariantConst src, const Scd4xConfig_t&);
+void convertFromJson(JsonVariantConst src, Scd4xConfig_t& dst);
+bool convertToJson(const Scd4xConfig_t& src, JsonVariant dst);
 
 #pragma endregion
 

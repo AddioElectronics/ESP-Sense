@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <PubSubClient.h>
 #include "Config/config_master.h"
+#include "Config/global_status.h"
 #include "Config/config_mqtt.h"
 
 #if defined(ESP8266)
@@ -13,7 +14,7 @@
 
 extern Config_t config;
 extern ConfigMonitor_t configMonitor;
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 extern ConfigBitmap_bm configBitmap;
 extern StatusRetained_t statusRetained;
 extern StatusRetainedMonitor_t statusRetainedMonitor;

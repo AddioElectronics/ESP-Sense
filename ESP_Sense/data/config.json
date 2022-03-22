@@ -11,17 +11,16 @@
 		},
 		"accessPoint":{
 			"enabled":true,
-			"confOnly": true,
 			"ssid":"ESP-Sense",
 			"pass": "flashyourbits",
 			"hidden":false,
 			"maxConnections":2,
-			"buttonGpio":18,
+			"buttonGpio":23,
 			"buttonPullup":true,
 			"buttonPress":0,
 			"ledGpio": 33,
 			"ledOn":0,
-			"holdtime":5			
+			"holdTime":5			
 		},
 		"taskSettings":{
 			"useDefaults":false,
@@ -76,7 +75,8 @@
 	},
 	"device":{
 		"useDefaults":false,
-		"autoBackupMode":3,
+		"autoBackupMode": "all",
+		"maxFailedBackups":5,
 		"serial":{
 			"useDefaults":false,
 			"messagePort":1,
@@ -116,7 +116,7 @@
 		"dns":true,
 		"hostname":"esp-sense",
 		"authenticate":true,
-		"sessionTimeout":10,
+		"sessionTimeout":30,
 		"retainSession":-1,
 		"user":"admin",
 		"pass":"password",
@@ -140,7 +140,6 @@
 			"user":"anonymous",
 			"pass":"password",
 			"timeout":0,
-			"iterations":5,
 			"taskSettings":{
 				"useDefaults":false,
 				"core":1,
@@ -152,7 +151,8 @@
 		"ota":{
 			"useDefaults":false,
 			"enabled": true,
-			"iterations": 5,
+			"rollbackMode":2,
+			"rollbackTimer":10,
 			"taskSettings":{
 				"useDefaults":false,
 				"core":1,

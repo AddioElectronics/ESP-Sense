@@ -5,6 +5,9 @@
 
 extern PubSubClient mqttClient;
 
+const char* Llc200d3sh_Sensor::deviceName = "LLC200D3SH";
+const char* Llc200d3sh_Sensor::deviceKey = "llc200d3sh";
+
 #pragma region Global Variables
 
 MqttDeviceConfig_t Llc200d3sh_Sensor::globalDeviceConfig;
@@ -20,9 +23,25 @@ MqttDeviceGlobalStatus_t Llc200d3sh_Sensor::globalDeviceStatus;
 
 #pragma endregion
 
+bool Llc200d3sh_Sensor::Subscribe()
+{
+	deviceStatus.subscribed = true;
+	return true;
+	return MqttDevice::Subscribe();
+}
+
+bool Llc200d3sh_Sensor::Unsubscribe()
+{
+	deviceStatus.subscribed = false;
+	return true;
+	return MqttDevice::Unsubscribe();
+}
 
 bool Llc200d3sh_Sensor::Read()
 {
+	if (deviceStatus.state != (DeviceState_t)DeviceState::DEVICE_OK)
+		return false;
+
 	DEBUG_LOG_F("Reading %s water level.\r\n-GPIO : %d\r\n", name.c_str(), uniqueConfig.program.gpio);
 
 	if (uniqueConfig.program.gpio == -1)
@@ -44,55 +63,25 @@ bool Llc200d3sh_Sensor::Read()
 	return 0;
 }
 
-bool Llc200d3sh_Sensor::Subscribe()
+
+void Llc200d3sh_Sensor::AddStatePayload(JsonVariant& addTo, bool nest)
 {
-	return MqttDevice::Subscribe();
-}
+	JsonVariant obj = nest ? addTo.getOrAddMember("statePayload") : addTo;
 
-bool Llc200d3sh_Sensor::Unsubscribe()
-{
-	return MqttDevice::Unsubscribe();
-}
-
-//bool Llc200d3sh_Sensor::Publish()
-//{
-//	if (deviceStatus.enabled && binarySensorStatus.newData)
-//	{
-//		if (deviceMqttSettings.json)
-//		{
-//
-//		}
-//		else
-//		{
-//			mqttClient.publish(deviceTopics.state.c_str(), Mqtt::Helper::GetBinarySensorString(measurement));
-//		}
-//
-//		DEBUG_LOG("Water Level : ");
-//		DEBUG_LOG(measurement ? MQTT_BINARY_SENSOR_ON : MQTT_BINARY_SENSOR_OFF);
-//		DEBUG_LOG_LN();
-//	}
-//	
-//	return false;
-//}
-
-
-String Llc200d3sh_Sensor::GenerateJsonPayload()
-{
-	DEBUG_LOG_F("...Generating %s(LLC200D3SH)\r\n-JSON Data :\r\n", name.c_str());
-
-	String jdata;
-	StaticJsonDocument<128> doc;
-	JsonObject obj = doc.createNestedObject(name);
-
-	JsonVariant waterlevel = obj.createNestedObject("waterlevel");
+	JsonVariant waterlevel = obj.getOrAddMember("waterlevel");
 	waterlevel.set(measurement ? MQTT_BINARY_SENSOR_ON : MQTT_BINARY_SENSOR_OFF);
+}
 
-	serializeJson(doc, jdata);
+void Llc200d3sh_Sensor::AddStatusData(JsonVariant& addTo)
+{
+	MqttBinarySensor::AddStatusData(addTo);
+	addTo["uniqueStatus"].set<Llc200d3sh_Status_t>(uniqueStatus);
+}
 
-	DEBUG_LOG_LN(jdata.c_str());
-	DEBUG_NEWLINE();
-
-	return jdata;
+void Llc200d3sh_Sensor::AddConfigData(JsonVariant& addTo)
+{
+	MqttDevice::AddConfigData(addTo);
+	addTo["uniqueConfig"].set<Llc200d3sh_Config_t>(uniqueConfig);
 }
 
 int Llc200d3sh_Sensor::ReceiveCommand(char* topic, byte* payload, size_t length)
@@ -250,3 +239,68 @@ void Llc200d3sh_Sensor::ReadConfigObjectUnique(JsonVariantConst& obj, Llc200d3sh
 			uConfig.program.gpio = programObj["gpio"];
 	}
 }
+
+
+#pragma region JSON UDFs
+
+
+//bool canConvertFromJson(JsonVariantConst src, const Llc200d3sh_Config_t&)
+//{
+
+//}
+
+void convertFromJson(JsonVariantConst src, Llc200d3sh_Config_t& dst)
+{
+	JsonVariantConst obj = src;
+
+	if (src.containsKey("uniqueConfig"))
+		obj = src["uniqueConfig"];
+
+
+	if (obj.containsKey("program"))
+	{
+		JsonVariantConst program = obj["program"];
+
+		dst.program.useDefaults = obj["useDefaults"];
+		dst.program.gpio = obj["gpio"];
+		dst.program.waterPresent = obj["waterPresent"];
+		dst.program.invert = obj["invert"];
+	}
+}
+
+bool convertToJson(const Llc200d3sh_Config_t& src, JsonVariant dst)
+{
+	JsonObject obj = dst.createNestedObject("program");
+
+	obj["configRead"] = src.program.useDefaults;
+	obj["gpio"] = src.program.gpio;
+	obj["waterPresent"] = src.program.waterPresent;
+	obj["invert"] = src.program.invert;
+}
+
+bool canConvertFromJson(JsonVariantConst src, const Llc200d3sh_Status_t&)
+{
+	return src.containsKey("program") || src["uniqueConfig"].containsKey("program");
+}
+
+void convertFromJson(JsonVariantConst src, Llc200d3sh_Status_t& dst)
+{
+	JsonVariantConst obj = src;
+
+	if (src.containsKey("uniqueStatus"))
+		obj = src["uniqueStatus"];
+
+
+	if (obj.containsKey("gpioValid"))
+		dst.gpioValid = obj["gpioValid"];
+
+}
+
+bool convertToJson(const Llc200d3sh_Status_t& src, JsonVariant dst)
+{
+	dst["gpioValid"] = src.gpioValid;
+}
+
+
+#pragma endregion
+

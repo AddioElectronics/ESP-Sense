@@ -4,11 +4,24 @@ namespace Network {
 		namespace Website {
 	
 			namespace Strings {
+
+
+				namespace Headers {
+
+					extern const char* defaultHeaderName;
+					extern const char* defaultHeaderValue;
+
+				}
 	
 
 				namespace Messages {
 
+					extern const char* badRequest;
 					extern const char* unauthorized;
+					extern const char* internalServerError;
+					extern const char* notImplemented;
+					extern const char* serviceUnavailable;
+					extern const char* networkAuthenticationRequried;
 				}
 
 				namespace Paths
@@ -20,8 +33,8 @@ namespace Network {
 
 					extern const char* pageHome;
 					extern const char* pageConfig;
-					extern const char* pageConfigMqtt;
 					extern const char* pageWebUpdate;
+					extern const char* pageWebUpdating;
 					extern const char* pageConsole;
 
 					extern const char* pageTools;
@@ -29,20 +42,30 @@ namespace Network {
 					extern const char* pageConfigToolJsonVerifier;
 					extern const char* pageConfigToolTemplateGen;
 
-					extern const char* requestAuth;
-					extern const char* requestLogout;
-					extern const char* requestWebUpdate;
-					extern const char* requestReset;
-					extern const char* requestAlive;
+					//extern const char* pageMqtt;
+					extern const char* pageMqttDevices;
+					extern const char* pageMqttBinarySensors;
+					extern const char* pageMqttSensors;
+					extern const char* pageMqttButtons;
+					extern const char* pageMqttLights;
+					extern const char* pageMqttSwitches;
+
 
 					extern const char* errorPattern;
 					extern const char* error401;
 					extern const char* error404;
 					extern const char* error501;
+					extern const char* error511;
 
 					extern const char* assetsJS;
 					extern const char* assetsCSS;
 					extern const char* assetsIMG;
+
+					extern const char* assetsSensorsJS;
+					extern const char* assetsBinarySensorsJS;
+					extern const char* assetsButtonsJS;
+					extern const char* assetsLightsJS;
+					extern const char* assetsSwitchesJS;
 				}
 	
 				namespace Urls {
@@ -52,7 +75,6 @@ namespace Network {
 	
 					extern const char* pageHome;
 					extern const char* pageConfig;
-					extern const char* pageConfigMqtt;
 					extern const char* pageWebUpdate;
 					extern const char* pageConsole;
 	
@@ -61,19 +83,39 @@ namespace Network {
 					extern const char* pageConfigToolJsonVerifier;
 					extern const char* pageConfigToolTemplateGen;
 
+					//extern const char* pageMqtt;
+					extern const char* pageMqttDevices;
+					extern const char* pageMqttBinarySensors;
+					extern const char* pageMqttSensors;
+					extern const char* pageMqttButtons;
+					extern const char* pageMqttLights;
+					extern const char* pageMqttSwitches;
+
+					extern const char* requestVersion;
 					extern const char* requestAuth;
 					extern const char* requestLogout;
 					extern const char* requestWebUpdate;
 					extern const char* requestReset;
 					extern const char* requestAlive;
+					extern const char* requestStatus;
+					extern const char* requestMqttDeviceInfo;
+					//extern const char* requestCookie;
+					extern const char* requestControl;
 	
 					extern const char* error401;
 					extern const char* error404;
 					extern const char* error501;
+					extern const char* error511;
 
 					extern const char* assetsJS;
 					extern const char* assetsCSS;
-					extern const char* assetsIMG;			 
+					extern const char* assetsIMG;
+
+					extern const char* assetsSensorsJS;
+					extern const char* assetsBinarySensorsJS;
+					extern const char* assetsButtonsJS;
+					extern const char* assetsLightsJS;
+					extern const char* assetsSwitchesJS;
 				}
 
 				namespace ContentType {

@@ -2,6 +2,7 @@
 	"testPath":0,
 	"configPath":"/config.json",
 	"configNum":0,
-	"nextBootSource":0,
-	"disableDevMode":false
+	"forceBootSource":0,
+	"disableDevMode":false,
+	"forceFreshBoot":true
 }

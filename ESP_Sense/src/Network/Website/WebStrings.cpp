@@ -4,9 +4,20 @@ namespace Network {
 	namespace Website {
 		namespace Strings {
 
+			namespace Headers {
+
+				const char* defaultHeaderName = "Server";
+				const char* defaultHeaderValue = "ESP Sense";
+			}
+
 			namespace Messages {
 
+				const char* badRequest = "400 : Bad Request";
 				const char* unauthorized = "401 : Unauthorized";
+				const char* internalServerError = "500 : Internal Server Error";
+				const char* notImplemented = "501 : Not Implemented";
+				const char* serviceUnavailable = "503 : Service Unavailable";
+				const char* networkAuthenticationRequried = "511 : Network Authentication Required";
 			}
 
 			namespace Paths
@@ -18,8 +29,8 @@ namespace Network {
 
 				const char* pageHome = "/www/index.html";
 				const char* pageConfig = "/www/config.html";
-				const char* pageConfigMqtt = "/www/config/mqtt.html";
 				const char* pageWebUpdate = "/www/update.html";
+				const char* pageUpdating = "/www/update/updating.html";
 				const char* pageConsole = "/www/console.html";
 
 				const char* pageTools = "/www/tools.html";
@@ -27,27 +38,36 @@ namespace Network {
 				const char* pageConfigToolJsonVerifier = "/www/tools/jsonass.html";
 				const char* pageConfigToolTemplateGen = "/www/tools/templategen.html";
 
-				const char* requestAuth = "/www/auth";
-				const char* requestLogout = "/www/logout";
-				const char* requestWebUpdate = "/www/update/upload";
-				const char* requestReset = "/www/reset";
-				const char* requestAlive = "/www/alive";
+				//const char* pageMqtt = "/www/mqtt.html";
+				const char* pageMqttDevices = "/www/mqtt/devices.html";
+				const char* pageMqttBinarySensors = "/www/mqtt/devices/binarySensors.html";
+				const char* pageMqttSensors = "/www/mqtt/devices/sensors.html";
+				const char* pageMqttButtons = "/www/mqtt/devices/buttons.html";
+				const char* pageMqttLights = "/www/mqtt/devices/lights.html";
+				const char* pageMqttSwitches = "/www/mqtt/devices/switches.html";
+
 
 				const char* errorPattern = "/www/error/%00d.html";
 				const char* error401 = "/www/error/401.html";
 				const char* error404 = "/www/error/404.html";
 				const char* error501 = "/www/error/501.html";
+				const char* error511 = "/www/error/511.html";
 
 				const char* assetsJS = "/www/assets/js/";
 				const char* assetsCSS = "/www/assets/css/";
 				const char* assetsIMG = "/www/assets/img/";
+
+				const char* assetsSensorsJS = "/www/assets/js/mqtt/devices/sensors";
+				const char* assetsBinarySensorsJS = "/www/assets/js/mqtt/devices/binarysensors";
+				const char* assetsButtonsJS = "/www/assets/js/mqtt/devices/buttons";
+				const char* assetsLightsJS = "/www/assets/js/mqtt/devices/lights";
+				const char* assetsSwitchesJS = "/www/assets/js/mqtt/devices/switches";
 			}
 
 			namespace Urls {
 
 				const char* pageHome = Paths::pageHome + 4; 
 				const char* pageConfig = Paths::pageConfig + 4;
-				const char* pageConfigMqtt = Paths::pageConfigMqtt + 4;
 				const char* pageWebUpdate = Paths::pageWebUpdate + 4;
 				const char* pageConsole = Paths::pageConsole + 4;
 
@@ -56,19 +76,39 @@ namespace Network {
 				const char* pageConfigToolJsonVerifier = Paths::pageConfigToolJsonVerifier + 4;
 				const char* pageConfigToolTemplateGen = Paths::pageConfigToolTemplateGen + 4;
 
-				const char* requestAuth = Paths::requestAuth + 4;
-				const char* requestLogout = Paths::requestLogout + 4;
-				const char* requestWebUpdate = Paths::requestWebUpdate + 4;
-				const char* requestReset = Paths::requestReset + 4;
-				const char* requestAlive = Paths::requestAlive + 4;
+				//const char* pageMqtt = Paths::pageMqtt + 4;
+				const char* pageMqttDevices = Paths::pageMqttDevices + 4;
+				const char* pageMqttBinarySensors = Paths::pageConsole + 4;
+				const char* pageMqttSensors = Paths::pageMqttSensors + 4;
+				const char* pageMqttButtons = Paths::pageMqttButtons + 4;
+				const char* pageMqttLights = Paths::pageMqttLights + 4;
+				const char* pageMqttSwitches = Paths::pageMqttSwitches + 4;
+
+				const char* requestVersion = "/version";
+				const char* requestAuth = "/auth";
+				const char* requestLogout = "/logout";
+				const char* requestWebUpdate = "/update/upload";
+				const char* requestReset = "/reset";
+				const char* requestAlive = "/alive";
+				const char* requestStatus = "/status"; 
+				const char* requestMqttDeviceInfo = "/mqtt/devices/info";
+				const char* requestCookie = "/mqtt/devices/info";
+				const char* requestControl = "/control";
 
 				const char* error401 = Paths::error401 + 4;
 				const char* error404 = Paths::error404 + 4;
-				const char* error501 = Paths::error401 + 4;
+				const char* error501 = Paths::error501 + 4;
+				const char* error511 = Paths::error511 + 4;
 
 				const char* assetsJS = Paths::assetsJS + 4;
 				const char* assetsCSS = Paths::assetsCSS + 4;
 				const char* assetsIMG = Paths::assetsIMG + 4;
+
+				const char* assetsSensorsJS = Paths::assetsSensorsJS + 4;
+				const char* assetsBinarySensorsJS = Paths::assetsBinarySensorsJS + 4;
+				const char* assetsButtonsJS = Paths::assetsButtonsJS + 4;
+				const char* assetsLightsJS = Paths::assetsLightsJS + 4;
+				const char* assetsSwitchesJS = Paths::assetsSwitchesJS + 4;
 			}
 
 			

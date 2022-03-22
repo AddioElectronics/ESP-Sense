@@ -11,7 +11,7 @@
 
 extern AsyncWebServer server;
 extern Config_t config;
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 
 size_t totalUploadSize = 0;
 
@@ -37,7 +37,7 @@ void Network::Website::WebUpdate::Initialize()
 #if COMPILE_WEBUPDATE
 	server.on(Strings::Urls::pageWebUpdate, HTTP_GET, [](AsyncWebServerRequest* request) {
 		if (!Server::Authentication::IsAuthenticated(request))
-			Network::Server::Server401(request);
+			Network::Server::Server511(request);
 		else if (status.server.browser.updater.enabled)
 			Network::Server::ServeWebpage(Network::Website::Strings::Urls::pageWebUpdate, request);
 		else
@@ -49,7 +49,7 @@ void Network::Website::WebUpdate::Initialize()
 	server.on(Strings::Urls::requestWebUpdate, HTTP_POST, [](AsyncWebServerRequest* request) {
 		if (!Server::Authentication::IsAuthenticated(request))
 		{
-			request->send(401, Strings::ContentType::textPlain, Strings::Messages::unauthorized);
+			request->send(511, Strings::ContentType::textPlain, Strings::Messages::networkAuthenticationRequried);
 			return;
 		}
 		request->send(200);
@@ -77,7 +77,7 @@ void HandleUpdate(AsyncWebServerRequest* request, String filename, size_t index,
 
 	status.server.browser.updater.updating = true;
 
-	if (status.server.updating != UpdateMode::ESP_UPDATE_NULL)
+	if (status.server.updating == UpdateMode::ESP_UPDATE_NULL)
 		EspSense::EnterUpdateMode(UpdateMode::ESP_UPDATE_WEB);
 
 	String logmessage = "Client:" + request->client()->remoteIP().toString() + " " + request->url();
@@ -115,6 +115,9 @@ void HandleUpdate(AsyncWebServerRequest* request, String filename, size_t index,
 		else
 		{
 			Update.printError(*serialDebug);
+			DEBUG_LOG_F("Update Failed - Restarting device...");
+			status.server.updating = UpdateMode::ESP_UPDATE_NULL;
+			EspSense::RestartDevice();
 		}
 		serialDebug->setDebugOutput(false);
 	}

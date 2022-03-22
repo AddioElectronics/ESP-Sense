@@ -22,8 +22,13 @@
 #include "../../EspSenseValidation.h"
 #include "../../Network/Server/FtpManager.h"
 
-MqttSensor** mqttSensors;
-MqttBinarySensor** mqttBinarySensors;
+MqttDevice** mqttDevices = nullptr;
+
+MqttSensor** mqttSensors = nullptr;
+MqttBinarySensor** mqttBinarySensors = nullptr;
+
+MqttDevice** mqttDeviceLists[TOTAL_MQTT_DEVICE_TYPES];
+device_count_t* mqttDeviceCounts[TOTAL_MQTT_DEVICE_TYPES];
 
 extern Mqtt::MqttMessagesSent_t mqttMessagesSent;
 
@@ -35,27 +40,11 @@ typedef bool (*ISVALIDDEVICEKEY)(const char* deviceKey);
 typedef MqttDevice* (*CONSTRUCT_MQTT_DEVICE)(int deviceIndex, int subTypeIndex, const char* name, const char* device);
 
 JsonVariantConst GetBaseTopicObject(JsonDocument& doc);
-bool GetValidDeviceCount(JsonArrayConst& deviceArray, device_count_t& validCount, ISVALIDDEVICEKEY isValidFunction, bool** out_validDevices);
+bool GetValidDeviceCount(JsonArrayConst& deviceArray, device_count_t& validCount, ISVALIDDEVICEKEY isValidFunction, bool*& out_validDevices);
 
 device_count_t CreateDevicesOfSubType(const char* deviceTypeName, JsonArrayConst& deviceArray, bool*& validDevices, CONSTRUCT_MQTT_DEVICE constructDeviceFunc, device_count_t& subTypeCount);
 
 //template <class MqttGenericDevice>
-
-MqttDevice* CreateMqttDeviceSensor(int deviceIndex, int sensorIndex, const char* name, const char* device)
-{
-	if (strcmp(device, "scd4x") == 0)
-	{
-		return mqttSensors[sensorIndex] = new Scd4xSensor(name, deviceIndex);
-	}
-	else if (strcmp(device, "sht4x") == 0)
-	{
-		return mqttSensors[sensorIndex] = new Sht4xSensor(name, deviceIndex);
-	}
-	else
-	{
-		return nullptr;
-	}
-}
 
 typedef struct {
 	uint32_t* deviceIndex;
@@ -66,13 +55,12 @@ typedef struct {
 
 #pragma region MQTT Device Configuration
 
-int Mqtt::DeviceManager::ConfigureDevices()
+int Mqtt::DeviceManager::ConfigureDevices(uint32_t* out_Total)
 {
-
-	DEBUG_LOG_LN("Configuring MQTT devices..");
+	DEBUG_LOG_LN("\r\n\r\n\r\nConfiguring MQTT devices..");
 	if (status.mqtt.devicesConfigured)
 	{
-		DEBUG_LOG_LN("...Already Configured. Must unconfigure first.");
+		DEBUG_LOG_LN("...Already Configured. Must unconfigure first.\r\n");
 		return -1;
 	}
 
@@ -84,23 +72,69 @@ int Mqtt::DeviceManager::ConfigureDevices()
 
 	DEBUG_LOG_F("Calculated required document size.\r\nMax File Size : %d\r\nDocument Size : %d\r\n", filesize, docsize);
 
-	int errorCount = 0;
+	DEBUG_NEWLINE();
 
-	errorCount += ConfigureSensors();
-	errorCount += ConfigureBinarySensors();
-	errorCount += ConfigureLights();
-	errorCount += ConfigureButtons();
-	errorCount += ConfigureSwitches();
+	uint32_t validCount = 0;
+	uint32_t totalDevices = 0;
+
+	validCount += ConfigureSensors(&totalDevices);
+	validCount += ConfigureBinarySensors(&totalDevices);
+	validCount += ConfigureLights(&totalDevices);
+	validCount += ConfigureButtons(&totalDevices);
+	validCount += ConfigureSwitches(&totalDevices);
+
+	mqttDevices = (MqttDevice**)malloc(sizeof(MqttDevice*) * status.mqtt.devices.deviceCount);
+
+	mqttDeviceLists[0] = (MqttDevice**)mqttSensors;
+	mqttDeviceLists[1] = (MqttDevice**)mqttBinarySensors;
+
+	mqttDeviceCounts[0] = &status.mqtt.devices.sensorCount;
+	mqttDeviceCounts[1] = &status.mqtt.devices.binarySensorCount;
+
+
+	for (uint32_t i = 0, d = 0; i < TOTAL_MQTT_DEVICE_TYPES; i++)
+	{
+		for (device_count_t b = 0; b < *mqttDeviceCounts[i]; b++)
+		{
+			mqttDevices[d++] = mqttDeviceLists[i][b];
+		}
+	}
+
+	//device_count_t totalAdded = 0;
+
+	//auto AddToDeviceArray = [&](MqttDevice** _subTypes, device_count_t* _subTypeCount)
+	//{
+	//	for (device_count_t i = 0; i < *_subTypeCount; i++)
+	//	{
+	//		mqttDevices[i+totalAdded] = _subTypes[i];
+	//	}
+	//	totalAdded += *_subTypeCount;
+	//};
+
+	//MqttDevice** subtypes = (MqttDevice**)mqttSensors;
+	//device_count_t* subTypeCount = &status.mqtt.devices.sensorCount;
+	//AddToDeviceArray(subtypes, subTypeCount);
+
+	//subtypes = (MqttDevice**)mqttBinarySensors;
+	//subTypeCount = &status.mqtt.devices.binarySensorCount;
+	//AddToDeviceArray(subtypes, subTypeCount);
+
+
+
+	
 
 	//status.mqtt.devices.deviceCount =  status.mqtt.devices.binarySensorCount + status.mqtt.devices.buttonCount + status.mqtt.devices.lightCount + status.mqtt.devices.sensorCount + status.mqtt.devices.switchCount;
 
-	DEBUG_LOG_F("MQTT Devices configured. %d devices were unable to be configured.\r\n", errorCount);
+	DEBUG_LOG_F("%d/%d MQTT devices were able to be configured.\r\n", validCount, totalDevices);
 
-	free(doc);
+	delete doc;
 
 	status.mqtt.devicesConfigured = true;
 
-	return errorCount;
+	if (out_Total != nullptr)
+		*out_Total = totalDevices;
+
+	return validCount;
 }
 
 int Mqtt::DeviceManager::UnconfigureDevices()
@@ -110,7 +144,7 @@ int Mqtt::DeviceManager::UnconfigureDevices()
 	return 0;
 }
 
-device_count_t Mqtt::DeviceManager::ConfigureSensors()
+device_count_t Mqtt::DeviceManager::ConfigureSensors(uint32_t* add_Total)
 {
 	DEBUG_LOG_LN("Configuring Sensors...");
 
@@ -120,6 +154,7 @@ device_count_t Mqtt::DeviceManager::ConfigureSensors()
 
 	if (FileManager::OpenAndParseFile(FILE_MQTT_SENSORS_PATH, *doc) != 0)
 	{
+		DEBUG_NEWLINE();
 		return false;
 	}
 
@@ -127,21 +162,23 @@ device_count_t Mqtt::DeviceManager::ConfigureSensors()
 
 	EspSense::YieldWatchdog(50);
 	JsonArrayConst deviceArray;
+	device_count_t totalDevices = 0;
 
 	//Find out how many sensors are in the config file.
 	if (doc->containsKey("sensors"))
 	{
 		deviceArray = (*doc)["sensors"].as<JsonArray>();
+		totalDevices = deviceArray.size();
 
-		if (deviceArray.size() == 0)
+		if (totalDevices == 0)
 		{
-			goto NoSensorsAvailableMessage;
+			goto Label_NoSensorsAvailableMessage;
 		}
 	}
 	else
 	{
-	NoSensorsAvailableMessage:
-		DEBUG_LOG_LN("No Sensors available.");
+	Label_NoSensorsAvailableMessage:
+		DEBUG_LOG_LN("No Sensors available.\r\n");
 		return false;
 	}
 
@@ -155,120 +192,33 @@ device_count_t Mqtt::DeviceManager::ConfigureSensors()
 	EspSense::YieldWatchdog(50);
 	device_count_t validCount;
 	bool* validDevices;
-	if (!GetValidDeviceCount(deviceArray, validCount, IsValidSensor, &validDevices))
+	if (!GetValidDeviceCount(deviceArray, validCount, IsValidSensor, validDevices))
 	{
-		DEBUG_LOG_LN("No Valid Sensors.");
+		DEBUG_LOG_LN("No Valid Sensors.\r\n");
+		free(validDevices);
 		return false;
 	}
 
 	//Allocate and create
 	EspSense::YieldWatchdog(50);
 	mqttSensors = (MqttSensor**)malloc(sizeof(MqttSensor*) * validCount);
-	device_count_t initializedCount = CreateDevicesOfSubType("Sensor", deviceArray, validDevices, (CONSTRUCT_MQTT_DEVICE)CreateMqttSensor, status.mqtt.devices.sensorCount);
-	//deviceIndex = 0; //Reset
-	//device_count_t initializedCount = 0;
-
-	//for (device_count_t i = 0; i < deviceArray.size(); i++)
-	//{
-	//	EspSense::YieldWatchdog(50);
-
-	//	//Sensor was invalid. Skip configuring
-	//	if (!validDevices[i]) continue;
-
-	//	JsonVariant v = deviceArray[i];
-
-	//	//Reset name variable to Null terminator.
-	//	//memset(name, 0, NAME_MAX_LENGTH);
-	//	String name;
-	//	String deviceString = v["device"].as<String>();
-
-	//	//Get/Create name
-	//	if (v.containsKey("name"))
-	//	{
-	//		name = v["name"].as<String>();
-	//		//strlcpy(name, v["name"], NAME_MAX_LENGTH); 
-
-	//		if (name.isEmpty()) 
-	// goto SetBasicName;
-	//	}
-	//	else
-	//	{
-	//	SetBasicName:
-	//		//Name does not exist. Give it a generic name.
-	//		//Use "i" so it reflects the config file, instead of the actual index.
-	//		//sprintf(name, "Sensor", i);
-	//		name = /*"Sensor" + */deviceString + "_" + status.mqtt.devices.sensorCount;
-	//	}
-
-	//	DEBUG_LOG_F("Sensor %s Initializing\r\n", name.c_str());
-	//	EspSense::YieldWatchdog(50);
-	//	//Create Sensor object.
-	//	MqttSensor* device = CreateMqttSensor(status.mqtt.devices.deviceCount, status.mqtt.devices.sensorCount, name.c_str(), deviceString.c_str());
-
-	//	if (device == nullptr)
-	//	{
-	//		DEBUG_LOG_F("Cannot configure sensor %s. Sensor of type %s is not supported.\r\n", name.c_str(), deviceString.c_str());
-	//		validDevices[i] = false;
-	//		continue;
-	//	}
-
-	//	MqttDeviceGlobalStatus_t* deviceGlobalStatus = device->GetGlobalDeviceStatus();
-	//	EspSense::YieldWatchdog(50);
-	//	//Read global config
-	//	if (!deviceGlobalStatus->configRead)
-	//	{
-	//		//#warning  may need to free the document to parse the global settings, and then reopen to finish.
-	//		device->SetDefaultGlobalSettings();
-	//		//device->SetDefaultGlobalMqttTopics();
-	//		device->ReadGlobalConfig(); 
-	// deviceGlobalStatus->configRead = true;
-	//	}
-
-	//	//#warning  would need to reopen here.
-
-	//	//Read device specific settings
-	//	device->SetDefaultSettings();
-	//	device->SetDefaultMqttTopics();
-	//	EspSense::YieldWatchdog(50);
-	//	if (v.containsKey("config"))
-	//	{
-	//		JsonObject configObj = v["config"];
-
-	//		device->ReadConfigObject(configObj);
-	//		//MqttDevice::ReadConfigObject(device, configObj, false);
-	//	}
-
-	//	//Temporary until custom topics are finished.
-	//	device->GenerateTopics();
-
-	//	//deviceGlobalStatus->configRead = true;
-
-	//	EspSense::YieldWatchdog(50);
-
-	//	status.mqtt.devices.deviceCount++;
-	//	status.mqtt.devices.sensorCount++;
-
-	//	if (device->Init(false))
-	//	{
-	//		initializedCount++;
-	//	}
-	//	else
-	//	{
-	//		DEBUG_LOG_F("Sensor %s failed to connect or configure! It may succeed later.", device->name.c_str());
-	//	}
-	//}
+	device_count_t configuredCount = CreateDevicesOfSubType("Sensor", deviceArray, validDevices, (CONSTRUCT_MQTT_DEVICE)CreateMqttSensor, status.mqtt.devices.sensorCount);
 
 	free(validDevices);
 
-	//status.mqtt.devices.sensorCount = validCount;
+	DEBUG_LOG_F("Finished Configuring Sensors. %d/%d initialized, and %d successfully connected and/or configured.\r\n\r\n\r\n", status.mqtt.devices.sensorCount, totalDevices, configuredCount);
 
-	DEBUG_LOG_F("Finished Configuring Sensors. %d/%d created, and %d successfully connected and configured.", status.mqtt.devices.sensorCount, deviceArray.size(), initializedCount);
 	EspSense::YieldWatchdog(50);
+
 	DEBUG_NEWLINE();
-	return deviceArray.size() - validCount;
+
+	if (add_Total != nullptr)
+		*add_Total += totalDevices;
+
+	return validCount;
 }
 
-device_count_t Mqtt::DeviceManager::ConfigureBinarySensors()
+device_count_t Mqtt::DeviceManager::ConfigureBinarySensors(uint32_t* add_Total)
 {
 	DEBUG_LOG_LN("Configuring Binary Sensors...");
 
@@ -278,6 +228,7 @@ device_count_t Mqtt::DeviceManager::ConfigureBinarySensors()
 
 	if (FileManager::OpenAndParseFile(FILE_MQTT_BINARYSENSORS_PATH, *doc) != 0)
 	{
+		DEBUG_NEWLINE();
 		return false;
 	}
 
@@ -285,21 +236,24 @@ device_count_t Mqtt::DeviceManager::ConfigureBinarySensors()
 
 	EspSense::YieldWatchdog(50);
 	JsonArrayConst deviceArray;
+	device_count_t totalDevices = 0;
 
 	//Find out how many sensors are in the config file.
 	if (doc->containsKey("binarySensors"))
 	{
 		deviceArray = (*doc)["binarySensors"].as<JsonArray>();
 
-		if (deviceArray.size() == 0)
+		totalDevices = deviceArray.size();
+
+		if (totalDevices == 0)
 		{
-			goto NoSensorsAvailableMessage;
+			goto Label_NoSensorsAvailableMessage;
 		}
 	}
 	else
 	{
-	NoSensorsAvailableMessage:
-		DEBUG_LOG_LN("No Binary Sensors available.");
+	Label_NoSensorsAvailableMessage:
+		DEBUG_LOG_LN("No Binary Sensors available.\r\n");
 		return false;
 	}
 
@@ -311,132 +265,51 @@ device_count_t Mqtt::DeviceManager::ConfigureBinarySensors()
 	EspSense::YieldWatchdog(50);
 	device_count_t validCount;
 	bool* validDevices;
-	if (!GetValidDeviceCount(deviceArray, validCount, IsValidBinarySensor, &validDevices))
+	if (!GetValidDeviceCount(deviceArray, validCount, IsValidBinarySensor, validDevices))
 	{
-		DEBUG_LOG_LN("No Valid Binary Sensors.");
+		DEBUG_LOG_LN("No Valid Binary Sensors.\r\n");
+		free(validDevices);
 		return false;
 	}
 
 	//Allocate and create
 	EspSense::YieldWatchdog(50);
 	mqttBinarySensors = (MqttBinarySensor**)malloc(sizeof(MqttBinarySensor*) * validCount);
-	device_count_t initializedCount = CreateDevicesOfSubType("Sensor", deviceArray, validDevices, (CONSTRUCT_MQTT_DEVICE)CreateMqttBinarySensor, status.mqtt.devices.binarySensorCount);
-	////deviceIndex = 0; //Reset
-	//device_count_t initializedCount = 0;
-
-	//for (device_count_t i = 0; i < deviceArray.size(); i++)
-	//{
-	//	EspSense::YieldWatchdog(50);
-
-	//	//Sensor was invalid. Skip configuring
-	//	if (!validDevices[i]) continue;
-
-	//	JsonVariant v = deviceArray[i];
-
-	//	//Reset name variable to Null terminator.
-	//	//memset(name, 0, NAME_MAX_LENGTH);
-	//	String name;
-	//	String deviceString = v["device"].as<String>();
-
-	//	//Get/Create name
-	//	if (v.containsKey("name"))
-	//	{
-	//		name = v["name"].as<String>();
-	//		//strlcpy(name, v["name"], NAME_MAX_LENGTH); 
-
-	//		if (name.isEmpty()) 
-	// goto SetBasicName;
-	//	}
-	//	else
-	//	{
-	//	SetBasicName:
-	//		//Name does not exist. Give it a generic name.
-	//		//Use "i" so it reflects the config file, instead of the actual index.
-	//		//sprintf(name, "Sensor", i);
-	//		name = /*"Sensor" + */deviceString + "_" + status.mqtt.devices.sensorCount;
-	//	}
-
-	//	DEBUG_LOG_F("Binary Sensor %s Initializing\r\n", name.c_str());
-	//	EspSense::YieldWatchdog(50);
-	//	//Create Sensor object.
-	//	MqttSensor* device = CreateMqttSensor(status.mqtt.devices.deviceCount, status.mqtt.devices.sensorCount, name.c_str(), deviceString.c_str());
-
-	//	if (device == nullptr)
-	//	{
-	//		DEBUG_LOG_F("Cannot configure binary sensor %s. Binary sensor of type %s is not supported.\r\n", name.c_str(), deviceString.c_str());
-	//		validDevices[i] = false;
-	//		continue;
-	//	}
-
-	//	MqttDeviceGlobalStatus_t* deviceGlobalStatus = device->GetGlobalDeviceStatus();
-	//	EspSense::YieldWatchdog(50);
-	//	//Read global config
-	//	if (!deviceGlobalStatus->configRead)
-	//	{
-	//		//#warning  may need to free the document to parse the global settings, and then reopen to finish.
-	//		device->SetDefaultGlobalSettings();
-	//		//device->SetDefaultGlobalMqttTopics();
-	//		device->ReadGlobalConfig(); 
-	// deviceGlobalStatus->configRead = true;
-	//	}
-
-	//	//#warning  would need to reopen here.
-
-	//	//Read device specific settings
-	//	device->SetDefaultSettings();
-	//	device->SetDefaultMqttTopics();
-	//	EspSense::YieldWatchdog(50);
-	//	if (v.containsKey("config"))
-	//	{
-	//		JsonObject configObj = v["config"];
-
-	//		device->ReadConfigObject(configObj);
-	//		//MqttDevice::ReadConfigObject(device, configObj, false);
-	//	}
-
-	//	//Temporary until custom topics are finished.
-	//	device->GenerateTopics();
-
-	//	//deviceGlobalStatus->configRead = true;
-
-	//	EspSense::YieldWatchdog(50);
-
-	//	status.mqtt.devices.deviceCount++;
-	//	status.mqtt.devices.sensorCount++;
-
-	//	if (device->Init(false))
-	//	{
-	//		initializedCount++;
-	//	}
-	//	else
-	//	{
-	//		DEBUG_LOG_F("Sensor %s failed to connect or configure! It may succeed later.", device->name.c_str());
-	//	}
-	//}
+	device_count_t configuredCount = CreateDevicesOfSubType("Sensor", deviceArray, validDevices, (CONSTRUCT_MQTT_DEVICE)CreateMqttBinarySensor, status.mqtt.devices.binarySensorCount);
 
 	free(validDevices);
 
-	//status.mqtt.devices.sensorCount = validCount;
+	DEBUG_LOG_F("Finished Configuring Binary Sensors. %d/%d initialized, and %d successfully connected and/or configured.\r\n\r\n\r\n", status.mqtt.devices.binarySensorCount, totalDevices, configuredCount);
 
-	DEBUG_LOG_F("Finished Configuring Binary Sensors. %d/%d configured, and %d successfully connected and configured.", status.mqtt.devices.binarySensorCount, deviceArray.size(), initializedCount);
 	EspSense::YieldWatchdog(50);
-	DEBUG_NEWLINE();
-	return deviceArray.size() - validCount;
+
+	if (add_Total != nullptr)
+		*add_Total += totalDevices;
+
+	return validCount;
 }
 
-device_count_t Mqtt::DeviceManager::ConfigureLights()
+device_count_t Mqtt::DeviceManager::ConfigureLights(uint32_t* add_Total)
 {
 	return false;
 }
 
-device_count_t Mqtt::DeviceManager::ConfigureButtons()
+device_count_t Mqtt::DeviceManager::ConfigureButtons(uint32_t* add_Total)
 {
 	return false;
 }
 
-device_count_t Mqtt::DeviceManager::ConfigureSwitches()
+device_count_t Mqtt::DeviceManager::ConfigureSwitches(uint32_t* add_Total)
 {
 	return false;
+}
+
+void Mqtt::DeviceManager::IterateAllDevices(ITERATE_DEVICE_FUNCTION func)
+{
+	for (uint32_t i = 0; i < status.mqtt.devices.deviceCount; i++)
+	{
+		func(mqttDevices[i]);
+	}
 }
 
 #pragma region Shared functions
@@ -456,13 +329,14 @@ JsonVariantConst GetBaseTopicObject(JsonDocument& doc)
 		return baseVar;
 }
 
-bool GetValidDeviceCount(JsonArrayConst& deviceArray, device_count_t& validCount, ISVALIDDEVICEKEY isValidFunction, bool** out_validDevices)
+bool GetValidDeviceCount(JsonArrayConst& deviceArray, device_count_t& validCount, ISVALIDDEVICEKEY isValidFunction, bool*& validDevices)
 {
+	device_count_t totalCount = deviceArray.size();
 	validCount = 0;
-	bool* validDevices = (bool*)malloc(deviceArray.size());
+	validDevices = (bool*)malloc(totalCount);
 
 	//Count valid sensors. We do not want to allocate memory for invalid sensors.
-	for (device_count_t i = 0; i < deviceArray.size(); i++)
+	for (device_count_t i = 0; i < totalCount; i++)
 	{
 		JsonVariantConst v = deviceArray[i];
 
@@ -474,11 +348,6 @@ bool GetValidDeviceCount(JsonArrayConst& deviceArray, device_count_t& validCount
 		validDevices[i] = true;
 		validCount++;
 	}
-
-	if (validCount == 0)
-		free(validDevices);
-	else
-		*out_validDevices = validDevices;
 
 	return validCount;
 }
@@ -567,16 +436,19 @@ device_count_t CreateDevicesOfSubType(const char* deviceTypeName, JsonArrayConst
 		//status.mqtt.devices.deviceCount++;
 		//subTypeCount++;
 
-		if (device->Init(false))
+		if (device->Init())
 		{
 			initializedCount++;
 		}
 		else
 		{
-			DEBUG_LOG_F("%s %s failed to connect or configure! It may succeed later.", deviceTypeName, device->name.c_str());
+			DEBUG_LOG_F("%s %s failed to connect or configure! It may succeed later.\r\n", deviceTypeName, device->name.c_str());
 		}
+
+		DEBUG_NEWLINE();
 	}
 
+	
 	return initializedCount;
 }
 
@@ -589,9 +461,16 @@ void Mqtt::DeviceManager::EnableAll(bool initial)
 
 	for (device_count_t i = 0; i < status.mqtt.devices.sensorCount; i++)
 	{
+		MqttSensor* sensor = mqttSensors[i];
+
 		if (mqttSensors[i]->deviceConfig.initiallyEnabled || !initial)
 			mqttSensors[i]->Enable();
 
+		if (!sensor->sensorStatus.connected)
+			if (!sensor->Connect())
+				goto Label_SensorCantEnable;
+
+		Label_SensorCantEnable:
 		EspSense::YieldWatchdog(5);
 	}
 
@@ -609,17 +488,28 @@ void Mqtt::DeviceManager::DisableAll()
 {
 	if (!status.mqtt.devicesConfigured) return;
 
-	for (device_count_t i = 0; i < status.mqtt.devices.sensorCount; i++)
+	IterateAllDevices([](MqttDevice*& device) {
+		device->Disable();
+		EspSense::YieldWatchdog(1);
+	});
+
+	for (uint32_t i = 0; i < status.mqtt.devices.deviceCount; i++)
 	{
-		mqttSensors[i]->Disable();
+		mqttDevices[i]->Disable();
 		EspSense::YieldWatchdog(1);
 	}
 
-	for (device_count_t i = 0; i < status.mqtt.devices.binarySensorCount; i++)
-	{
-		mqttBinarySensors[i]->Disable();
-		EspSense::YieldWatchdog(1);
-	}
+	//for (device_count_t i = 0; i < status.mqtt.devices.sensorCount; i++)
+	//{
+	//	mqttSensors[i]->Disable();
+	//	EspSense::YieldWatchdog(1);
+	//}
+
+	//for (device_count_t i = 0; i < status.mqtt.devices.binarySensorCount; i++)
+	//{
+	//	mqttBinarySensors[i]->Disable();
+	//	EspSense::YieldWatchdog(1);
+	//}
 	DEBUG_NEWLINE();
 }
 
@@ -629,16 +519,22 @@ int Mqtt::DeviceManager::SubscribeAll()
 
 	int failed = 0;
 
-	for (device_count_t i = 0; i < status.mqtt.devices.sensorCount; i++)
-	{
-		if (!mqttSensors[i]->Subscribe()) failed++;
+	//for (device_count_t i = 0; i < status.mqtt.devices.sensorCount; i++)
+	//{
+	//	if (!mqttSensors[i]->Subscribe()) failed++;
 
-		EspSense::YieldWatchdog(5);
-	}
+	//	EspSense::YieldWatchdog(5);
+	//}
 
-	for (device_count_t i = 0; i < status.mqtt.devices.binarySensorCount; i++)
+	//for (device_count_t i = 0; i < status.mqtt.devices.binarySensorCount; i++)
+	//{
+	//	if (!mqttBinarySensors[i]->Subscribe()) failed++;
+	//	EspSense::YieldWatchdog(5);
+	//}
+
+	for (uint32_t i = 0; i < status.mqtt.devices.deviceCount; i++)
 	{
-		if (!mqttBinarySensors[i]->Subscribe()) failed++;
+		if (!mqttDevices[i]->Subscribe())failed++;
 		EspSense::YieldWatchdog(5);
 	}
 
@@ -646,23 +542,40 @@ int Mqtt::DeviceManager::SubscribeAll()
 	return failed;
 }
 
-int Mqtt::DeviceManager::UnsubscribeAll()
+int Mqtt::DeviceManager::UnsubscribeAll(bool disabledOnly)
 {
 	if (!status.mqtt.devicesConfigured || !status.mqtt.connected) return 0;
 
 	int failed = 0;
 
-	for (device_count_t i = 0; i < status.mqtt.devices.sensorCount; i++)
-	{
-		if (!mqttSensors[i]->Unsubscribe()) failed++;
+	//for (device_count_t i = 0; i < status.mqtt.devices.sensorCount; i++)
+	//{
+	//	if (disabledOnly && mqttSensors[i]->deviceStatus.enabled)
+	//		continue;
 
-		EspSense::YieldWatchdog(1);
-	}
+	//	if (!mqttSensors[i]->Unsubscribe()) failed++;
 
-	for (device_count_t i = 0; i < status.mqtt.devices.binarySensorCount; i++)
+	//	EspSense::YieldWatchdog(1);
+	//}
+
+	//for (device_count_t i = 0; i < status.mqtt.devices.binarySensorCount; i++)
+	//{
+	//	if (disabledOnly && mqttBinarySensors[i]->deviceStatus.enabled)
+	//		continue;
+
+	//	if (!mqttBinarySensors[i]->Unsubscribe()) failed++;
+	//	EspSense::YieldWatchdog(1);
+	//}
+
+	for (uint32_t i = 0; i < status.mqtt.devices.deviceCount; i++)
 	{
-		if (!mqttBinarySensors[i]->Unsubscribe()) failed++;
-		EspSense::YieldWatchdog(1);
+		MqttDevice* device = mqttDevices[i];
+
+		if (disabledOnly && device->deviceStatus.state == (DeviceState_t)DeviceState::DEVICE_OK)
+			continue;
+
+		if (!device->Unsubscribe())failed++;
+		EspSense::YieldWatchdog(5);
 	}
 
 	DEBUG_NEWLINE();
@@ -673,23 +586,30 @@ void Mqtt::DeviceManager::PublishAvailability()
 {
 	if (!status.mqtt.devicesConfigured || !status.mqtt.connected) return;
 
-	for (device_count_t i = 0; i < status.mqtt.devices.sensorCount; i++)
-	{
-		mqttSensors[i]->PublishAvailability();
-		EspSense::YieldWatchdog(10);
-#warning add configurable option for delay 
-	}
+//	for (device_count_t i = 0; i < status.mqtt.devices.sensorCount; i++)
+//	{
+//		mqttSensors[i]->PublishAvailability();
+//		EspSense::YieldWatchdog(10);
+//#warning add configurable option for delay 
+//	}
+//
+//	for (device_count_t i = 0; i < status.mqtt.devices.binarySensorCount; i++)
+//	{
+//		mqttBinarySensors[i]->PublishAvailability();
+//		EspSense::YieldWatchdog(10);
+//	}
 
-	for (device_count_t i = 0; i < status.mqtt.devices.binarySensorCount; i++)
+	for (uint32_t i = 0; i < status.mqtt.devices.deviceCount; i++)
 	{
-		mqttBinarySensors[i]->PublishAvailability();
-		EspSense::YieldWatchdog(10);
+		mqttDevices[i]->PublishAvailability();
+		EspSense::YieldWatchdog(5);
 	}
 
 	DEBUG_NEWLINE();
 	/*EspSense::YieldWatchdog(1);*/
 }
-#warning move this function to MqttSensors as static, create Sensor loop which handles calls this.
+
+#warning move this function to MqttSensors and BinarySensors, possibly inside MqttSensor::Loop
 void Mqtt::DeviceManager::ReadAll()
 {
 	if (!status.mqtt.devicesConfigured) return;
@@ -713,17 +633,24 @@ void Mqtt::DeviceManager::PublishAll()
 {
 	if (!status.mqtt.devicesConfigured || !status.mqtt.connected) return;
 
-	for (device_count_t i = 0; i < status.mqtt.devices.sensorCount; i++)
+	//for (device_count_t i = 0; i < status.mqtt.devices.sensorCount; i++)
+	//{
+	//	mqttSensors[i]->Publish();
+	//	EspSense::YieldWatchdog(10);
+	//}
+
+	//for (device_count_t i = 0; i < status.mqtt.devices.binarySensorCount; i++)
+	//{
+	//	mqttBinarySensors[i]->Publish();
+	//	EspSense::YieldWatchdog(10);
+	//}
+
+	for (uint32_t i = 0; i < status.mqtt.devices.deviceCount; i++)
 	{
-		mqttSensors[i]->Publish();
-		EspSense::YieldWatchdog(10);
+		mqttDevices[i]->Publish();
+		EspSense::YieldWatchdog(5);
 	}
 
-	for (device_count_t i = 0; i < status.mqtt.devices.binarySensorCount; i++)
-	{
-		mqttBinarySensors[i]->Publish();
-		EspSense::YieldWatchdog(10);
-	}
 	DEBUG_NEWLINE();
 }
 
@@ -737,16 +664,22 @@ void Mqtt::DeviceManager::Loop()
 	//	status.mqtt.nextPublish = millis() + config.mqtt.publish.rate;
 	//}
 
-	for (device_count_t i = 0; i < status.mqtt.devices.sensorCount; i++)
-	{
-		mqttSensors[i]->Loop();
-		EspSense::YieldWatchdog(10);
-	}
+	//for (device_count_t i = 0; i < status.mqtt.devices.sensorCount; i++)
+	//{
+	//	mqttSensors[i]->Loop();
+	//	EspSense::YieldWatchdog(10);
+	//}
 
-	for (device_count_t i = 0; i < status.mqtt.devices.binarySensorCount; i++)
+	//for (device_count_t i = 0; i < status.mqtt.devices.binarySensorCount; i++)
+	//{
+	//	mqttBinarySensors[i]->Loop();
+	//	EspSense::YieldWatchdog(10);
+	//}
+
+	for (uint32_t i = 0; i < status.mqtt.devices.deviceCount; i++)
 	{
-		mqttBinarySensors[i]->Loop();
-		EspSense::YieldWatchdog(10);
+		mqttDevices[i]->Loop();
+		EspSense::YieldWatchdog(5);
 	}
 
 	if (!status.mqtt.publishingDisabled)
@@ -759,6 +692,144 @@ void Mqtt::DeviceManager::Loop()
 	mqttMessagesSent.devices = true;
 
 }
+
+void AddDevicesInfo(JsonArray& jarray, MqttDevice* device)
+{
+	device->SetDeviceState();
+
+	DEBUG_LOG_F("%s -Device : %s -State : ", device->name, device->DeviceName());
+
+	JsonVariant obj = jarray.addElement();
+	obj["name"] = device->name;
+	obj["deviceName"] = device->DeviceName();
+	obj["deviceKey"] = device->DeviceKey();
+
+	//Unused
+	obj["deviceTypeName"] = device->DeviceTypeKey();
+	obj["deviceTypeKey"] = device->DeviceTypeKey();
+
+	
+
+	switch (device->deviceStatus.state)
+	{
+		case (DeviceState_t)DeviceState::DEVICE_OK:
+			obj["state"].set("ok");
+		break;
+		case (DeviceState_t)DeviceState::DEVICE_DISABLED:
+			obj["state"].set("disabled");
+		break;
+		case (DeviceState_t)DeviceState::DEVICE_ERROR:
+			obj["state"].set("error");
+		break;
+		case (DeviceState_t)DeviceState::DEVICE_PERMANENT_OFF:
+			obj["state"].set("permOff");
+			break;
+	}
+
+	DEBUG_LOG_LN((const char*)obj["state"]);
+
+	////Can generate URL using name with JS
+	//if (device->website != nullptr)
+	//	obj["url"] = device->website->GetUrl();
+
+	//jarray.add(obj);
+}
+
+int Mqtt::DeviceManager::PackDeviceInfo(JsonVariant& doc)
+{
+	DEBUG_LOG_LN("Packing Device Info...");
+	JsonObject parent = doc.getOrAddMember("mqttDeviceInfo");
+
+	for (uint32_t i = 0; i < TOTAL_MQTT_DEVICE_TYPES; i++)
+	{
+		if (*mqttDeviceCounts[i] == 0) continue;
+
+		MqttDevice* device = mqttDeviceLists[i][0];
+
+		DEBUG_LOG_F("%s : %d\r\n", mqttDeviceLists[i][0]->DeviceTypeName(), *mqttDeviceCounts[i]);
+
+		JsonArray devices = parent.createNestedArray(mqttDeviceLists[i][0]->DeviceTypeKey());
+
+		for (device_count_t b = 0; b < *mqttDeviceCounts[i]; b++)
+		{
+			AddDevicesInfo(devices, mqttDeviceLists[i][b]);
+			EspSense::YieldWatchdog(1);
+		}
+	}
+
+	//if (status.mqtt.devices.sensorCount)
+	//{
+	//	DEBUG_LOG_F("Sensors : %d\r\n", status.mqtt.devices.sensorCount);
+	//	JsonArray sensors = parent.createNestedArray("sensors");
+	//	for (device_count_t i = 0; i < status.mqtt.devices.sensorCount; i++)
+	//	{
+	//		DEBUG_LOG_F("Sensor %d -Name : ", i);
+	//		AddDevicesInfo(sensors, mqttSensors[i]);
+	//		EspSense::YieldWatchdog(1);
+	//	}
+	//}
+
+	//if (status.mqtt.devices.binarySensorCount)
+	//{
+	//	DEBUG_LOG_F("Binary Sensors : %d\r\n", status.mqtt.devices.binarySensorCount);
+	//	JsonArray binSensors = parent.createNestedArray("binarySensors");
+	//	for (device_count_t i = 0; i < status.mqtt.devices.binarySensorCount; i++)
+	//	{
+	//		AddDevicesInfo(binSensors, mqttBinarySensors[i]);
+	//		EspSense::YieldWatchdog(1);
+	//	}
+	//}
+
+	return 0;
+}
+
+//size_t Mqtt::DeviceManager::GetJsonDeviceInfo(String* serializeTo, DynamicJsonDocument** out_doc)
+//{
+//	if (serializeTo == nullptr && out_doc == nullptr) return 0;
+//
+//#warning calculate size
+//	DynamicJsonDocument* doc = new DynamicJsonDocument(2048);
+//
+//	JsonObject obj = doc->createNestedObject("mqttDevices");
+//
+//	JsonArray sensors = obj.createNestedArray("sensors");
+//	for (device_count_t i = 0; i < status.mqtt.devices.sensorCount; i++)
+//	{
+//		AddDevicesInfo(sensors, mqttSensors[i]);
+//		EspSense::YieldWatchdog(1);
+//	}
+//
+//
+//	JsonArray binSensors = obj.createNestedArray("binarySensors");
+//	for (device_count_t i = 0; i < status.mqtt.devices.binarySensorCount; i++)
+//	{
+//		AddDevicesInfo(sensors, mqttBinarySensors[i]);
+//		EspSense::YieldWatchdog(1);
+//	}
+//
+//
+//	size_t size = 1;
+//
+//	if (serializeTo != nullptr)
+//		size = serializeJson(*doc, *serializeTo);
+//	
+//
+//	if (out_doc != nullptr)
+//	{
+//		*out_doc == doc;
+//	}
+//	else
+//	{
+//		delete doc;
+//	}
+//
+//	return size;
+//}
+//
+//size_t Mqtt::DeviceManager::GetJsonDeviceInfo(DynamicJsonDocument** out_doc)
+//{
+//	return GetJsonDeviceInfo(nullptr, out_doc);
+//}
 
 
 
@@ -814,13 +885,13 @@ size_t Mqtt::DeviceManager::GetMaxFileSize()
 }
 
 
-bool Mqtt::DeviceManager::IsValidSensor(const char* device)
+bool Mqtt::DeviceManager::IsValidSensor(const char* deviceKey)
 {
-	if (strcmp(device, "scd4x"))
+	if (strcmp(deviceKey, Scd4xSensor::deviceKey) == 0)
 	{
 		return true;
 	}
-	else if (strcmp(device, "sht4x"))
+	else if (strcmp(deviceKey, Sht4xSensor::deviceKey) == 0)
 	{
 		return true;
 	}
@@ -830,15 +901,17 @@ bool Mqtt::DeviceManager::IsValidSensor(const char* device)
 	}
 }
 
-MqttSensor* Mqtt::DeviceManager::CreateMqttSensor(int deviceIndex, int sensorIndex, const char* name, const char* device)
+#warning Add 
+
+MqttSensor* Mqtt::DeviceManager::CreateMqttSensor(int index, int subindex, const char* name, const char* deviceKey)
 {
-	if (strcmp(device, "scd4x") == 0)
+	if (strcmp(deviceKey, Scd4xSensor::deviceKey) == 0)
 	{
-		return mqttSensors[sensorIndex] = new Scd4xSensor(name, deviceIndex);
+		return mqttSensors[index] = new Scd4xSensor(name, index, subindex);
 	}
-	else if (strcmp(device, "sht4x") == 0)
+	else if (strcmp(deviceKey, Sht4xSensor::deviceKey) == 0)
 	{
-		return mqttSensors[sensorIndex] = new Sht4xSensor(name, deviceIndex);
+		return mqttSensors[index] = new Sht4xSensor(name, index, subindex);
 	}
 	else
 	{
@@ -847,9 +920,9 @@ MqttSensor* Mqtt::DeviceManager::CreateMqttSensor(int deviceIndex, int sensorInd
 }
 
 
-bool Mqtt::DeviceManager::IsValidBinarySensor(const char* device)
+bool Mqtt::DeviceManager::IsValidBinarySensor(const char* deviceKey)
 {
-	if (strcmp(device, "llc200d3sh") == 0)
+	if (strcmp(deviceKey, Llc200d3sh_Sensor::deviceKey) == 0)
 	{
 		return true;
 	}
@@ -859,11 +932,11 @@ bool Mqtt::DeviceManager::IsValidBinarySensor(const char* device)
 	}
 }
 
-MqttBinarySensor* Mqtt::DeviceManager::CreateMqttBinarySensor(int deviceIndex, int sensorIndex, const char* name, const char* device)
+MqttBinarySensor* Mqtt::DeviceManager::CreateMqttBinarySensor(int index, int subindex, const char* name, const char* deviceKey)
 {
-	if (strcmp(device, "llc200d3sh") == 0)
+	if (strcmp(deviceKey, Llc200d3sh_Sensor::deviceKey) == 0)
 	{
-		return mqttBinarySensors[sensorIndex] = new Llc200d3sh_Sensor(name, deviceIndex);
+		return mqttBinarySensors[subindex] = new Llc200d3sh_Sensor(name, index, subindex);
 	}
 	else
 	{

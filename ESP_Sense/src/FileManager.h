@@ -24,7 +24,7 @@ namespace FileManager {
 	bool MountFileSystem();
 	bool UnMountFileSystem();
 
-	bool OpenFile(File* file, const char* path, const char mode, bool closeOnFail = false);
+	bool OpenFile(File* file, const char* path, const char* mode);
 
 	bool ParseFile(File* file, JsonDocument& doc, const char* filename, bool close = true);
 
@@ -41,11 +41,13 @@ namespace FileManager {
 	String GetFileName(const char* path);
 
 	void DisplayFileContents(File* file);
+	void DisplayEepromContents(EepromStream& stream);
+	void DisplayEepromContents(size_t address, size_t length);
 
 	uint32_t GetFileCRC(const char* path);
 	uint32_t GetFileCRC(File* file, bool close = true);
 
-	uint32_t GetSerializedCRC(JsonDocument& doc);
+	uint32_t GetSerializedCRC(JsonDocument& doc, size_t* out_size = nullptr);
 
 	uint32_t GetEepromCRC(EepromStream& eestream, size_t length);
 }

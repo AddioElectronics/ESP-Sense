@@ -1,6 +1,7 @@
 #include "FileManager.h"
 
 #include "Config/config_master.h"
+#include "Config/global_status.h"
 #include "../ESP_Sense.h"
 
 #include "CrcStream.h"
@@ -8,7 +9,7 @@
 #include "HelperFunctions.h"
 #include "macros.h"
 
-extern DeviceStatus_t status;
+extern GlobalStatus_t status;
 extern Config_t config;
 extern HardwareSerial* serial;				//Message
 extern HardwareSerial* serialDebug;		//Debug
@@ -22,9 +23,9 @@ bool FileManager::MountFileSystem()
 #if defined(ESP8266)
 	bool formatted = false;
 RetryConnection:
-	status.storage.fsMounted = ESP_FS.begin();
+	status.device.fsMounted = ESP_FS.begin();
 	//Mounting failed, format and try again.
-	if (!status.storage.fsMounted && !formatted)
+	if (!status.device.fsMounted && !formatted)
 	{
 		formatted = true;
 		ESP_FS.format();
@@ -32,11 +33,11 @@ RetryConnection:
 		goto RetryConnection;
 	}
 #elif defined(ESP32)
-	status.storage.fsMounted = ESP_FS.begin(statusRetained.boot.freshBoot);
+	status.device.fsMounted = ESP_FS.begin(statusRetained.boot.freshBoot);
 #endif
 
 	//Could not mount FS.
-	if (!status.storage.fsMounted)
+	if (!status.device.fsMounted)
 	{
 		DEBUG_LOG_LN("An error has occured while mounting the file system. EEPROM or Firmware configuration data will be used.");
 		return false;
@@ -50,53 +51,58 @@ bool FileManager::UnMountFileSystem()
 {
 	DEBUG_LOG_LN("Un-mounting file system...");
 
-	status.storage.fsMounted = false;
+	status.device.fsMounted = false;
 	ESP_FS.end();
 
 	DEBUG_LOG_LN("File system un-mounted.");
 	return false;
 }
 
-
-bool FileManager::OpenFile(File* file, const char* path, const char mode, bool closeOnFail)
+/// <summary>
+/// 
+/// </summary>
+/// <param name="file"></param>
+/// <param name="path"></param>
+/// <param name="mode"></param>
+/// <param name="createOnNull">If file does not exist while trying to write, create.</param>
+/// <returns></returns>
+bool FileManager::OpenFile(File* file, const char* path, const char* mode)
 {
 	file->setTimeout(FILE_STREAM_TIMEOUT);
 
-	DEBUG_LOG_F("Opening %s... to %s.\r\n", path, mode == 'r' ? "read" : "write");
+	DEBUG_LOG_F("Opening %s... Mode : %s.\r\n", path, mode);
 
-	if (!status.storage.fsMounted)
+	if (!status.device.fsMounted)
 	{
 		DEBUG_LOG_LN("File cannot be opened as the file system is not mounted.");
 		return false;
 	}
 
+	bool reading = mode[0] == 'r' || mode[1] == '+';
 
-	if (!ESP_FS.exists(path) && mode != 'w')
-		//if (!LittleFS.exists(path))
+
+	if (!ESP_FS.exists(path) && reading)
 	{
 		DEBUG_LOG_F("The file at path %s does not exist.", path);
 		return false;
 	}
 
-	//*file = LittleFS.open(path, "r");
-	*file = ESP_FS.open(path, "r");
+	*file = ESP_FS.open(path, mode);
 
 	if (!*file)
 	{
-		if (closeOnFail)
-			file->close();
+		file->close();
 
 		DEBUG_LOG_LN("Failed to open!");
 		return false;
 	}
 
 #if DEVELOPER_MODE
-	if (status.misc.developerMode)
+	if (status.misc.developerMode && reading)
 	{
 		DisplayFileContents(file);
 	}
 #endif
-
 
 
 	DEBUG_LOG_LN("File Opened!");
@@ -129,7 +135,7 @@ bool FileManager::ParseFile(File* file, JsonDocument& doc, const char* filename,
 int FileManager::OpenAndParseFile(const char* path, JsonDocument& doc)
 {
 	File file;
-	if (!OpenFile(&file, path, 'r', true)) return 1;	//Could not open file
+	if (!OpenFile(&file, path, "r")) return 1;	//Could not open file
 
 	int result = ParseFile(&file, doc, path, true);
 
@@ -260,15 +266,37 @@ void FileManager::DisplayFileContents(File* file)
 	{
 		serial->write(file->read());
 	}
-
+	
 	file->seek(0);
+	DEBUG_NEWLINE();
 }
+
+void FileManager::DisplayEepromContents(EepromStream& stream)
+{
+	serial->println("Printing EEPROM Contents...");
+
+	while (stream.available()) {
+		serial->write(stream.read());
+	}
+
+	serial->println("\r\n...Finished.");
+	DEBUG_NEWLINE();
+}
+
+void FileManager::DisplayEepromContents(size_t address, size_t length)
+{
+	
+	EepromStream stream(address, length);
+	DisplayEepromContents(stream);
+}
+
+
 
 uint32_t FileManager::GetFileCRC(const char* path)
 {
 	File file;
 	//DEBUG_LOG_LN("Opening file to calculate CRC...");
-	if (!OpenFile(&file, path, 'r')) return 0;	
+	if (!OpenFile(&file, path, "r")) return 0;
 	
 	return GetFileCRC(&file, true);
 }
@@ -298,13 +326,17 @@ uint32_t FileManager::GetFileCRC(File* file, bool close)
 /// and returns the result.
 /// </summary>
 /// <returns>CRC32 of the serialized document.</returns>
-uint32_t FileManager::GetSerializedCRC(JsonDocument& doc)
+uint32_t FileManager::GetSerializedCRC(JsonDocument& doc, size_t* out_size)
 {	
 	DEBUG_LOG_LN("Calculating JsonDocument CRC...");
 	Crc32Stream crcStream;
-	serializeJson(doc, crcStream);
+	size_t size = serializeJson(doc, crcStream);
 	uint32_t crc = crcStream.crc.getCRC();
 	DEBUG_LOG_F("CRC : 0x%0000000X\r\n", crc);
+
+	if (out_size != nullptr)
+		*out_size = size;
+
 	return crc;
 }
 
