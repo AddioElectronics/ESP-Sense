@@ -76,6 +76,9 @@ void MqttDeviceWeb::Deinitialize()
 	if (webStatus.hostingPayloadsRequest)
 		server.removeHandler(handlers.getPayloads);
 
+	if (webStatus.hostingTopicsRequest)
+		server.removeHandler(handlers.getTopics);
+
 	if (webStatus.hostingConfigRequest)
 	{
 		server.removeHandler(handlers.getConfig);
@@ -108,6 +111,8 @@ void MqttDeviceWeb::AddStatusData(JsonVariant& rootObj)
 	obj["hostingWebpage"] = webStatus.hostingWebpage;
 	obj["hostingStatusRequest"] = webStatus.hostingStatusRequest;
 	obj["hostingConfigRequest"] = webStatus.hostingConfigRequest;
+	obj["hostingPayloadsRequest"] = webStatus.hostingPayloadsRequest;
+	obj["hostingTopicsRequest"] = webStatus.hostingTopicsRequest;
 }
 
 void MqttDeviceWeb::InitializePage()
@@ -208,12 +213,19 @@ void MqttDeviceWeb::InitializeRequests()
 
 	//Get MQTT payload strings.
 	{
-		tempUrl = GetUrl("payloads");
+		tempUrl = GetUrl("payload");
 		handlers.getPayloads = &server.on(tempUrl.c_str(), HTTP_GET, [device](AsyncWebServerRequest* request) {
-			MqttDeviceWeb::GetConfigResponse(device, request);
+			MqttDeviceWeb::GetPayloadsResponse(device, request);
 		});
 
-		webStatus.hostingConfigRequest = true;
+		webStatus.hostingPayloadsRequest = true;
+
+		tempUrl = GetUrl("topics");
+		handlers.getPayloads = &server.on(tempUrl.c_str(), HTTP_GET, [device](AsyncWebServerRequest* request) {
+			MqttDeviceWeb::GetTopicsResponse(device, request);
+		});
+
+		webStatus.hostingTopicsRequest = true;
 	}
 }
 
@@ -288,7 +300,7 @@ void MqttDeviceWeb::GetPayloadsResponse(MqttDevice* device, AsyncWebServerReques
 {
 	if (device == nullptr) return;
 
-	String jsonData = device->GenerateJsonConfig();
+	String jsonData = device->GenerateJsonStatePayload(false);
 
 	if (jsonData.isEmpty())
 		request->send(204, "No JSON data was generated.");
@@ -296,3 +308,14 @@ void MqttDeviceWeb::GetPayloadsResponse(MqttDevice* device, AsyncWebServerReques
 		request->send(200, Network::Website::Strings::ContentType::appJSON, jsonData);
 }
 
+void MqttDeviceWeb::GetTopicsResponse(MqttDevice* device, AsyncWebServerRequest* request)
+{
+	if (device == nullptr) return;
+
+	String jsonData = device->GenerateJsonTopics();
+
+	if (jsonData.isEmpty())
+		request->send(204, "No JSON data was generated.");
+	else
+		request->send(200, Network::Website::Strings::ContentType::appJSON, jsonData);
+}

@@ -23,7 +23,8 @@ public:
 			bool hostingStatusRequest : 1;	//Handling status request.
 			bool hostingConfigRequest : 1;	//Handling config requests.
 			bool hostingPayloadsRequest : 1;
-			uint8_t reserved : 3;
+			bool hostingTopicsRequest : 1;
+			uint8_t reserved : 2;
 		};
 		String url;
 	}Status_t;
@@ -37,6 +38,7 @@ protected:
 		AsyncCallbackWebHandler* getConfig;
 		AsyncCallbackWebHandler* setConfig;
 		AsyncCallbackWebHandler* getPayloads;
+		AsyncCallbackWebHandler* getTopics;
 	}handlers;
 
 
@@ -72,6 +74,7 @@ public:
 	static void GetConfigResponse(MqttDevice* device, AsyncWebServerRequest* request);
 	static void SetConfigResponse(MqttDevice* device, AsyncWebServerRequest* request);
 	static void GetPayloadsResponse(MqttDevice* device, AsyncWebServerRequest* request);
+	static void GetTopicsResponse(MqttDevice* device, AsyncWebServerRequest* request);
 };
 #endif
 
