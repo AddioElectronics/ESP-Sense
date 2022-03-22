@@ -2,7 +2,7 @@ var updateInProgess = false;
 
 /*
 Authentication currently just hides and shows the correct forms, 
-in the future I will change it into a server request (after auth it will send the rest of the page). 
+in the future it will only serve pages after authentication, else serve login page.
 Not a security risk, if someone un-hid the form and tried to upload the firmware would not allow it.
 */
 
@@ -20,10 +20,12 @@ function webupdate_init() {
     //$('#upload_button').on('submit', webupdate_submit);
 
     $('#update_form').submit(function(e) {
+        
+        //Check if still authenticated.
+        //Without this progress bar will reach 100% and no update will happen.
         Authenticator.Start(function(){
             console.log("Still authenticated.");
         }, function(){
-            console.log('Not authenticated');
             refreshPage();
         });        
         webupdate_submit();

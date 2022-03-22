@@ -108,6 +108,9 @@ bool Sht4xSensor::Enable()
 
 bool Sht4xSensor::Subscribe()
 {
+	deviceStatus.subscribed = true;
+	return true;
+
 	return MqttDevice::Subscribe();
 
 	//#warning  Also remember about the useParents settings.
@@ -124,6 +127,8 @@ bool Sht4xSensor::Subscribe()
 }
 bool Sht4xSensor::Unsubscribe()
 {
+	deviceStatus.subscribed = false;
+	return true;
 	return MqttDevice::Unsubscribe();
 
 	//if (deviceMqttSettings.json)

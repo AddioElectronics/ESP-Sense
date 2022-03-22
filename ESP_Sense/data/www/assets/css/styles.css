@@ -151,3 +151,47 @@ iframe {
   /*width: 100%;*/
 }
 
+select {
+  background-color: #212529;
+  color: #c9c9c9;
+}
+
+input[type=color] {
+  border-color: black !important;
+  outline-color: black;
+}
+
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+  input[type='range']::-webkit-slider-runnable-track {
+    color: #545454;
+    background-color: #666666;
+  }
+}
+
+input[type='range'] * {
+  border-color: black !important;
+  outline-color: black !important;
+}
+
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+  input[type='range']::-webkit-slider-thumb {
+    background: radial-gradient(circle, hsl(216, 78%, 52%) 0%, hsl(216, 65%, 35%) 100%);
+    /*box-shadow: 0 0 5px #000000;*/
+    width: 20px;
+    height: 20px;
+    margin-top: -7px;
+  }
+}
+
+input[type='range'].custom::-webkit-slider-thumb {
+  background: radial-gradient(circle, hsl(var(--slider-thumb-hue), 78%, 52%) 0%, hsl(var(--slider-thumb-hue), 65%, 35%) 100%);
+}
+
+input[type="range"]::-moz-range-progress {
+  background-color: #666666;
+}
+
+input[type="range"]::-moz-range-track {
+  background-color: #666666;
+}
+

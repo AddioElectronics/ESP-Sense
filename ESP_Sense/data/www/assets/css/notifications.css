@@ -1,0 +1,177 @@
+#notifications {
+  position: fixed;
+  bottom: 120px;
+  right: 0px;
+}
+
+#notifications > .tab {
+  position: absolute;
+  width: 38px;
+  height: 38px;
+  left: -38px;
+  top: -188px;
+  background-color: #16283d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 5px black;
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+  transition: left 1s;
+  font-size: 19px;
+}
+
+#notifications.view:not([value="0"]) > .tab {
+  left: -350px;
+  font-size: 0px;
+  transition: left 1s, font-size 1s;
+}
+
+#notifications[value="0"] > .tab {
+  left: 10px;
+  transition: left 1s, font-size 1s;
+}
+
+#notifications > .tab i {
+  color: white;
+}
+
+#notifications > .tab:hover {
+  background-color: #0e2f56;
+}
+
+.tab span {
+  writing-mode: tb-rl;
+  /*text-orientation: upright;*/
+  /*font-weight: 500;*/
+  /*font-size: small;*/
+  font-stretch: extra-expanded;
+}
+
+#notifications > .expandable {
+  /*position: fixed;*/
+  /*bottom: 120px;*/
+  /*right: 0px;*/
+  --note-count: 2;
+  position: absolute;
+  left: 10px;
+  top: -188px;
+  width: 350px;
+  height: 50px;
+  max-height: calc((var(--note-count) * 50px) + 38px);
+  z-index: 9999;
+  background-color: #16283d;
+  background-color: #111518;
+  border-top-left-radius: 5px;
+  box-shadow: 0 0 10px black;
+  font-family: monospace;
+  transition: left 1s, height 1s;
+  overflow-y: hidden;
+}
+
+@property --note-count {
+  syntax: '<length>';
+  initial-value: 1;
+}
+
+#notifications.view:not([value="0"]) > .expandable {
+  left: -350px;
+  height: 188px;
+  transition: left 1s, height 1s;
+}
+
+#notifications .header {
+  height: 38px;
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
+  background-color: #16283d;
+  display: flex;
+  align-items: center;
+  padding-left: 25px;
+  grid-template-columns: auto 100px;
+  display: grid;
+}
+
+#notifications .header button {
+  height: 38px;
+}
+
+#notifications .note-list {
+  overflow-y: scroll;
+  display: block;
+  max-height: 150px;
+  height: inherit;
+}
+
+.notification {
+  height: 50px;
+  width: 100%;
+  grid-template-columns: 50px auto 25px;
+  display: grid;
+  border: 3px inset rgba(0,0,0,0.36);
+  font-size: 15px;
+  background-color: #111518;
+  position: relative;
+  transition: height 1s, width 1s, font-size 1s;
+}
+
+.notification.remove {
+  /*left: 0px;*/
+  height: 0px;
+  width: 0px;
+  font-size: 0px;
+  transition: height 1s, width 1s, font-size 1s;
+}
+
+.notification:hover {
+  background-color: black;
+}
+
+.notification:active {
+  border: 3px inset rgba(0,0,0,0.36);
+  color: green;
+}
+
+.notification > div {
+  display: flex;
+  align-items: center;
+}
+
+.notification .note-msg-con {
+}
+
+.notification .note-msg-con * {
+  flex-grow: 0;
+  vertical-align: middle;
+  display: inline-block;
+}
+
+.notification .note-icon-con {
+  font-size: 25px;
+  /*position: relative;*/
+}
+
+.notification .note-icon-con i {
+  left: 25%;
+  top: 25%;
+  /*position: absolute;*/
+  margin: auto;
+}
+
+.notification.remove .note-icon-con i {
+  font-size: 0px;
+  transition: font-size 1s;
+}
+
+@keyframes notification-remove {
+  0% {
+    height: 0px;
+  }
+  50% {
+    height: 0px;
+  }
+  100% {
+    height: 188px;
+  }
+}
+

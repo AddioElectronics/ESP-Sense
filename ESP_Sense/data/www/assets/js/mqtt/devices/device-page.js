@@ -36,17 +36,28 @@ function setMqttDeviceStatus(data, device){
     
     if($('.device-config').length == 0) return;
     
-    $('[config-content=mqttdevice]').text("Not Implemented.");
-    return;
-    MqttDevice.activeDevice.GetConfig(setConfigForm, function(xhr, status, error){
-        $('[config-content=mqttdevice]').text("Get Status Failed...");
-    });
     
     
-    populateStatusTable(dsobj.find('[status-content=device]').find('tbody'), rootObj['deviceStatus']);
-    populateStatusTable(dsobj.find('[status-content=deviceType]').find('tbody'), rootObj['sensorStatus']);
-    populateStatusTable(dsobj.find('[status-content=unique]').find('tbody'), rootObj['uniqueStatus']);
-    populateStatusTable(dsobj.find('[status-content=website]').find('tbody'), rootObj['websiteStatus']);
+     MqttDevice.activeDevice.GetConfig(function(data){
+        let dcobj = $('section.device-config[dev-index=""][dev-type=""] [config-content=mqttdevice], section.device-config[dev-index='+device.index+'][dev-type='+device.type+'] [config-content=mqttdevice]');
+        objectToTables(dcobj, data, false);
+         
+     }, function(xhr, status, error){
+        $('[config-content=mqttdevice]').text("Get Config Failed...");
+    }); 
+    
+    //$('[config-content=mqttdevice]').text("Not Implemented.");
+        //return;
+    
+    //Get form from server for configuration
+    //MqttDevice.activeDevice.GetConfig(setConfigForm, function(xhr, status, error){
+        //$('[config-content=mqttdevice]').text("Get Status Failed...");
+    //});    
+    
+    //populateStatusTable(dsobj.find('[status-content=device]').find('tbody'), rootObj['deviceStatus']);
+    //populateStatusTable(dsobj.find('[status-content=deviceType]').find('tbody'), rootObj['sensorStatus']);
+    //populateStatusTable(dsobj.find('[status-content=unique]').find('tbody'), rootObj['uniqueStatus']);
+    //populateStatusTable(dsobj.find('[status-content=website]').find('tbody'), rootObj['websiteStatus']);
 }
 
 function submitMqttDeviceConfigForm(){    

@@ -6,6 +6,7 @@ class MqttDevice {
     static rootDevInfoKey = 'mqttDeviceInfo';
     static activeDevice;
     static stateStrings = {ok:'ok', disabled:'disabled', error:'error', unknown:'unknown', loading:'loading', permanentOff:'permOff'};
+    static deviceInfoProcessed = false;
     
     constructor(index, name, deviceKey, deviceName, type, state) {
         if(arguments.length == 1){
@@ -186,6 +187,7 @@ class MqttDevice {
             initNavToDevBut();
         }
         MqttDevice.eventDeviceInfoCreated.Invoke();
+        MqttDevice.deviceInfoProcessed = true;
     }
     
     static ProcessDeviceInfo(type){
@@ -197,6 +199,19 @@ class MqttDevice {
                 mqttDevices[type].push(new MqttDevice(i, d['name'], d['deviceKey'], d['deviceName'], type, d['state']));
             }
         }
+    }
+    
+    static RefreshActiveStatus(){
+        var device = MqttDevice.activeDevice;
+        
+        if(device == null) 
+            return;
+        
+        device.GetStatus(setMqttDeviceStatus, function(xhr, status, error){
+        let err = xhr.responseText;
+        enableBlockingMsg('Could not refresh ' + device.name + '(' + device.device + ') status\r\n' + err, true, 'red');
+        $('[status-content=mqttdevice]').text("Get Status Failed...");
+    });
     }
     
     static AppendRawJsonData(){
@@ -333,75 +348,56 @@ class MqttDevice {
                 dev.SetLeds();
             });
         });
+        MqttDevice.SetAllLedHeadGroups();
     }
     
+    
+    //Set all device group LEDs.
+    //If all device types have a matching state(all "ok" are [on]),
+    //the group LEDs will take that state.    
+    //Ignores error state, as there are no events(currently) for that state.
     static SetAllLedHeadGroups(){
-        console.warn('boo');
         var counts = {ok:0, disabled:0, total:0};
-        var keys  = Object.keys(mqttDevices);
+        
+        //Get device types (sensors, binarySensors...),
+        //and iterate over the ledgroup's for the type.
+        var keys  = Object.keys(mqttDevices);       
         keys.forEach(function(key){
-            if($('ledgroup[device-type='+key+']').length == 0) return;
+            if($('ledgroup[dev-type='+key+']').length == 0) return;
+            
             let subcounts = MqttDevice.SetSubTypeLeds(key);
             for(let ckey in counts){
                 counts[ckey] += subcounts[ckey];
             }
         });
         
-        let group = $('ledgroup[device-type=all]');
+        let group = $('ledgroup[dev-type=all]');
         
         MqttDevice.SetLedHeadGroup(group, counts);
-        
     }
     
+    //Set ledgroup for a specific device type
+    //If all devices have a matching state(all "ok" are [on]),
+    //the group LEDs will take that state.
+    //Ignores error state, as there are no events(currently) for that state.
     static SetSubTypeLeds(subType){
-        let group = $('ledgroup[device-type='+subType+']');    
+        let group = $(':not(device-item) > ledgroup[dev-type='+subType+']');    
         
         if(group.length == 0) return;
         
-        function ledQuery(state) {return '.device-group[device-type='+subType+'] .sub-list led[state='+state+']'};
+        //Function used to find the LED elements.
+        function ledQuery(state) {return 'device-group[dev-type='+subType+'] .sub-list led[state='+state+']'};
         
         return MqttDevice.SetLedHeadGroup(group, ledQuery);
-        
-        let okLen = $(ledQuery('ok') + '[on]').length;
-        let disLen = $(ledQuery('disabled') + '[on]').length;
-        let errLen = $(ledQuery('error')+'[on]').length;
-        let totalLen = $(ledQuery('error')).length - errLen;
-        
-        removeAttr(group, 'on');
-        removeAttr(group, 'event');
-        group.off();
-        
-        let disLed = group.parent().find('led[state=disabled]');  
-        let okLed = group.parent().find('led[state=ok]');
-        
-        if(okLen == totalLen)
-            okLed.attr('on', '');
-        
-        if(okLen != totalLen){
-            okLed.attr('event', '');  
-            okLed.on('click', function(){
-                MqttDevice.EnableAll(subType);
-            });
-        }
-        
-         if(disLen == totalLen)
-            disLed.attr('on', '');  
-        
-        if(disLen != totalLen){
-            disLed.attr('event', '');  
-            disLed.on('click', function(){
-                MqttDevice.DisableAll(subType);
-            });
-        }
-        console.log('tired, reminder to redo');
-        
-        return {ok:okLen, disabled:disLen, total:totalLen};
     }
     
     //Do not call, used by
     static SetLedHeadGroup(group, queryfn){
         
         let counts = queryfn;
+        
+        //If queryfn is a function, get the counts using the query.
+        //else the counts have already been retrieved.
         if(queryfn instanceof Function){
             let okLen = $(queryfn('ok') + '[on]').length;
             let disLen = $(queryfn('disabled') + '[on]').length;
@@ -425,7 +421,7 @@ class MqttDevice {
         
         if(counts.ok != counts.total){
             okLed.attr('event', '');  
-            var dtype = group.attr('device-type');
+            var dtype = group.attr('dev-type');
             okLed.on('click', function(){
                 MqttDevice.EnableAll(dtype);
             });
@@ -436,7 +432,7 @@ class MqttDevice {
         
         if(counts.disabled != counts.total){
             disLed.attr('event', '');  
-            var dtype = group.attr('device-type');
+            var dtype = group.attr('dev-type');
             disLed.on('click', function(){
                 MqttDevice.DisableAll(dtype);
             });
@@ -445,9 +441,6 @@ class MqttDevice {
         
         return counts;
     }
-    
-    
-    
 }
 
 async function setAllMqttDevicesEnabled(enabled, subType, dontSetAll){
@@ -527,7 +520,7 @@ MqttDevice.prototype.GetState = function(success, errorcb, complete){
             success(data);
         dev.EventRequestSuccess.Invoke();
     }, function(xhr, status, error){
-        dev.status = undefined;
+        dev.state = MqttDevice.stateStrings.unknown;
         if(errorcb != null)
             errorcb(xhr, status, error);
         dev.EventRequestFailed.Invoke();
@@ -597,6 +590,7 @@ MqttDevice.prototype.SetEnabled = async function(enabled, success, error, comple
                 dev.SetLeds();
                 dev.EventStateChanged.Invoke();
                 dev.EventRequestSuccess.Invoke();
+                MqttDevice.RefreshActiveStatus();
             },
             error: function(xhr, status, error){
                 if(xhr.status == 404 || xhr.status == 511){
@@ -644,11 +638,14 @@ MqttDevice.prototype.SetLeds = function(){
     if(this.ledGroup != null)
         MqttDevice.SetLedState(this.state, this.ledGroup, ledClickEvent, ledClickEvent/*, errorClickEvent*/);
     
-    MqttDevice.SetSubTypeLeds(this.type);
+    if(MqttDevice.deviceInfoProcessed){
+       MqttDevice.SetSubTypeLeds(this.type);
+        MqttDevice.SetAllLedHeadGroups(); 
+    }    
 }
 
 
-MqttDevice.eventDeviceInfoCreated.add(MqttDevice.SetAllDeviceLeds);
+//MqttDevice.eventDeviceInfoCreated.add(MqttDevice.SetAllDeviceLeds);
 
 onEvent('auth', function(){
     if ($('[mqtt]') == null) return;

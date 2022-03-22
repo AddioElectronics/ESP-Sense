@@ -73,6 +73,9 @@ void MqttDeviceWeb::Deinitialize()
 	if (webStatus.hostingWebpage)
 	server.removeHandler(handlers.pageHandler);
 
+	if (webStatus.hostingPayloadsRequest)
+		server.removeHandler(handlers.getPayloads);
+
 	if (webStatus.hostingConfigRequest)
 	{
 		server.removeHandler(handlers.getConfig);
@@ -145,9 +148,6 @@ void MqttDeviceWeb::InitializeRequests()
 	{
 		tempUrl = GetUrl("config");
 		handlers.statusHandler = &server.on(tempUrl.c_str(), HTTP_GET, [device](AsyncWebServerRequest* request) {
-			//Not implemented
-			request->send(501, ContentType::textPlain, Messages::notImplemented);
-			return;
 			MqttDeviceWeb::GetConfigResponse(device, request);
 		});
 
@@ -205,12 +205,23 @@ void MqttDeviceWeb::InitializeRequests()
 
 		webStatus.hostingStatusRequest = true;
 	}
+
+	//Get MQTT payload strings.
+	{
+		tempUrl = GetUrl("payloads");
+		handlers.getPayloads = &server.on(tempUrl.c_str(), HTTP_GET, [device](AsyncWebServerRequest* request) {
+			MqttDeviceWeb::GetConfigResponse(device, request);
+		});
+
+		webStatus.hostingConfigRequest = true;
+	}
 }
 
 #include "../../Network/Server/SpecialRequests.h"
 
 void MqttDeviceWeb::GetStateResponse(MqttDevice* device, AsyncWebServerRequest* request)
 {
+	device->SetDeviceState();
 	Network::Server::SpecialRequests::ResponseSerializedData("state", 128, (JsonHelper::PACK_JSON_FUNC)[device](JsonVariant& doc) {
 		doc["state"].set((DeviceState)device->deviceStatus.state);
 		return 0;
@@ -271,5 +282,17 @@ void MqttDeviceWeb::SetConfigResponse(MqttDevice* device, AsyncWebServerRequest*
 
 Label_InternalServerError:
 	request->send(500, ContentType::textPlain, Messages::internalServerError);
+}
+
+void MqttDeviceWeb::GetPayloadsResponse(MqttDevice* device, AsyncWebServerRequest* request)
+{
+	if (device == nullptr) return;
+
+	String jsonData = device->GenerateJsonConfig();
+
+	if (jsonData.isEmpty())
+		request->send(204, "No JSON data was generated.");
+	else
+		request->send(200, Network::Website::Strings::ContentType::appJSON, jsonData);
 }
 

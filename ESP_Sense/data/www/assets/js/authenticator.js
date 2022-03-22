@@ -4,8 +4,6 @@ var loginFormHtml = `<div id="auth_con" class="container">
     </form>
 </div>`;
 
-var espAuthenticated = false;
-
 class Authenticator{
     static authenticated = false;
     

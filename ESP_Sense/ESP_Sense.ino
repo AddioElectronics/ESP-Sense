@@ -3,9 +3,8 @@
 	Lots of functions are uncommented, and unorganized, they will be fixed in the future.
 */
 
-#define ESP_SENSE_VERSION	0,1,2
-
-
+//Current version of the firmware.
+#define ESP_SENSE_VERSION	0,1,8
 
 
 #if !defined(ESP8266) && !defined(ESP32)

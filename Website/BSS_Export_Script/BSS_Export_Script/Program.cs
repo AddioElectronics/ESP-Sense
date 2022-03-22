@@ -9,6 +9,10 @@ namespace BSS_Export_Script
 {
     class Program
     {
+#if DEBUG
+`       //Required
+        const string wwwDebugDirectory = @"";
+#endif
 
         const bool ShowDialogs = true;
 
@@ -50,7 +54,7 @@ namespace BSS_Export_Script
         static void Main(string[] args)
         {
 #if DEBUG
-            wwwDir = new DirectoryInfo(@"");
+            wwwDir = new DirectoryInfo(@"wwwDebugDirectory");
 #else
 
             FileInfo fileInfo = new FileInfo("dummyDelete.html");

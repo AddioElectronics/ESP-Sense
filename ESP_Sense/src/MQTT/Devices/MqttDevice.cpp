@@ -306,6 +306,7 @@ String MqttDevice::GenerateJsonData(ADD_PAYLOAD_FUNC addPayload, const char* dat
 
 	SerializeDocument(&jdata, true);
 
+	DEBUG_LOG_LN("Serialized : ");
 	DEBUG_LOG_LN(jdata.c_str());
 
 	return jdata;

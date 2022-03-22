@@ -47,7 +47,7 @@ void MqttSensor::SetDeviceState()
 {
 	if (deviceStatus.configured)
 	{
-		if (deviceStatus.enabled && sensorStatus.connected)
+		if (deviceStatus.enabled && sensorStatus.connected && !sensorStatus.sleeping)
 			deviceStatus.state = (DeviceState_t)DeviceState::DEVICE_OK;
 		else
 			deviceStatus.state = (DeviceState_t)DeviceState::DEVICE_DISABLED;
@@ -84,9 +84,9 @@ bool MqttSensor::Publish()
 {
 	DEBUG_LOG_F("%s MqttSensor::Publish()\r\n", name.c_str());
 
-	if (!deviceStatus.enabled || !sensorStatus.newData || !status.mqtt.connected)
+	if (deviceStatus.state != (DeviceState_t)DeviceState::DEVICE_OK || !sensorStatus.newData || !status.mqtt.connected)
 	{
-		DEBUG_LOG_LN("Failed : No new data, or not enabled or connected.");
+		DEBUG_LOG_LN("Failed : No new data, not enabled, and/or connected to mqtt broker.\r\n");
 		return false;
 	}
 

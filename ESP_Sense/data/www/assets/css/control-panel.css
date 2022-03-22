@@ -10,7 +10,7 @@
   initial-value: rgba(78,0,0,1);
 }
 
-#esp_reset_button {
+#esp_reset_btn {
   --rstbut-c1: rgba(149,0,0,1);
   --rstbut-c2: rgba(78,0,0,1);
   position: fixed;
@@ -26,7 +26,7 @@
   background: radial-gradient(circle, var(--rstbut-c1) 0%, var(--rstbut-c2) 100%);
 }
 
-#esp_reset_button:active {
+#esp_reset_btn:active {
   --rstbut-c1: rgba(78,0,0,1);
   --rstbut-c2: rgba(149,0,0,1);
   /*background-color: black !important;*/
@@ -35,5 +35,20 @@
   /*transition: color 0.5s;*/
   /*background: radial-gradient(circle, var(--rstbut-c2) 0%, var(--rstbut-c1) 100%);*/
   color: black;
+}
+
+#theme_select {
+  position: fixed;
+  z-index: 9999;
+  bottom: 20px;
+  left: 20px;
+}
+
+#theme_hue {
+  position: fixed;
+  z-index: 9999;
+  bottom: 20px;
+  left: 180px;
+  width: 180px;
 }
 

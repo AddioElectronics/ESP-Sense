@@ -1,3 +1,7 @@
+device-group, device-list, device-item {
+  display: block;
+}
+
 main [mqtt=devicelist] {
   /*margin: 20px 0px 100px;*/
   position: relative;

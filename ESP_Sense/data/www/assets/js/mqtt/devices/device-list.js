@@ -135,14 +135,14 @@ function createDeviceList(devices){
 
 function createSublist(name, dtype, devices){
     console.log('createSublist() ' + name);
-    var devGroup = createElement('div', null, ['device-group'],{key:'device-type', value:dtype} );
+    var devGroup = createElement('device-group', null, ['device-group'],{key:'dev-type', value:dtype} );
     let headCon = createElement('div', null, ['grid', 'head-container']);
     
     var heading = createElement('h3', null, null, null, name);
     var ledGroup = MqttDevice.CreateLedController(true, true);
-    var listCon = createElement('div', null, 'sub-list');
+    var listCon = createElement('device-list', null, 'sub-list');
     
-    ledGroup.attr('device-type', dtype);
+    ledGroup.attr('dev-type', dtype);
     
     headCon.append(heading);
     headCon.append(ledGroup);
@@ -181,7 +181,7 @@ function createHeadingForDeviceList(dev){
 function createDeviceForList(dev){
     console.log('createDeviceForList()');
     console.log(dev);
-    let devElem = createElement('div',
+    let devElem = createElement('device-item',
                                 null, 
                                 ['grid', 'device-container'],
                                 [{key:'tabindex', value:0},{key:'mqttdevice'}, {key:'url', value:dev.url}] );

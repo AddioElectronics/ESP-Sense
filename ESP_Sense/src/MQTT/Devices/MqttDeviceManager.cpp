@@ -647,7 +647,6 @@ void Mqtt::DeviceManager::PublishAll()
 
 	for (uint32_t i = 0; i < status.mqtt.devices.deviceCount; i++)
 	{
-		if (!mqttDevices[i]->deviceStatus.enabled) continue;
 		mqttDevices[i]->Publish();
 		EspSense::YieldWatchdog(5);
 	}

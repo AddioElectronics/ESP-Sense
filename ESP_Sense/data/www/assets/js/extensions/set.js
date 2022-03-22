@@ -2,13 +2,13 @@ Set.prototype.AddRange = function(range){
      if(range != null)
                 if(Array.isArray(range)){
                     for(const fn of range){
-                        if(fn != null){
+                        if(fn != null && !this.has(fn)){
                             this.add(fn);
                         }else{
                             console.log('Set.prototype.AddRange() :: Cannot add, value is null.');
                         }
                     }
-                }else{
+                }else if(!this.has(range)){
                     this.add(range);
                 }
 }
@@ -16,7 +16,7 @@ Set.prototype.AddRange = function(range){
 //Just like Set.add but includes a debug function
 Set.prototype.Add = function(add){
     
-    if(add != null){ 
+    if(add != null && !this.has(add)){ 
         this.add(add);
     }else{
         console.log('Set.prototype.Add() :: Cannot add, value is null.');

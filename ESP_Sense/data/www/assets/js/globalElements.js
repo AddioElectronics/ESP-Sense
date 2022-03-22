@@ -1,7 +1,7 @@
 $('main').hide();
 
 var navHtml = `<nav id="nav_head" class="navbar navbar-light navbar-expand-md navigation-clean">
-    <div class="container"><a class="navbar-brand" href="/" target="_top">ESP-Sense</a><button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navcol"><span class="visually-hidden">Toggle navigation</span><span class="navbar-toggler-icon"></span></button>
+    <div class="container"><a class="navbar-brand" href="/" target="_top">ESP Sense</a><button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#navcol"><span class="visually-hidden">Toggle navigation</span><span class="navbar-toggler-icon"></span></button>
         <div id="navcol" class="collapse navbar-collapse">
             <ul class="navbar-nav ms-auto">
                 <li id="nav_cfg" class="nav-item"><a class="nav-link" href="/config.html" target="_top">Configuration</a></li>
@@ -13,14 +13,16 @@ var navHtml = `<nav id="nav_head" class="navbar navbar-light navbar-expand-md na
                 </li>
             </ul><button id="logout_but" class="btn btn-primary" type="button">Log out</button>
         </div>
+        <div class="gradient"></div>
     </div>
 </nav>`;
 
 var footerHtml = `<footer>
+    <div class="gradient"></div>
     <div class="container">
         <div class="grid">
             <h3 class="footing">ESP Sense</h3>
-            <div class="github"><a href="https://github.com/AddioElectronics/ESP-Sense"><i class="fa fa-github"></i></a></div><span class="version">Version x.x.x</span>
+            <div class="github"><a href="https://github.com/AddioElectronics/ESP-Sense"><i class="fa fa-github"></i></a></div><span class="version">Firmware Version x.x.x</span>
         </div>
     </div>
 </footer>`;

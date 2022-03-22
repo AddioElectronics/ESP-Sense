@@ -1,4 +1,4 @@
-var globalStatusJOBJ;
+
 
 function globalStatusInit() {
     console.log("globalStatusInit()");
@@ -59,13 +59,6 @@ function retryGetGlobalStatus(request, status, error) {
 function loadDummyGlobalStatus(){
     loadData('/assets/js/dummyStatus.json', function(data){
         receivedGlobalStatus(data);
-        //let statusObj = data['status'];
-        //let retainedObj = data['retainedStatus'];
-        //let gsobj = $('[status-content=global]');
-        
-        //objectToTables(gsobj, data, false, [{key:'action', value:'hide-content'}, {key:'actionid', value:'status'}])
-        //objectToTables(gsobj, statusObj)
-        //objectToTables(gsobj, retainedObj)
 
     });
 }

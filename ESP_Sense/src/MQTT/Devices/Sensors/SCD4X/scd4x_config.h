@@ -86,7 +86,7 @@ enum class SCD4x_PowerMode { PM_STANDARD = 0, PM_LOW = 1 };
 
 #pragma endregion
 
-enum class Scd4x_Command_Address
+enum class Scd4x_Command_Type
 {
 	SCD4X_START_PERIODIC_MEASUREMENT = 0x21b1,
 	SCD4X_READ_MEASUREMENT = 0xec05,
@@ -108,21 +108,6 @@ enum class Scd4x_Command_Address
 	SCD4X_REINIT = 0x3646,
 	SCD4X_MEASURE_SINGLE_SHOT = 0x219d,
 	SCD4X_MEASURE_SINGLE_SHOT_RHT_ONLY = 0x2196
-};
-
-enum class Scd4xState
-{
-	SCD4X_IDLE,
-	SCD4X_CONNECT,
-	SCD4X_MEASURE,
-	SCD4X_CONFIGURE,			//Get/Set
-	SCD4X_PERIODIC_MEASURE,
-	SCD4X_FORCED_CALIBRATION,
-	SCD4X_SELF_TEST,
-	SCD4X_FACTORY_RESET,
-	SCD4X_REINIT,
-	SCD4X_SLEEP,
-	SCD4X_WAITING
 };
 
 #pragma region Structures
@@ -206,11 +191,9 @@ typedef struct
 	bool performingCalibration : 1;
 	bool reenable : 1;
 	bool retainedSettingsInitialized : 1;
-	bool standardOperationDisabled : 1;		//Standard operation is disabled like reading and publishing. (Used for when performing a special action)
+	bool standardOperationDisabled : 1;	//Standard operation is disabled like reading and publishing. (Used for when performing a special action)
 	SCD4x_PowerMode powerMode : 1;
-	Scd4xState state;						//Current state of the device.
-	Scd4xState waitForState;				//State which is waiting to enter.
-	//uint8_t failedReads;					//How many reads have failed sequentially.
+	//uint8_t failedReads;				//How many reads have failed sequentially.
 	uint16_t error;
 	uint16_t selfTestResults;
 }SCD4xStatus_t;

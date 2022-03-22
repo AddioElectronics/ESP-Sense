@@ -30,6 +30,7 @@
     <link rel="stylesheet" href="../assets/css/status-list.css">
     <link rel="stylesheet" href="../assets/css/styles.css">
     <link rel="stylesheet" href="../assets/css/webupdate.css">
+    <link rel="stylesheet" href="../assets/css/notifications.css">
     <link rel="stylesheet" href="../assets/css/themes/darkfixed.css">
 </head>
 
@@ -38,15 +39,15 @@
     <main class="d-none">
         <div class="container">
             <section mqtt="devicelist">
-                <div class="vis-detect" button="select-device"></div><ledgroup device-type="all">
-    <led class="hover-glow" style="--led-hue: 50;" state="disabled"></led>
-    <led class="hover-glow" style="--led-hue: 110;margin-right: 10px;"state="ok"></led>
+                <div class="vis-detect" button="select-device"></div><ledgroup dev-type="all">
+    <led class="hover-glow" style="--led-hue: 110;"state="ok"></led>
+    <led class="hover-glow" style="--led-hue: 50;" state="disabled"></led>    
     <div id="led_disabled" class="led remove-me" style="--led-hue: 50;" disabled></div>
     <div id="led_ok" class="led remove-me" style="--led-hue: 110;" disabled></div>
 </ledgroup><button class="btn disabled position-absolute" type="button" action="select-device" disabled="">Need to Load Devices</button>
                 <h2 class="heading">MQTT Devices&nbsp; &nbsp;</h2>
                 <div class="grid list">
-                    <div class="device-group test" device-type="sensors">
+                    <div class="device-group test" dev-type="sensors">
                         <div class="grid head-container">
                             <h3 class="d-inline-block">Sensors</h3>
                             <div class="led-group" action="set-subdevice-type-state">
@@ -62,7 +63,7 @@
                             <div id="testing" class="grid device-container" tabindex="0"><span name="">Co2 Sensor</span><span device="">SCD4x<br></span><span state="disabled"><br></span></div>
                         </div>
                     </div>
-                    <div class="device-group test" device-type="sensors">
+                    <div class="device-group test" dev-type="sensors">
                         <div class="grid head-container">
                             <h3 class="d-inline-block">Binary Sensors</h3>
                         </div>
@@ -97,23 +98,35 @@
                 </div>
                 <div status-content="mqttdevice" border-id="status" hide-id="status"></div>
             </section>
+            <section class="device-config status-list" dev-index="" dev-type="">
+                <div class="row device-heading sub-list">
+                    <div class="col">
+                        <h1>Config<br></h1>
+                    </div>
+                    <div class="col"></div>
+                    <div class="col"><button class="btn btn-primary" type="button" action="border-toggle" border-id="config">Toggle Borders</button><button class="btn btn-primary" type="button" action="hide-content" hide-id="config">Hide</button></div>
+                </div>
+                <div config-content="mqttdevice" border-id="config" hide-id="config"></div>
+            </section>
         </div>
     </main>
-    <aside id="control_panel"><button class="btn btn-primary" id="esp_reset_button" type="button" row="3" column="5">Reset ESP</button></aside>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../assets/js/extensions/Array.js"></script>
     <script src="../assets/js/extensions/set.js"></script>
     <script src="../assets/js/extensions/String.js"></script>
     <script src="../assets/js/localstorage.js"></script>
     <script src="../assets/js/delegates/EventWindowResize.js"></script>
     <script src="../assets/js/delegates/EventWindowScroll.js"></script>
     <script src="../assets/js/delegates/EventReady.js"></script>
+    <script src="../assets/js/delegates/EventMouseMove.js"></script>
     <script src="../assets/js/delegates/CustomEvents.js"></script>
     <script src="../assets/js/elements.js"></script>
     <script src="../assets/js/globalElements.js"></script>
     <script src="../assets/js/helper.js"></script>
     <script src="../assets/js/codebeauty.js"></script>
+    <script src="../assets/js/notifications.js"></script>
     <script src="../assets/js/esp.js"></script>
     <script src="../assets/js/authenticator.js"></script>
     <script src="../assets/js/globalStatus.js"></script>

@@ -25,18 +25,22 @@ MqttDeviceGlobalStatus_t Llc200d3sh_Sensor::globalDeviceStatus;
 
 bool Llc200d3sh_Sensor::Subscribe()
 {
+	deviceStatus.subscribed = true;
+	return true;
 	return MqttDevice::Subscribe();
 }
 
 bool Llc200d3sh_Sensor::Unsubscribe()
 {
+	deviceStatus.subscribed = false;
+	return true;
 	return MqttDevice::Unsubscribe();
 }
 
 bool Llc200d3sh_Sensor::Read()
 {
 	if (deviceStatus.state != (DeviceState_t)DeviceState::DEVICE_OK)
-		return;
+		return false;
 
 	DEBUG_LOG_F("Reading %s water level.\r\n-GPIO : %d\r\n", name.c_str(), uniqueConfig.program.gpio);
 

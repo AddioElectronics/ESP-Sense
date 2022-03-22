@@ -30,6 +30,7 @@
     <link rel="stylesheet" href="../../assets/css/status-list.css">
     <link rel="stylesheet" href="../../assets/css/styles.css">
     <link rel="stylesheet" href="../../assets/css/webupdate.css">
+    <link rel="stylesheet" href="../../assets/css/notifications.css">
     <link rel="stylesheet" href="../../assets/css/themes/darkfixed.css">
 </head>
 
@@ -64,36 +65,35 @@
                 <div class="status-list" status-content="mqttdevice" hide-id="status" border-id="status"></div>
             </section>
             <hr>
-            <section class="device-config">
+            <section class="device-config status-list" dev-index="" dev-type="">
                 <div class="row device-heading sub-list">
                     <div class="col">
-                        <h3>Config</h3>
+                        <h1>Config<br></h1>
                     </div>
                     <div class="col"></div>
-                    <div class="col"><button class="btn btn-primary" type="button" action="border-toggle" actionid="config">Toggle Borders</button><button class="btn btn-primary" type="button" action="hide-content" hide-id="config" style="margin-left: 15px;">Hide</button></div>
+                    <div class="col"><button class="btn btn-primary" type="button" action="border-toggle" border-id="config">Toggle Borders</button><button class="btn btn-primary" type="button" action="hide-content" hide-id="config">Hide</button></div>
                 </div>
-                <form class="config-form" device="scd4x" action="mqttconfig" border-id="config" hide-id="config"></form>
-            </section><pre id="scd4x_status" class="json"></pre>
-
-<pre id="scd4x_config" class="json"></pre>
-
-<pre id="scd4x_measurement" class="json"></pre>
+                <div config-content="mqttdevice" border-id="config" hide-id="config"></div>
+            </section>
         </div>
     </main>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assets/js/extensions/Array.js"></script>
     <script src="../../assets/js/extensions/set.js"></script>
     <script src="../../assets/js/extensions/String.js"></script>
     <script src="../../assets/js/localstorage.js"></script>
     <script src="../../assets/js/delegates/EventWindowResize.js"></script>
     <script src="../../assets/js/delegates/EventWindowScroll.js"></script>
     <script src="../../assets/js/delegates/EventReady.js"></script>
+    <script src="../../assets/js/delegates/EventMouseMove.js"></script>
     <script src="../../assets/js/delegates/CustomEvents.js"></script>
     <script src="../../assets/js/elements.js"></script>
     <script src="../../assets/js/globalElements.js"></script>
     <script src="../../assets/js/helper.js"></script>
     <script src="../../assets/js/codebeauty.js"></script>
+    <script src="../../assets/js/notifications.js"></script>
     <script src="../../assets/js/esp.js"></script>
     <script src="../../assets/js/authenticator.js"></script>
     <script src="../../assets/js/globalStatus.js"></script>

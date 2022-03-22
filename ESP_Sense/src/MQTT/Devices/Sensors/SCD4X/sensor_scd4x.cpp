@@ -84,25 +84,28 @@ void Scd4xSensor::Loop()
 	if (deviceStatus.state != (DeviceState_t)DeviceState::DEVICE_OK) return;
 
 	
-
-	if (uniqueStatus.state == Scd4xState::SCD4X_FACTORY_RESET /*uniqueStatus.performingFactoryReset*/)
+	if (sensorStatus.sleeping)
+	{
+		if (!Wake())
+			return;
+	}
+	else if (uniqueStatus.performingFactoryReset)
 	{
 		PerformFactoryReset();
 		return;
 	}
-	else if (uniqueStatus.state == Scd4xState::SCD4X_SELF_TEST/*uniqueStatus.performingSelfTest*/)
+	else if (uniqueStatus.performingSelfTest)
 	{
 		PerformSelfTest();
 		return;
 	}
-	else if (uniqueStatus.state == Scd4xState::SCD4X_FORCED_CALIBRATION/*uniqueStatus.performingCalibration*/)
+	else if (uniqueStatus.performingCalibration)
 	{
 		PerformForcedCalibration(calibrationSettings.targetCo2Concentration, calibrationSettings.frcCorrection);
 		return;
 	}
 
-
-	if (uniqueStatus.state != Scd4xState::SCD4X_PERIODIC_MEASURE /*&& !uniqueStatus.periodicallyMeasuring*/ && uniqueConfig.program.periodicMeasure)
+	if (!uniqueStatus.periodicallyMeasuring && uniqueConfig.program.periodicMeasure)
 	{
 		StartPeriodicMeasurements();
 	}
@@ -119,8 +122,6 @@ bool Scd4xSensor::Configure()
 	
 	int errors = 0;
 	DEBUG_LOG_F("Configuring %s(SCD4x)...", name.c_str());
-
-	uniqueStatus.state = Scd4xState::SCD4X_CONFIGURE;
 
 #warning currently no way to save settings to EEPROM, so no way to load them. Will be added with browser tool.
 	goto Label_SkipConfigTest;
@@ -180,8 +181,6 @@ EspSettings:
 	DEBUG_NEWLINE();
 	Label_SkipConfigTest:
 	deviceStatus.configured = true;
-
-	uniqueStatus.state = Scd4xState::SCD4X_IDLE;
 
 	//Set Period Measurements.
 	if (uniqueConfig.program.periodicMeasure)
@@ -256,6 +255,9 @@ uint32_t successfulReads;
 
 bool Scd4xSensor::Subscribe()
 {
+	deviceStatus.subscribed = true;
+	return true;
+
 	return MqttDevice::Subscribe();
 
 //#warning  Also remember about the useParents settings.
@@ -273,6 +275,8 @@ bool Scd4xSensor::Subscribe()
 
 bool Scd4xSensor::Unsubscribe()
 {
+	deviceStatus.subscribed = false;
+	return true;
 	return MqttDevice::Unsubscribe();
 
 	//if (deviceMqttSettings.json)
@@ -309,11 +313,15 @@ bool Scd4xSensor::Publish()
 
 void Scd4xSensor::AddStatePayload(JsonVariant& addTo)
 {
+	DEBUG_LOG_F("Add %s State Payload\r\n", name.c_str());
+
 	JsonObject obj = addTo.getOrAddMember("statePayload");
 
 	if (uniqueConfig.mqtt.publishCo2)
 	{
 		JsonVariant co2 = obj.getOrAddMember("co2");
+
+		DEBUG_LOG_F("Add Co2 %dppm\r\n", measurementData.co2);
 
 		if (sensorStatus.connected)
 			co2.set(measurementData.co2);
@@ -325,6 +333,8 @@ void Scd4xSensor::AddStatePayload(JsonVariant& addTo)
 	{
 		JsonVariant temp = obj.getOrAddMember("temp");
 
+		DEBUG_LOG_F("Add temp %dppm\r\n", measurementData.temperature);
+
 		if (sensorStatus.connected)
 			temp.set(measurementData.temperature);
 		else
@@ -334,6 +344,8 @@ void Scd4xSensor::AddStatePayload(JsonVariant& addTo)
 	if (uniqueConfig.mqtt.publishHumdiity)
 	{
 		JsonVariant humidity = obj.getOrAddMember("humidity");
+
+		DEBUG_LOG_F("Add tehumiditymp %dppm\r\n", measurementData.humidity);
 
 		if (sensorStatus.connected)
 			humidity.set(measurementData.humidity);
@@ -691,8 +703,6 @@ bool Scd4xSensor::Connect()
 	if (sensorStatus.connected)
 		return true;
 
-	uniqueStatus.state = Scd4xState::SCD4X_CONNECT;
-
 	//if (uniqueStatus.periodicallyMeasuring)
 	//{
 	//	StopPeriodicMeasurements();
@@ -702,8 +712,8 @@ bool Scd4xSensor::Connect()
 
 	if (sensorStatus.connected)
 	{
+
 		DEBUG_LOG_LN("SCD4x Connected");
-		uniqueStatus.state = Scd4xState::SCD4X_IDLE;
 		//DEBUG_LOG_LN("SCD4x Connected");
 		//client.publish(topic_debug, "SCD4x Connected");
 
@@ -714,14 +724,12 @@ bool Scd4xSensor::Connect()
 		//Perform test to see if sensor is working properly.
 		if (uniqueConfig.program.bootSelfTest && !deviceStatus.configured)
 		{
-			//Wait 10 seconds in case periodic measurements were enabled.
+			//Wait 10 seconds incase periodic measurements were enabled.
 			DEBUG_LOG_LN("SCD4x Performing Self-Test...");
 
 			EspSense::YieldWatchdog(10000);
 
-			//uniqueStatus.state = Scd4xState::SCD4X_SELF_TEST;
 			uniqueStatus.error = sensor.performSelfTest(uniqueStatus.selfTestResults);
-			//uniqueStatus.state = Scd4xState::SCD4X_IDLE;
 
 			if (uniqueStatus.error)
 			{
@@ -843,7 +851,6 @@ bool Scd4xSensor::Read()
 		{
 			DEBUG_LOG("Starting SCD41 Single-shot Measurement...");
 
-			uniqueStatus.state = Scd4xState::SCD4X_MEASURE;
 			sensorStatus.measurementTimestamp = millis();
 			uniqueStatus.error = sensor.measureSingleShot();
 			sensorStatus.failedReads = 0;
@@ -872,9 +879,6 @@ bool Scd4xSensor::Read()
 			{
 			ReadSCD4x:
 				DEBUG_LOG("Reading Data...");
-
-				if(uniqueStatus.state == Scd4xState::SCD4X_MEASURE)
-					uniqueStatus.state = Scd4xState::SCD4X_IDLE;
 
 				uniqueStatus.error = sensor.readMeasurement(measurementData.co2, measurementData.temperature, measurementData.humidity);
 
@@ -927,8 +931,6 @@ bool Scd4xSensor::Read()
 
 bool Scd4xSensor::PowerDown()
 {
-	if (uniqueStatus.state == Scd4xState::SCD4X_SLEEP) return;
-
 	//Already performing another task.
 	if (uniqueStatus.standardOperationDisabled)
 	{
@@ -956,7 +958,6 @@ bool Scd4xSensor::PowerDown()
 	else
 	{
 		DEBUG_LOG_LN("SCD41 Power down Complete.");
-		uniqueStatus.state = Scd4xState::SCD4X_SLEEP;
 		sensorStatus.sleeping = true;
 	}
 
@@ -965,7 +966,7 @@ bool Scd4xSensor::PowerDown()
 
 bool Scd4xSensor::Wake()
 {
-	if (uniqueStatus.state == Scd4xState::SCD4X_SLEEP)
+	if (sensorStatus.sleeping)
 	{
 		DEBUG_LOG_F("Waking %s", name.c_str());
 		if (uniqueStatus.error = sensor.wakeUp() != 0) //0 = no error
@@ -973,10 +974,8 @@ bool Scd4xSensor::Wake()
 			DisplayError("SCD41 Wake Up Failed", uniqueStatus.error);
 			return false;
 		}
-
-		sensorStatus.sleeping = false;
-		uniqueStatus.state = Scd4xState::SCD4X_IDLE;
 		DEBUG_LOG_F("%s Is Awake", name.c_str());
+		sensorStatus.sleeping = false;
 	}
 
 	return true;
@@ -1051,25 +1050,14 @@ bool Scd4xSensor::IsDataReady(uint16_t* error, uint16_t* result)
 	}
 }
 
-bool Scd4xSensor::SetNextState(Scd4xState state)
-{
-	if(CanSendCommand())
 
-	uniqueStatus.waitForState = state;
-	return false;
-}
-
-
-bool Scd4xSensor::CanSendCommand(Scd4x_Command_Address command, uint16_t elapsed, bool fix)
-{	
-	bool connectAttempted = false;
-
+bool Scd4xSensor::CanSendCommand(Scd4x_Command_Type command, uint16_t elapsed, bool fix)
+{	bool triedToConnect = false;
 CheckAgain:
-	
 	if (!sensorStatus.connected)
 	{
-		if (fix && !connectAttempted) {
-			Connect(); connectAttempted = true;
+		if (fix && !triedToConnect) {
+			Connect(); triedToConnect = true;
 			goto CheckAgain;
 		}
 		return false;
@@ -1078,10 +1066,10 @@ CheckAgain:
 	switch (command)
 	{
 		//These commands can be started when a measurement is taking place.
-	case Scd4x_Command_Address::SCD4X_READ_MEASUREMENT:
-	case Scd4x_Command_Address::SCD4X_STOP_PERIODIC_MEASUREMENT:
-	//case Scd4x_Command_Address::SCD4X_SET_AMBIENT_PRESSURE:
-	case Scd4x_Command_Address::SCD4X_GET_DATA_READY_STATUS:
+	case Scd4x_Command_Type::SCD4X_READ_MEASUREMENT:
+	case Scd4x_Command_Type::SCD4X_STOP_PERIODIC_MEASUREMENT:
+	case Scd4x_Command_Type::SCD4X_SET_AMBIENT_PRESSURE:
+	case Scd4x_Command_Type::SCD4X_GET_DATA_READY_STATUS:
 		break;
 	default:
 		if (elapsed && millis() < sensorStatus.measurementTimestamp + elapsed)
@@ -1092,7 +1080,7 @@ CheckAgain:
 			} 
 			return false;
 		}
-		else if (uniqueStatus.state == Scd4xState::SCD4X_MEASURE/*uniqueStatus.measurementStarted */)
+		else if (uniqueStatus.measurementStarted)
 		{
 			DEBUG_LOG_LN("Cannot Start Command as a measurement has been started.");
 			if (fix) {
@@ -1100,7 +1088,7 @@ CheckAgain:
 			}
 			return false;
 		}
-		else if (uniqueStatus.state == Scd4xState::SCD4X_PERIODIC_MEASURE)
+		else if (uniqueStatus.periodicallyMeasuring)
 		{
 			if (fix) {
 				StopPeriodicMeasurements();
@@ -1149,7 +1137,7 @@ bool Scd4xSensor::StartPeriodicMeasurements()
 
 	DEBUG_LOG_LN("Starting Periodic Measurements...");
 
-	if (!CanSendCommand(Scd4x_Command_Address::SCD4X_START_PERIODIC_MEASUREMENT, 0, true))
+	if (!CanSendCommand(Scd4x_Command_Type::SCD4X_START_PERIODIC_MEASUREMENT, 0, true))
 	{
 		return false;
 	}
@@ -1176,7 +1164,6 @@ bool Scd4xSensor::StartPeriodicMeasurements()
 	}
 	else
 	{
-		uniqueStatus.state = Scd4xState::SCD4X_PERIODIC_MEASURE;
 		DEBUG_LOG_LN("Periodic Measurements Started.");
 		uniqueStatus.powerMode = uniqueConfig.program.powerMode;
 		uniqueStatus.periodicallyMeasuring = true;
@@ -1203,7 +1190,6 @@ bool Scd4xSensor::StopPeriodicMeasurements(bool force)
 	else
 	{
 		DEBUG_LOG_LN("Periodic Measurements Stopped.");
-		uniqueStatus.state = Scd4xState::SCD4X_IDLE;
 		uniqueStatus.periodicallyMeasuring = false;
 		sensorStatus.measurementTimestamp = millis();
 		return true;
@@ -1247,7 +1233,7 @@ bool Scd4xSensor::GetSerialNumber(SCD4xSerialNumber_t& serialNumber, bool displa
 
 bool Scd4xSensor::PerformSelfTest()
 {
-	if (uniqueStatus.state != Scd4xState::SCD4X_SELF_TEST/*!uniqueStatus.performingSelfTest*/)
+	if (!uniqueStatus.performingSelfTest)
 	{
 		//Already performing another task.
 		if (uniqueStatus.standardOperationDisabled)
@@ -1256,7 +1242,6 @@ bool Scd4xSensor::PerformSelfTest()
 			return false;
 		}
 
-		uniqueStatus.state = Scd4xState::SCD4X_SELF_TEST;
 		uniqueStatus.performingSelfTest = true;
 		uniqueStatus.standardOperationDisabled = true;
 		uniqueStatus.reenable = deviceStatus.enabled;
@@ -1266,7 +1251,7 @@ bool Scd4xSensor::PerformSelfTest()
 
 
 
-	if (!CanSendCommand(Scd4x_Command_Address::SCD4X_PERFORM_SELF_TEST, 0, true))
+	if (!CanSendCommand(Scd4x_Command_Type::SCD4X_PERFORM_SELF_TEST, 0, true))
 	{
 		return false;
 	}
@@ -1291,7 +1276,6 @@ bool Scd4xSensor::PerformSelfTest()
 	if (uniqueStatus.reenable)
 		Enable();
 
-	uniqueStatus.state = Scd4xState::SCD4X_IDLE;
 	uniqueStatus.performingSelfTest = false;
 	uniqueStatus.standardOperationDisabled = false;
 
@@ -1300,7 +1284,7 @@ bool Scd4xSensor::PerformSelfTest()
 
 bool Scd4xSensor::PerformFactoryReset()
 {
-	if (uniqueStatus.state != Scd4xState::SCD4X_FACTORY_RESET /*!uniqueStatus.performingFactoryReset*/)
+	if (!uniqueStatus.performingFactoryReset)
 	{
 		//Already performing another task.
 		if (uniqueStatus.standardOperationDisabled)
@@ -1315,7 +1299,7 @@ bool Scd4xSensor::PerformFactoryReset()
 
 	DEBUG_LOG_LN("SCD41 Performing Factory Reset...");
 
-	if (!CanSendCommand(Scd4x_Command_Address::SCD4X_PERFORM_FACTORY_RESET, 30000, true))
+	if (!CanSendCommand(Scd4x_Command_Type::SCD4X_PERFORM_FACTORY_RESET, 30000, true))
 	{
 		return false;
 	}
@@ -1331,7 +1315,6 @@ bool Scd4xSensor::PerformFactoryReset()
 		DEBUG_LOG_LN("SCD41 Factory Reset Complete.");
 	}
 
-	uniqueStatus.state = Scd4xState::SCD4X_IDLE;
 	ResetStatusPartial(false, true, true, false, true);
 	//uniqueStatus.dataReady = 0;
 	//uniqueStatus.error = 0;
@@ -1385,7 +1368,7 @@ bool Scd4xSensor::PerformForcedCalibration(uint16_t targetCo2Concentration, uint
 	DEBUG_LOG_LN("SCD41 Performing Forced-Calibration...");
 
 	//Need to wait 30 seconds after last measurement.
-	if (!CanSendCommand(Scd4x_Command_Address::SCD4X_PERFORM_FORCED_CALIBRATION, 30000, true))
+	if (!CanSendCommand(Scd4x_Command_Type::SCD4X_PERFORM_FORCED_CALIBRATION, 30000, true))
 	{
 		return false;
 	}

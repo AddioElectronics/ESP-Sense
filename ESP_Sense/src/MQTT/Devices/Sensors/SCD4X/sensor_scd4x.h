@@ -233,15 +233,12 @@ private:
 
 	bool IsDataReady(uint16_t* error, uint16_t* result);
 
-
-	bool SetNextState(Scd4xState state);
-
 	/// <summary>
 	/// Checks to see if a measurement is taking place.
 	/// Certain commands can only be sent when the device is "idle."
 	/// </summary>
 	/// <returns>If the commmand is allowed to be sent.</returns>
-	bool CanSendCommand(Scd4x_Command_Address command, uint16_t elapsed = 0, bool fix = false);
+	bool CanSendCommand(Scd4x_Command_Type command, uint16_t elapsed = 0, bool fix = false);
 
 	bool StartPeriodicMeasurements();
 	bool StopPeriodicMeasurements( bool force = false);
