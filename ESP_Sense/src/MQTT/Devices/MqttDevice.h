@@ -250,9 +250,10 @@ public:
 	//virtual String GenerateJsonConfig() = 0;		//Generate config data as string.
 
 	String GenerateJsonData(ADD_PAYLOAD_FUNC, const char* dataType, bool nest = true);
-	virtual String GenerateJsonStatePayload();
+	virtual String GenerateJsonStatePayload(bool nest = true);
 	String GenerateJsonStatus();
 	String GenerateJsonConfig();
+	String GenerateJsonTopics();
 	String GenerateJsonAll();
 
 	virtual bool CreateJsonDocument();
@@ -265,6 +266,7 @@ public:
 	virtual void AddStatePayload(JsonVariant& addTo, bool nest = true) = 0;		//Payload for MQTT state topic
 	virtual void AddStatusData(JsonVariant& addTo);								//device, binary/sensor/ect.., and unique status
 	virtual void AddConfigData(JsonVariant& addTo);								//device, binary/sensor/ect.., and unique config
+	virtual void AddTopicsData(JsonVariant& addTo);								//
 
 //protected:
 	//virtual bool GenerateStatusJsonPayload(JsonDocument& doc);	//Adds deviceStatus to a json string (each overloading function should call its parent) 

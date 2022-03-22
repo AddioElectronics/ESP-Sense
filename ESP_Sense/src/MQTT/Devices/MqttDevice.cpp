@@ -214,7 +214,7 @@ bool MqttDevice::Publish()
 
 	DEBUG_LOG_F("Publishing %s Data...\r\n", name.c_str());
 
-	String jdata = GenerateJsonStatePayload();
+	String jdata = GenerateJsonStatePayload(false);
 
 	DEBUG_LOG_F("-Data : %s\r\n", jdata.c_str());
 
@@ -312,13 +312,13 @@ String MqttDevice::GenerateJsonData(ADD_PAYLOAD_FUNC addPayload, const char* dat
 	return jdata;
 }
 
-String MqttDevice::GenerateJsonStatePayload()
+String MqttDevice::GenerateJsonStatePayload(bool nest)
 {
 	//DEBUG_LOG_F("%s GenerateJsonStatePayload()\r\n", name.c_str());
 	return GenerateJsonData([this](JsonVariant&, bool nest)
 	{
 		return this->AddStatePayload(this->documentRoot, nest);
-	}, "State Payload", false);
+	}, "State Payload", nest);
 }
 
 String MqttDevice::GenerateJsonStatus()
@@ -339,6 +339,14 @@ String MqttDevice::GenerateJsonConfig()
 	}, "Config");
 }
 
+String MqttDevice::GenerateJsonTopics()
+{
+	return GenerateJsonData([this](JsonVariant&, bool nest)
+	{
+		return this->AddTopicsData(this->documentRoot);
+	}, "Topics");
+}
+
 String MqttDevice::GenerateJsonAll()
 {
 	//DEBUG_LOG_F("%s GenerateJsonAll()\r\n", name.c_str());
@@ -347,6 +355,7 @@ String MqttDevice::GenerateJsonAll()
 		return this->AddStatusData(this->documentRoot);
 		return this->AddConfigData(this->documentRoot);
 		return this->AddStatePayload(this->documentRoot);
+		return this->AddTopicsData(this->documentRoot);
 	}, "All");
 }
 
@@ -434,6 +443,15 @@ void MqttDevice::AddConfigData(JsonVariant& addTo)
 {
 	addTo["deviceConfig"].set<MqttDeviceConfig_t>(deviceConfig);
 	addTo["deviceMqttSettings"].set<MqttDeviceMqttSettings_t>(deviceMqttSettings);
+}
+
+void MqttDevice::AddTopicsData(JsonVariant& addTo)
+{
+	JsonVariant obj = addTo.getOrAddMember("topics");
+
+	obj["availability"].set(topics.availability);
+	obj["jsonCommand"].set(topics.jsonCommand);
+	obj["jsonState"].set(topics.jsonState);
 }
 
 

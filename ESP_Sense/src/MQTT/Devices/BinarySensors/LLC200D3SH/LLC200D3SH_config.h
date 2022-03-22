@@ -10,7 +10,7 @@
 #define LLC200D3SH_CONFIG_NAME					"llc200d3sh.json"
 #define LLC200D3SH_CONFIG_PATH					"/mqtt/devices/binarysensors/" LLC200D3SH_CONFIG_NAME
 #define LLC200D3SH_CONFIG_OBJECT_KEY			"llc200d3sh"
-#define LLC200D3SH_WEBSITE_PATH					"/www/mqtt/devices/binarysensors/llc200d3sh.html"
+//#define LLC200D3SH_WEBSITE_PATH					"/www/mqtt/devices/binarysensors/llc200d3sh.html"
 
 #if defined(ESP8266)
 #define LLC200D3SH_GPIO							1		//Node MCU ESP-12 (D3)

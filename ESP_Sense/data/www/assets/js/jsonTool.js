@@ -1,1 +1,0 @@
-Show($('#tool_parent'));

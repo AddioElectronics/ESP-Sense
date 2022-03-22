@@ -4,14 +4,13 @@
 		"power": 6,
 		"station":{
 			"enabled":true,
-			"ssid": "Addio Electronics",
-			"pass": "o@5xEZ^7b76knuQDH",
+			"ssid": "",
+			"pass": "",
 			"ledGpio":32,
 			"ledOn":0
 		},
 		"accessPoint":{
 			"enabled":true,
-			"confOnly": true,
 			"ssid":"ESP-Sense",
 			"pass": "flashyourbits",
 			"hidden":false,
