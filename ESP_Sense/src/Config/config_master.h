@@ -230,7 +230,7 @@ enum ESP_MEMSIZE
 #pragma region Serial
 
 //#define SERIAL_COMMAND_CHAR				'%'					//The character which represents the start of a command.
-#warning Serial0 seems to always be enabled for debug features and libraries or an exception happens				
+#warning Serial0 seems to be required by the libraries used or an exception is caused.				
 #define SERIAL0_BAUDRATE				115200					//Serial Baudrate
 //#define SERIAL0_INVERT					false
 #define SERIAL0_TIMEOUT					20000
